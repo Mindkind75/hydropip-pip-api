@@ -1,0 +1,69 @@
+{
+  "version": "0.1",
+  "purpose": "Collect enough information to create a personalized HydroPip grow profile before Pip gives schedules.",
+  "questions": [
+    {
+      "id": "towerCount",
+      "label": "How many towers are you running?",
+      "type": "number",
+      "default": 4,
+      "required": true
+    },
+    {
+      "id": "crop",
+      "label": "What crop are you growing first?",
+      "type": "select",
+      "options": ["lettuce", "basil", "cilantro", "strawberry", "tomato", "peppers", "mixed greens"],
+      "default": "lettuce",
+      "required": true
+    },
+    {
+      "id": "plantingDate",
+      "label": "When did you plant or transplant?",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "reservoirGallons",
+      "label": "Reservoir size in gallons",
+      "type": "number",
+      "default": 275,
+      "required": true
+    },
+    {
+      "id": "climateMode",
+      "label": "Current weather/grow conditions",
+      "type": "select",
+      "options": ["cool", "mild", "warm", "hot"],
+      "default": "warm",
+      "required": true
+    },
+    {
+      "id": "feedDurationMinutes",
+      "label": "How many minutes does the tower feed pump run per cycle?",
+      "type": "number",
+      "default": 5,
+      "required": true
+    },
+    {
+      "id": "runoffLevel",
+      "label": "How much runoff do you see after a feed?",
+      "type": "select",
+      "options": ["none", "light", "steady", "too much", "unknown"],
+      "default": "unknown",
+      "required": true
+    },
+    {
+      "id": "ph",
+      "label": "Latest pH reading",
+      "type": "number",
+      "required": false
+    },
+    {
+      "id": "ec",
+      "label": "Latest EC or TDS reading",
+      "type": "text",
+      "required": false
+    }
+  ]
+}
