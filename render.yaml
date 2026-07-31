@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: hydropip-pip-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/pip/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: PIP_ALLOWED_ORIGINS
+        value: https://www.hydropip.com,https://hydropip.com
+      - key: PIP_FREE_MODE
+        value: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PIP_MODEL
+        value: gpt-5-mini
