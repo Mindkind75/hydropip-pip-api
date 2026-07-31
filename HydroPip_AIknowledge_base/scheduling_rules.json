@@ -1,0 +1,81 @@
+{
+  "version": "0.1",
+  "defaults": {
+    "reservoirGallons": 275,
+    "targetRunoff": "light runoff during calibration, then minimal excess once tuned",
+    "phRange": "5.8-6.3 for many leafy greens and herbs",
+    "feedWindowsByClimate": {
+      "cool": 2,
+      "mild": 2,
+      "warm": 3,
+      "hot": 5
+    },
+    "ibcCirculation": {
+      "normal": "15 minutes every 3 hours during daytime plus one overnight mix",
+      "afterNutrients": "45-60 minutes continuously after adding nutrients",
+      "hotWeather": "15 minutes every 1-2 daylight hours if readings or odor suggest stratification"
+    }
+  },
+  "baseTasks": [
+    {
+      "offsetDays": 0,
+      "title": "Plant or transplant",
+      "category": "planting",
+      "note": "Confirm feed line is flushed, towers are stable, and media is evenly moist."
+    },
+    {
+      "offsetDays": 1,
+      "title": "First flow check",
+      "category": "flow",
+      "note": "Confirm every tower receives water and note runoff after a feed cycle."
+    },
+    {
+      "repeatEveryDays": 2,
+      "title": "pH check",
+      "category": "testing",
+      "note": "Circulate the IBC first, then test pH and adjust slowly only if needed."
+    },
+    {
+      "repeatEveryDays": 7,
+      "title": "EC/TDS and tank-level check",
+      "category": "testing",
+      "note": "Record nutrient strength, water level, plant condition, and refill needs."
+    },
+    {
+      "repeatEveryDays": 14,
+      "title": "Flush feed hose end",
+      "category": "maintenance",
+      "note": "Open the end-of-hose valve/nozzle and flush debris from the main feed line."
+    }
+  ],
+  "cropTasks": {
+    "lettuce": [
+      { "offsetDays": 14, "title": "Light leaf harvest", "note": "Harvest outside leaves if growth is strong." },
+      { "offsetDays": 28, "title": "Main lettuce harvest window", "note": "Harvest or succession plant before bitterness increases." }
+    ],
+    "basil": [
+      { "offsetDays": 14, "title": "First basil pinch", "note": "Cut above a node to encourage branching." },
+      { "offsetDays": 28, "title": "Regular basil harvest", "note": "Harvest stems above nodes and avoid removing more than one-third at once." }
+    ],
+    "cilantro": [
+      { "offsetDays": 10, "title": "Thin crowded cilantro", "note": "Improve airflow and reduce crowding." },
+      { "offsetDays": 24, "title": "First cilantro harvest", "note": "Cut outer stems and avoid removing the center." }
+    ],
+    "strawberry": [
+      { "offsetDays": 18, "title": "Flower and pollination check", "note": "Support pollination indoors with airflow or hand pollination." },
+      { "offsetDays": 30, "title": "Runner trim", "note": "Remove runners if fruit production is the priority." }
+    ],
+    "tomato": [
+      { "offsetDays": 12, "title": "Nutrient strength check", "note": "Tomatoes often need stronger feed after growth accelerates." },
+      { "offsetDays": 21, "title": "Prune lower growth", "note": "Remove weak lower leaves and add support." }
+    ],
+    "peppers": [
+      { "offsetDays": 14, "title": "Pepper support check", "note": "Check stem strength and add support before flowering." },
+      { "offsetDays": 35, "title": "Flower and fruit watch", "note": "Keep pH steady and watch for heat stress." }
+    ],
+    "mixed greens": [
+      { "offsetDays": 12, "title": "First cut-and-come-again harvest", "note": "Clip outer leaves and keep crowns intact." },
+      { "offsetDays": 24, "title": "Succession planting reminder", "note": "Start another batch to keep harvests steady." }
+    ]
+  }
+}
