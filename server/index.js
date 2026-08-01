@@ -22,7 +22,7 @@ const chatHits = new Map();
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin) || isWixEmbedOrigin(origin)) {
         callback(null, true);
         return;
       }
@@ -104,3 +104,7 @@ app.use((error, _req, res, _next) => {
 app.listen(port, () => {
   console.log(`HydroPip Pip API running on port ${port}`);
 });
+
+function isWixEmbedOrigin(origin) {
+  return origin === "null" || /^https:\/\/[a-z0-9-]+\.filesusr\.com$/i.test(origin);
+}
