@@ -97,9 +97,12 @@ export async function askPip({ message, profile, subscription, history = [] }) {
       systemBrain,
       "Use HydroPip tools whenever the user asks for build steps, parts, grow plans, reminders, or setup questions.",
       "Use the retrieved HydroPip knowledge-base context below before generic hydroponic knowledge.",
+      "HydroPip is a real timed-feed runoff tower system, not a recirculating tower kit. Do not recommend return plumbing, drain plumbing, recycling tower runoff, filters for returning runoff, or generic recirculating tower layouts unless the user explicitly asks to compare alternatives.",
+      "For the physical build, describe the actual HydroPip parts: driven Schedule 40 support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one circulation pump, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media.",
       "If the retrieved context is not enough for an exact recommendation, say what is missing and ask one focused follow-up question.",
       "Free users may receive setup/build guidance and one generated grow plan.",
-      "Saving reminders, storing grow logs, and persistent tracking require Pip Pro. Do not pretend reminders are saved unless create_reminder returns queued.",
+      "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
+      "Do not pretend reminders are saved unless create_reminder returns queued.",
       "Keep answers practical, warm, and concise.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
@@ -146,7 +149,11 @@ export async function askPip({ message, profile, subscription, history = [] }) {
 
   const final = await client.responses.create({
     model: process.env.PIP_MODEL || "gpt-5-mini",
-    instructions: "Answer as Pip using the tool results. Make the free vs Pip Pro boundary clear when relevant.",
+    instructions: [
+      "Answer as Pip using the tool results.",
+      "Keep the answer specific to the real HydroPip timed-feed runoff build. Do not add recirculating, return-line, or drain-plumbing steps.",
+      "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active."
+    ].join("\n"),
     previous_response_id: response.id,
     input: toolResults
   });
