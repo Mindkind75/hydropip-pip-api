@@ -94,6 +94,29 @@ export async function askPip({ message, profile, subscription, history = [], use
     content: trimmed
   });
 
+  if (wantsCustomNonHydroPipSupport(trimmed) && !subscription?.active) {
+    const answer = [
+      "Custom help for DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip, aeroponics, aquaponics, or other non-HydroPip systems is Pip Pro.",
+      "For free, I can walk you through the real HydroPip timed-feed tower build, parts list, Amazon links, first fill, and basic operation. Want to start with one tower or the full four-tower setup?"
+    ].join("\n\n");
+    rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
+      mode: "subscription_gate",
+      sources: []
+    });
+    return {
+      answer,
+      mode: "subscription_gate",
+      sources: [],
+      subscriptionRequired: true,
+      upgradeReason: "Pip Pro unlocks custom support for non-HydroPip hydro systems, saved plans, reminders, readings, and grow logs.",
+      projectMemory
+    };
+  }
+
   const client = await getOpenAiClient();
   if (!client) {
     const answer = fallbackAnswer(trimmed, retrieval);
@@ -220,6 +243,14 @@ export async function askPip({ message, profile, subscription, history = [], use
 
 function wantsTracking(message) {
   return /\b(remind|reminder|track|save|notify|schedule this|log)\b/i.test(message);
+}
+
+function wantsCustomNonHydroPipSupport(message) {
+  const normalized = String(message || "").toLowerCase();
+  const mentionsOtherSystem = /\b(dwc|deep water culture|nft|kratky|dutch bucket|ebb\s*(and|&)?\s*flow|flood\s*(and|&)?\s*drain|aeroponic|aeroponics|aquaponic|aquaponics|recirculating|rdwc|drip system|coco drip|bucket system)\b/.test(normalized);
+  if (!mentionsOtherSystem) return false;
+
+  return /\b(set ?up|setup|build|tune|schedule|plan|troubleshoot|fix|diagnose|optimize|guide|help|walk me through|instructions?)\b/.test(normalized);
 }
 
 async function getOpenAiClient() {

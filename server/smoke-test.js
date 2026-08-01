@@ -108,4 +108,12 @@ assert.equal(typeof memoryAnswer.answer, "string");
 assert.equal(memoryAnswer.projectMemory.active, true);
 assert.equal((listProjectMessages({ userId: "test-user", projectId: freeProject.project.id }) || []).length >= 2, true);
 
+const customSystemGate = await askPip({
+  message: "Can you help me set up my DWC bucket?",
+  subscription: { active: false }
+});
+assert.equal(customSystemGate.subscriptionRequired, true);
+assert.equal(customSystemGate.mode, "subscription_gate");
+assert.equal(customSystemGate.answer.includes("Pip Pro"), true);
+
 console.log("Pip smoke tests passed");
