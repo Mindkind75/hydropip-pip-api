@@ -103,7 +103,7 @@ export async function askPip({ message, profile, subscription, history = [] }) {
       "Free users may receive setup/build guidance and one generated grow plan.",
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "Do not pretend reminders are saved unless create_reminder returns queued.",
-      "Keep answers practical, warm, and concise.",
+      "Default to short chat answers: 2 to 4 compact bullets or short paragraphs, usually under 90 words. Offer to continue with the next step instead of giving the whole guide at once. Only give long detailed answers when the user asks for a full walkthrough, printable checklist, or full parts list.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
     input: [
@@ -152,7 +152,8 @@ export async function askPip({ message, profile, subscription, history = [] }) {
     instructions: [
       "Answer as Pip using the tool results.",
       "Keep the answer specific to the real HydroPip timed-feed runoff build. Do not add recirculating, return-line, or drain-plumbing steps.",
-      "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active."
+      "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
+      "Keep this final answer brief by default: 2 to 4 compact bullets or short paragraphs, usually under 90 words. End with one useful next-step prompt."
     ].join("\n"),
     previous_response_id: response.id,
     input: toolResults
