@@ -82,12 +82,12 @@ export async function askPip({ message, profile, subscription, history = [], use
   const retrieval = retrieveHydroPipContext(trimmed, { limit: 7 });
   const retrievedContext = formatContextForPrompt(retrieval);
   const userId = String(user?.id || user?.email || "").trim();
-  const projectContext = userId && projectId ? buildProjectContext({ userId, projectId }) : null;
+  const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId }) : null;
   const projectMemory = projectContext
     ? { active: true, projectId, projectType: projectContext.project.type }
     : { active: false, reason: userId && projectId ? "project_not_found" : "not_requested" };
 
-  rememberProjectMessage(projectContext, {
+  await rememberProjectMessage(projectContext, {
     userId,
     projectId,
     role: "user",
@@ -99,7 +99,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       "Custom help for DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip, aeroponics, aquaponics, or other non-HydroPip systems is Pip Pro.",
       "For free, I can walk you through the real HydroPip timed-feed tower build, parts list, Amazon links, first fill, and basic operation. Want to start with one tower or the full four-tower setup?"
     ].join("\n\n");
-    rememberProjectMessage(projectContext, {
+    await rememberProjectMessage(projectContext, {
       userId,
       projectId,
       role: "assistant",
@@ -120,7 +120,7 @@ export async function askPip({ message, profile, subscription, history = [], use
   const client = await getOpenAiClient();
   if (!client) {
     const answer = fallbackAnswer(trimmed, retrieval);
-    rememberProjectMessage(projectContext, {
+    await rememberProjectMessage(projectContext, {
       userId,
       projectId,
       role: "assistant",
@@ -192,7 +192,7 @@ export async function askPip({ message, profile, subscription, history = [], use
   if (!toolResults.length) {
     const answer = response.output_text || fallbackAnswer(trimmed, retrieval);
     const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
-    rememberProjectMessage(projectContext, {
+    await rememberProjectMessage(projectContext, {
       userId,
       projectId,
       role: "assistant",
@@ -224,7 +224,7 @@ export async function askPip({ message, profile, subscription, history = [], use
 
   const answer = final.output_text || fallbackAnswer(trimmed, retrieval);
   const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
-  rememberProjectMessage(projectContext, {
+  await rememberProjectMessage(projectContext, {
     userId,
     projectId,
     role: "assistant",
@@ -274,7 +274,7 @@ function compactProjectContext(projectContext) {
   };
 }
 
-function rememberProjectMessage(projectContext, message) {
+async function rememberProjectMessage(projectContext, message) {
   if (!projectContext) return null;
   return appendProjectMessage(message);
 }

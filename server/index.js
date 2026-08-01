@@ -10,6 +10,7 @@ import {
   createProject,
   createProjectReading,
   createProjectReminder,
+  getMemoryHealth,
   getProject,
   getProjectTemplates,
   listProjectMessages,
@@ -66,114 +67,162 @@ app.use("/api/pip/chat", (req, res, next) => {
   next();
 });
 
-app.get("/api/pip/health", (_req, res) => {
-  res.json({
-    ok: true,
-    ai: Boolean(process.env.OPENAI_API_KEY),
-    mode: process.env.OPENAI_API_KEY ? "openai" : "rules_fallback"
-  });
+app.get("/api/pip/health", async (_req, res, next) => {
+  try {
+    const memory = await getMemoryHealth();
+    res.json({
+      ok: true,
+      ai: Boolean(process.env.OPENAI_API_KEY),
+      mode: process.env.OPENAI_API_KEY ? "openai" : "rules_fallback",
+      memory
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/pip/wizard", (_req, res) => {
-  res.json(getWizardSchema());
+  res.json({
+    ...getWizardSchema()
+  });
 });
 
 app.get("/api/pip/project-templates", (_req, res) => {
   res.json(getProjectTemplates());
 });
 
-app.post("/api/pip/users", (req, res) => {
-  res.status(201).json({ user: upsertUser(req.body?.user || req.body || {}) });
-});
-
-app.get("/api/pip/projects", (req, res) => {
-  res.json({ projects: listProjects({ userId: req.query.userId }) });
-});
-
-app.post("/api/pip/projects", (req, res) => {
-  const result = createProject(req.body || {});
-  res.status(result.status === "created" ? 201 : 402).json(result);
-});
-
-app.get("/api/pip/projects/:projectId", (req, res) => {
-  const project = getProject({ userId: req.query.userId, projectId: req.params.projectId });
-  if (!project) {
-    res.status(404).json({ error: "project_not_found" });
-    return;
+app.post("/api/pip/users", async (req, res, next) => {
+  try {
+    res.status(201).json({ user: await upsertUser(req.body?.user || req.body || {}) });
+  } catch (error) {
+    next(error);
   }
-  res.json({ project });
 });
 
-app.patch("/api/pip/projects/:projectId", (req, res) => {
-  const project = updateProject({
-    userId: req.body?.userId || req.body?.user?.id,
-    projectId: req.params.projectId,
-    patch: req.body?.patch || req.body || {}
-  });
-  if (!project) {
-    res.status(404).json({ error: "project_not_found" });
-    return;
+app.get("/api/pip/projects", async (req, res, next) => {
+  try {
+    res.json({ projects: await listProjects({ userId: req.query.userId }) });
+  } catch (error) {
+    next(error);
   }
-  res.json({ project });
 });
 
-app.get("/api/pip/projects/:projectId/messages", (req, res) => {
-  const messages = listProjectMessages({
-    userId: req.query.userId,
-    projectId: req.params.projectId,
-    limit: req.query.limit
-  });
-  if (!messages) {
-    res.status(404).json({ error: "project_not_found" });
-    return;
+app.post("/api/pip/projects", async (req, res, next) => {
+  try {
+    const result = await createProject(req.body || {});
+    res.status(result.status === "created" ? 201 : 402).json(result);
+  } catch (error) {
+    next(error);
   }
-  res.json({ messages });
 });
 
-app.get("/api/pip/projects/:projectId/reminders", (req, res) => {
-  const reminders = listProjectReminders({ userId: req.query.userId, projectId: req.params.projectId });
-  if (!reminders) {
-    res.status(404).json({ error: "project_not_found" });
-    return;
+app.get("/api/pip/projects/:projectId", async (req, res, next) => {
+  try {
+    const project = await getProject({ userId: req.query.userId, projectId: req.params.projectId });
+    if (!project) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.json({ project });
+  } catch (error) {
+    next(error);
   }
-  res.json({ reminders });
 });
 
-app.post("/api/pip/projects/:projectId/reminders", (req, res) => {
-  const result = createProjectReminder({
-    userId: req.body?.userId || req.body?.user?.id,
-    projectId: req.params.projectId,
-    reminder: req.body?.reminder,
-    subscription: req.body?.subscription
-  });
-  if (!result) {
-    res.status(404).json({ error: "project_not_found" });
-    return;
+app.patch("/api/pip/projects/:projectId", async (req, res, next) => {
+  try {
+    const project = await updateProject({
+      userId: req.body?.userId || req.body?.user?.id,
+      projectId: req.params.projectId,
+      patch: req.body?.patch || req.body || {}
+    });
+    if (!project) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.json({ project });
+  } catch (error) {
+    next(error);
   }
-  res.status(result.status === "queued" ? 201 : 402).json(result);
 });
 
-app.get("/api/pip/projects/:projectId/readings", (req, res) => {
-  const readings = listProjectReadings({ userId: req.query.userId, projectId: req.params.projectId });
-  if (!readings) {
-    res.status(404).json({ error: "project_not_found" });
-    return;
+app.get("/api/pip/projects/:projectId/messages", async (req, res, next) => {
+  try {
+    const messages = await listProjectMessages({
+      userId: req.query.userId,
+      projectId: req.params.projectId,
+      limit: req.query.limit
+    });
+    if (!messages) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.json({ messages });
+  } catch (error) {
+    next(error);
   }
-  res.json({ readings });
 });
 
-app.post("/api/pip/projects/:projectId/readings", (req, res) => {
-  const result = createProjectReading({
-    userId: req.body?.userId || req.body?.user?.id,
-    projectId: req.params.projectId,
-    reading: req.body?.reading,
-    subscription: req.body?.subscription
-  });
-  if (!result) {
-    res.status(404).json({ error: "project_not_found" });
-    return;
+app.get("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
+  try {
+    const reminders = await listProjectReminders({ userId: req.query.userId, projectId: req.params.projectId });
+    if (!reminders) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.json({ reminders });
+  } catch (error) {
+    next(error);
   }
-  res.status(result.status === "saved" ? 201 : 402).json(result);
+});
+
+app.post("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
+  try {
+    const result = await createProjectReminder({
+      userId: req.body?.userId || req.body?.user?.id,
+      projectId: req.params.projectId,
+      reminder: req.body?.reminder,
+      subscription: req.body?.subscription
+    });
+    if (!result) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.status(result.status === "queued" ? 201 : 402).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/projects/:projectId/readings", async (req, res, next) => {
+  try {
+    const readings = await listProjectReadings({ userId: req.query.userId, projectId: req.params.projectId });
+    if (!readings) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.json({ readings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/projects/:projectId/readings", async (req, res, next) => {
+  try {
+    const result = await createProjectReading({
+      userId: req.body?.userId || req.body?.user?.id,
+      projectId: req.params.projectId,
+      reading: req.body?.reading,
+      subscription: req.body?.subscription
+    });
+    if (!result) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.status(result.status === "saved" ? 201 : 402).json(result);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/pip/build-steps", (req, res) => {

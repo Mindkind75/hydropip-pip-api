@@ -55,13 +55,26 @@ const defaultState = {
 };
 
 let stateCache;
+let poolPromise;
+let schemaPromise;
+let forceFileMemory = false;
 
 export function getProjectTemplates() {
   return { templates: projectTemplates };
 }
 
-export function upsertUser(user = {}) {
+export async function getMemoryHealth() {
+  if (!usesPostgres()) return { mode: "file", persistent: false };
+  const pool = await getPool();
+  await ensureSchema(pool);
+  await pool.query("select 1");
+  return { mode: "postgres", persistent: true };
+}
+
+export async function upsertUser(user = {}) {
   const normalized = normalizeUser(user);
+  if (usesPostgres()) return upsertUserPg(normalized);
+
   const state = readState();
   const existing = state.users[normalized.id] || {};
   const now = nowIso();
@@ -75,21 +88,32 @@ export function upsertUser(user = {}) {
   return state.users[normalized.id];
 }
 
-export function listProjects({ userId } = {}) {
+export async function listProjects({ userId } = {}) {
   const ownerId = requireUserId(userId);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, user_id, type, title, status, access, system_profile, created_at, updated_at
+       from pip_projects
+       where user_id = $1
+       order by updated_at desc`,
+      [ownerId]
+    );
+    return result.rows.map(rowToProject);
+  }
+
   const state = readState();
   return Object.values(state.projects)
     .filter((project) => project.userId === ownerId)
     .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
 }
 
-export function createProject({ user, type, title, systemProfile = {}, subscription = {} } = {}) {
-  const savedUser = upsertUser(user);
+export async function createProject({ user, type, title, systemProfile = {}, subscription = {} } = {}) {
+  const savedUser = await upsertUser(user);
   const template = getTemplate(type);
   const gate = checkProjectAccess(template, subscription);
   if (!gate.allowed) return gate;
 
-  const state = readState();
   const id = makeId("proj");
   const now = nowIso();
   const project = {
@@ -104,6 +128,28 @@ export function createProject({ user, type, title, systemProfile = {}, subscript
     updatedAt: now
   };
 
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(
+      `insert into pip_projects
+       (id, user_id, type, title, status, access, system_profile, created_at, updated_at)
+       values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
+      [
+        project.id,
+        project.userId,
+        project.type,
+        project.title,
+        project.status,
+        project.access,
+        JSON.stringify(project.systemProfile),
+        project.createdAt,
+        project.updatedAt
+      ]
+    );
+    return { status: "created", project };
+  }
+
+  const state = readState();
   state.projects[id] = project;
   state.conversations[id] = [];
   state.reminders[id] = [];
@@ -112,17 +158,27 @@ export function createProject({ user, type, title, systemProfile = {}, subscript
   return { status: "created", project };
 }
 
-export function getProject({ userId, projectId } = {}) {
+export async function getProject({ userId, projectId } = {}) {
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, user_id, type, title, status, access, system_profile, created_at, updated_at
+       from pip_projects
+       where id = $1 and user_id = $2`,
+      [projectId, userId]
+    );
+    return result.rows[0] ? rowToProject(result.rows[0]) : null;
+  }
+
   const state = readState();
   const project = state.projects[projectId];
   if (!project || project.userId !== userId) return null;
   return project;
 }
 
-export function updateProject({ userId, projectId, patch = {} } = {}) {
-  const state = readState();
-  const project = state.projects[projectId];
-  if (!project || project.userId !== userId) return null;
+export async function updateProject({ userId, projectId, patch = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
 
   const allowed = ["title", "status", "systemProfile"];
   for (const key of allowed) {
@@ -131,23 +187,51 @@ export function updateProject({ userId, projectId, patch = {} } = {}) {
     }
   }
   project.updatedAt = nowIso();
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_projects
+       set title = $1, status = $2, system_profile = $3::jsonb, updated_at = $4
+       where id = $5 and user_id = $6
+       returning id, user_id, type, title, status, access, system_profile, created_at, updated_at`,
+      [project.title, project.status, JSON.stringify(project.systemProfile), project.updatedAt, projectId, userId]
+    );
+    return result.rows[0] ? rowToProject(result.rows[0]) : null;
+  }
+
+  const state = readState();
   state.projects[projectId] = project;
   writeState(state);
   return project;
 }
 
-export function listProjectMessages({ userId, projectId, limit = 50 } = {}) {
-  const project = getProject({ userId, projectId });
+export async function listProjectMessages({ userId, projectId, limit = 50 } = {}) {
+  const project = await getProject({ userId, projectId });
   if (!project) return null;
+  const safeLimit = Math.max(1, Math.min(200, Number(limit || 50)));
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, role, content, mode, sources, created_at
+       from pip_messages
+       where project_id = $1 and user_id = $2
+       order by created_at desc
+       limit $3`,
+      [projectId, userId, safeLimit]
+    );
+    return result.rows.reverse().map(rowToMessage);
+  }
+
   const state = readState();
-  return (state.conversations[projectId] || []).slice(-Math.max(1, Number(limit || 50)));
+  return (state.conversations[projectId] || []).slice(-safeLimit);
 }
 
-export function appendProjectMessage({ userId, projectId, role, content, mode, sources = [] } = {}) {
-  const project = getProject({ userId, projectId });
+export async function appendProjectMessage({ userId, projectId, role, content, mode, sources = [] } = {}) {
+  const project = await getProject({ userId, projectId });
   if (!project) return null;
 
-  const state = readState();
   const message = {
     id: makeId("msg"),
     role: role === "assistant" ? "assistant" : "user",
@@ -156,21 +240,47 @@ export function appendProjectMessage({ userId, projectId, role, content, mode, s
     sources,
     createdAt: nowIso()
   };
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(
+      `insert into pip_messages (id, project_id, user_id, role, content, mode, sources, created_at)
+       values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)`,
+      [message.id, projectId, userId, message.role, message.content, message.mode, JSON.stringify(sources || []), message.createdAt]
+    );
+    await pool.query("update pip_projects set updated_at = $1 where id = $2", [message.createdAt, projectId]);
+    return message;
+  }
+
+  const state = readState();
   state.conversations[projectId] = [...(state.conversations[projectId] || []), message].slice(-200);
   state.projects[projectId].updatedAt = message.createdAt;
   writeState(state);
   return message;
 }
 
-export function listProjectReminders({ userId, projectId } = {}) {
-  const project = getProject({ userId, projectId });
+export async function listProjectReminders({ userId, projectId } = {}) {
+  const project = await getProject({ userId, projectId });
   if (!project) return null;
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, title, note, category, due_date, repeat_rule, status, created_at
+       from pip_reminders
+       where project_id = $1 and user_id = $2
+       order by created_at asc`,
+      [projectId, userId]
+    );
+    return result.rows.map(rowToReminder);
+  }
+
   const state = readState();
   return state.reminders[projectId] || [];
 }
 
-export function createProjectReminder({ userId, projectId, reminder = {}, subscription = {} } = {}) {
-  const project = getProject({ userId, projectId });
+export async function createProjectReminder({ userId, projectId, reminder = {}, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
   if (!project) return null;
   if (!subscription?.active) {
     return {
@@ -180,7 +290,6 @@ export function createProjectReminder({ userId, projectId, reminder = {}, subscr
     };
   }
 
-  const state = readState();
   const saved = {
     id: makeId("rem"),
     title: String(reminder.title || "HydroPip reminder"),
@@ -191,21 +300,59 @@ export function createProjectReminder({ userId, projectId, reminder = {}, subscr
     status: "active",
     createdAt: nowIso()
   };
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(
+      `insert into pip_reminders
+       (id, project_id, user_id, title, note, category, due_date, repeat_rule, status, created_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)`,
+      [
+        saved.id,
+        projectId,
+        userId,
+        saved.title,
+        saved.note,
+        saved.category,
+        saved.dueDate,
+        JSON.stringify(saved.repeat),
+        saved.status,
+        saved.createdAt
+      ]
+    );
+    await pool.query("update pip_projects set updated_at = $1 where id = $2", [saved.createdAt, projectId]);
+    return { status: "queued", reminder: saved };
+  }
+
+  const state = readState();
   state.reminders[projectId] = [...(state.reminders[projectId] || []), saved];
   state.projects[projectId].updatedAt = saved.createdAt;
   writeState(state);
   return { status: "queued", reminder: saved };
 }
 
-export function listProjectReadings({ userId, projectId } = {}) {
-  const project = getProject({ userId, projectId });
+export async function listProjectReadings({ userId, projectId } = {}) {
+  const project = await getProject({ userId, projectId });
   if (!project) return null;
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, reading, taken_at, created_at
+       from pip_readings
+       where project_id = $1 and user_id = $2
+       order by taken_at asc, created_at asc`,
+      [projectId, userId]
+    );
+    return result.rows.map(rowToReading);
+  }
+
   const state = readState();
   return state.readings[projectId] || [];
 }
 
-export function createProjectReading({ userId, projectId, reading = {}, subscription = {} } = {}) {
-  const project = getProject({ userId, projectId });
+export async function createProjectReading({ userId, projectId, reading = {}, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
   if (!project) return null;
   if (!subscription?.active) {
     return {
@@ -215,7 +362,6 @@ export function createProjectReading({ userId, projectId, reading = {}, subscrip
     };
   }
 
-  const state = readState();
   const saved = {
     id: makeId("read"),
     ph: normalizeOptionalNumber(reading.ph),
@@ -227,19 +373,32 @@ export function createProjectReading({ userId, projectId, reading = {}, subscrip
     takenAt: reading.takenAt || nowIso(),
     createdAt: nowIso()
   };
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(
+      `insert into pip_readings (id, project_id, user_id, reading, taken_at, created_at)
+       values ($1, $2, $3, $4::jsonb, $5, $6)`,
+      [saved.id, projectId, userId, JSON.stringify(saved), saved.takenAt, saved.createdAt]
+    );
+    await pool.query("update pip_projects set updated_at = $1 where id = $2", [saved.createdAt, projectId]);
+    return { status: "saved", reading: saved };
+  }
+
+  const state = readState();
   state.readings[projectId] = [...(state.readings[projectId] || []), saved];
   state.projects[projectId].updatedAt = saved.createdAt;
   writeState(state);
   return { status: "saved", reading: saved };
 }
 
-export function buildProjectContext({ userId, projectId } = {}) {
+export async function buildProjectContext({ userId, projectId } = {}) {
   if (!userId || !projectId) return null;
-  const project = getProject({ userId, projectId });
+  const project = await getProject({ userId, projectId });
   if (!project) return null;
-  const messages = listProjectMessages({ userId, projectId, limit: 8 }) || [];
-  const reminders = listProjectReminders({ userId, projectId }) || [];
-  const readings = listProjectReadings({ userId, projectId }) || [];
+  const messages = (await listProjectMessages({ userId, projectId, limit: 8 })) || [];
+  const reminders = (await listProjectReminders({ userId, projectId })) || [];
+  const readings = (await listProjectReadings({ userId, projectId })) || [];
   return {
     project,
     recentMessages: messages,
@@ -249,7 +408,114 @@ export function buildProjectContext({ userId, projectId } = {}) {
 }
 
 export function resetMemoryForTests() {
+  forceFileMemory = true;
   stateCache = cloneDefaultState();
+}
+
+function usesPostgres() {
+  return Boolean(process.env.DATABASE_URL && !forceFileMemory);
+}
+
+async function readyPool() {
+  const pool = await getPool();
+  await ensureSchema(pool);
+  return pool;
+}
+
+async function getPool() {
+  if (!process.env.DATABASE_URL) throw Object.assign(new Error("DATABASE_URL is required"), { statusCode: 500 });
+  poolPromise ||= import("pg").then(({ Pool }) => {
+    const ssl =
+      process.env.PIP_DATABASE_SSL === "false"
+        ? false
+        : {
+            rejectUnauthorized: false
+          };
+    return new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl
+    });
+  });
+  return poolPromise;
+}
+
+async function ensureSchema(pool) {
+  schemaPromise ||= pool.query(`
+    create table if not exists pip_users (
+      id text primary key,
+      email text,
+      name text,
+      wix_member_id text,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+
+    create table if not exists pip_projects (
+      id text primary key,
+      user_id text not null references pip_users(id) on delete cascade,
+      type text not null,
+      title text not null,
+      status text not null default 'active',
+      access text not null,
+      system_profile jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create index if not exists pip_projects_user_updated_idx on pip_projects(user_id, updated_at desc);
+
+    create table if not exists pip_messages (
+      id text primary key,
+      project_id text not null references pip_projects(id) on delete cascade,
+      user_id text not null references pip_users(id) on delete cascade,
+      role text not null,
+      content text not null,
+      mode text,
+      sources jsonb not null default '[]'::jsonb,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists pip_messages_project_created_idx on pip_messages(project_id, created_at desc);
+
+    create table if not exists pip_reminders (
+      id text primary key,
+      project_id text not null references pip_projects(id) on delete cascade,
+      user_id text not null references pip_users(id) on delete cascade,
+      title text not null,
+      note text not null default '',
+      category text not null default 'general',
+      due_date text,
+      repeat_rule jsonb,
+      status text not null default 'active',
+      created_at timestamptz not null default now()
+    );
+    create index if not exists pip_reminders_project_created_idx on pip_reminders(project_id, created_at asc);
+
+    create table if not exists pip_readings (
+      id text primary key,
+      project_id text not null references pip_projects(id) on delete cascade,
+      user_id text not null references pip_users(id) on delete cascade,
+      reading jsonb not null default '{}'::jsonb,
+      taken_at timestamptz not null default now(),
+      created_at timestamptz not null default now()
+    );
+    create index if not exists pip_readings_project_taken_idx on pip_readings(project_id, taken_at asc);
+  `);
+  return schemaPromise;
+}
+
+async function upsertUserPg(normalized) {
+  const pool = await readyPool();
+  const result = await pool.query(
+    `insert into pip_users (id, email, name, wix_member_id, created_at, updated_at)
+     values ($1, $2, $3, $4, now(), now())
+     on conflict (id) do update set
+       email = excluded.email,
+       name = excluded.name,
+       wix_member_id = excluded.wix_member_id,
+       updated_at = now()
+     returning id, email, name, wix_member_id, created_at, updated_at`,
+    [normalized.id, normalized.email, normalized.name, normalized.wixMemberId]
+  );
+  return rowToUser(result.rows[0]);
 }
 
 function readState() {
@@ -326,12 +592,75 @@ function normalizeOptionalNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function rowToUser(row) {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    wixMemberId: row.wix_member_id,
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
+function rowToProject(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    title: row.title,
+    status: row.status,
+    access: row.access,
+    systemProfile: row.system_profile || {},
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
+function rowToMessage(row) {
+  return {
+    id: row.id,
+    role: row.role,
+    content: row.content,
+    mode: row.mode,
+    sources: row.sources || [],
+    createdAt: toIso(row.created_at)
+  };
+}
+
+function rowToReminder(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    note: row.note,
+    category: row.category,
+    dueDate: row.due_date,
+    repeat: row.repeat_rule,
+    status: row.status,
+    createdAt: toIso(row.created_at)
+  };
+}
+
+function rowToReading(row) {
+  return {
+    ...(row.reading || {}),
+    id: row.id,
+    takenAt: toIso(row.taken_at),
+    createdAt: toIso(row.created_at)
+  };
+}
+
 function makeId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function toIso(value) {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
 function cloneDefaultState() {

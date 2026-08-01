@@ -4,6 +4,7 @@ import {
   createProject,
   createProjectReading,
   createProjectReminder,
+  getMemoryHealth,
   getProjectTemplates,
   listProjectMessages,
   resetMemoryForTests
@@ -40,10 +41,13 @@ assert.equal(answer.answer.length > 20, true);
 assert.equal(Array.isArray(answer.sources), true);
 
 resetMemoryForTests();
+const memoryHealth = await getMemoryHealth();
+assert.equal(memoryHealth.mode, "file");
+
 const templates = getProjectTemplates();
 assert.equal(templates.templates.some((template) => template.id === "existing_system_setup"), true);
 
-const freeProject = createProject({
+const freeProject = await createProject({
   user: { id: "test-user", email: "test@example.com" },
   type: "hydropip_build",
   title: "Backyard HydroPip",
@@ -52,7 +56,7 @@ const freeProject = createProject({
 });
 assert.equal(freeProject.status, "created");
 
-const existingSystemBlocked = createProject({
+const existingSystemBlocked = await createProject({
   user: { id: "test-user" },
   type: "existing_system_setup",
   systemProfile: { systemType: "dwc", reservoirGallons: 27, crops: ["lettuce"] },
@@ -60,7 +64,7 @@ const existingSystemBlocked = createProject({
 });
 assert.equal(existingSystemBlocked.status, "subscription_required");
 
-const existingSystemPaid = createProject({
+const existingSystemPaid = await createProject({
   user: { id: "test-user" },
   type: "existing_system_setup",
   systemProfile: { systemType: "dwc", reservoirGallons: 27, crops: ["lettuce"] },
@@ -68,21 +72,21 @@ const existingSystemPaid = createProject({
 });
 assert.equal(existingSystemPaid.status, "created");
 
-const paidBlocked = createProject({
+const paidBlocked = await createProject({
   user: { id: "test-user" },
   type: "crop_schedule",
   subscription: { active: false }
 });
 assert.equal(paidBlocked.status, "subscription_required");
 
-const paidProject = createProject({
+const paidProject = await createProject({
   user: { id: "test-user" },
   type: "crop_schedule",
   subscription: { active: true, plan: "pip_pro" }
 });
 assert.equal(paidProject.status, "created");
 
-const savedReminder = createProjectReminder({
+const savedReminder = await createProjectReminder({
   userId: "test-user",
   projectId: paidProject.project.id,
   reminder: { title: "Check pH", dueDate: "2026-08-02" },
@@ -90,7 +94,7 @@ const savedReminder = createProjectReminder({
 });
 assert.equal(savedReminder.status, "queued");
 
-const blockedReading = createProjectReading({
+const blockedReading = await createProjectReading({
   userId: "test-user",
   projectId: freeProject.project.id,
   reading: { ph: 6.1 },
@@ -106,7 +110,7 @@ const memoryAnswer = await askPip({
 });
 assert.equal(typeof memoryAnswer.answer, "string");
 assert.equal(memoryAnswer.projectMemory.active, true);
-assert.equal((listProjectMessages({ userId: "test-user", projectId: freeProject.project.id }) || []).length >= 2, true);
+assert.equal(((await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id })) || []).length >= 2, true);
 
 const customSystemGate = await askPip({
   message: "Can you help me set up my DWC bucket?",

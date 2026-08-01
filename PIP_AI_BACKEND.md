@@ -18,6 +18,7 @@ This folder turns Pip from a local browser prototype into a real backend-backed 
   - `POST /api/pip/projects/:projectId/reminders`
   - `POST /api/pip/projects/:projectId/readings`
 - Health check at `GET /api/pip/health`
+- Persistent Postgres memory when `DATABASE_URL` is set, with JSON file fallback for local testing.
 
 If `OPENAI_API_KEY` is not set, Pip uses deterministic HydroPip rules plus the local knowledge search. If `OPENAI_API_KEY` is set, Pip uses OpenAI with retrieved HydroPip context, tool calls, and the subscription boundary.
 
@@ -74,6 +75,8 @@ This project includes `render.yaml`, so Render can read the service settings fro
    - `OPENAI_API_KEY`: your OpenAI API key.
    - `PIP_ALLOWED_ORIGINS`: `https://www.hydropip.com,https://hydropip.com`
    - `PIP_MODEL`: `gpt-5-mini`
+   - `DATABASE_URL`: your Postgres connection string for persistent member/project memory.
+   - `PIP_DATABASE_SSL`: keep `true` for most managed Postgres providers. Use `false` only if the provider requires a non-SSL internal connection.
 5. Deploy, then open:
 
 ```text
@@ -86,7 +89,11 @@ Healthy production output should look like:
 {
   "ok": true,
   "ai": true,
-  "mode": "openai"
+  "mode": "openai",
+  "memory": {
+    "mode": "postgres",
+    "persistent": true
+  }
 }
 ```
 
@@ -123,7 +130,15 @@ Built-in project types:
 - `grow_log`: Pip Pro project
 - `sensor_schedule`: future Pip Pro project for sensor-tuned scheduling
 
-The MVP stores memory in JSON at `server/.data/pip-memory.json`, or wherever `PIP_MEMORY_FILE` points. This is good for local testing and wiring the Wix UI. For production on Render, either attach a persistent disk or move this storage to a real database such as Supabase, Neon Postgres, or Wix Data. Render's normal filesystem should be treated as ephemeral between rebuilds/deployments.
+Pip memory now uses Postgres automatically when `DATABASE_URL` is set. It creates these tables on startup/first use:
+
+- `pip_users`
+- `pip_projects`
+- `pip_messages`
+- `pip_reminders`
+- `pip_readings`
+
+If `DATABASE_URL` is missing, Pip falls back to JSON at `server/.data/pip-memory.json`, or wherever `PIP_MEMORY_FILE` points. That fallback is only for local testing and wiring the Wix UI. For production on Render, use managed Postgres so member projects, conversations, reminders, and readings survive deploys/restarts.
 
 Example project-scoped chat payload:
 
