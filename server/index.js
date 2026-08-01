@@ -6,6 +6,19 @@ import { fileURLToPath } from "node:url";
 import { askPip } from "./pipAgent.js";
 import { createGrowPlan, createReminder, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
+import {
+  createProject,
+  createProjectReading,
+  createProjectReminder,
+  getProject,
+  getProjectTemplates,
+  listProjectMessages,
+  listProjectReadings,
+  listProjectReminders,
+  listProjects,
+  updateProject,
+  upsertUser
+} from "./pipMemory.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -65,6 +78,104 @@ app.get("/api/pip/wizard", (_req, res) => {
   res.json(getWizardSchema());
 });
 
+app.get("/api/pip/project-templates", (_req, res) => {
+  res.json(getProjectTemplates());
+});
+
+app.post("/api/pip/users", (req, res) => {
+  res.status(201).json({ user: upsertUser(req.body?.user || req.body || {}) });
+});
+
+app.get("/api/pip/projects", (req, res) => {
+  res.json({ projects: listProjects({ userId: req.query.userId }) });
+});
+
+app.post("/api/pip/projects", (req, res) => {
+  const result = createProject(req.body || {});
+  res.status(result.status === "created" ? 201 : 402).json(result);
+});
+
+app.get("/api/pip/projects/:projectId", (req, res) => {
+  const project = getProject({ userId: req.query.userId, projectId: req.params.projectId });
+  if (!project) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+  res.json({ project });
+});
+
+app.patch("/api/pip/projects/:projectId", (req, res) => {
+  const project = updateProject({
+    userId: req.body?.userId || req.body?.user?.id,
+    projectId: req.params.projectId,
+    patch: req.body?.patch || req.body || {}
+  });
+  if (!project) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+  res.json({ project });
+});
+
+app.get("/api/pip/projects/:projectId/messages", (req, res) => {
+  const messages = listProjectMessages({
+    userId: req.query.userId,
+    projectId: req.params.projectId,
+    limit: req.query.limit
+  });
+  if (!messages) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+  res.json({ messages });
+});
+
+app.get("/api/pip/projects/:projectId/reminders", (req, res) => {
+  const reminders = listProjectReminders({ userId: req.query.userId, projectId: req.params.projectId });
+  if (!reminders) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+  res.json({ reminders });
+});
+
+app.post("/api/pip/projects/:projectId/reminders", (req, res) => {
+  const result = createProjectReminder({
+    userId: req.body?.userId || req.body?.user?.id,
+    projectId: req.params.projectId,
+    reminder: req.body?.reminder,
+    subscription: req.body?.subscription
+  });
+  if (!result) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+  res.status(result.status === "queued" ? 201 : 402).json(result);
+});
+
+app.get("/api/pip/projects/:projectId/readings", (req, res) => {
+  const readings = listProjectReadings({ userId: req.query.userId, projectId: req.params.projectId });
+  if (!readings) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+  res.json({ readings });
+});
+
+app.post("/api/pip/projects/:projectId/readings", (req, res) => {
+  const result = createProjectReading({
+    userId: req.body?.userId || req.body?.user?.id,
+    projectId: req.params.projectId,
+    reading: req.body?.reading,
+    subscription: req.body?.subscription
+  });
+  if (!result) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+  res.status(result.status === "saved" ? 201 : 402).json(result);
+});
+
 app.get("/api/pip/build-steps", (req, res) => {
   res.json(getBuildStep({ stepId: req.query.stepId }));
 });
@@ -95,9 +206,9 @@ app.post("/api/pip/chat", async (req, res, next) => {
 
 app.use((error, _req, res, _next) => {
   console.error(error);
-  res.status(500).json({
+  res.status(error.statusCode || 500).json({
     error: "pip_error",
-    message: "Pip hit a server-side issue. Check the backend logs."
+    message: error.statusCode ? error.message : "Pip hit a server-side issue. Check the backend logs."
   });
 });
 

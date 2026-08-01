@@ -1,9 +1,9 @@
-import OpenAI from "openai";
 import { systemBrain } from "./pipData.js";
 import { createGrowPlan, createReminder, fallbackAnswer, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
+import { appendProjectMessage, buildProjectContext } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 
-const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+let clientPromise;
 
 const toolMap = {
   get_build_step: getBuildStep,
@@ -76,18 +76,41 @@ const tools = [
   }
 ];
 
-export async function askPip({ message, profile, subscription, history = [] }) {
+export async function askPip({ message, profile, subscription, history = [], user, projectId }) {
   const trimmed = String(message || "").trim();
   if (!trimmed) return { answer: "Ask me where you are in the HydroPip build and I will guide the next step.", mode: "empty" };
   const retrieval = retrieveHydroPipContext(trimmed, { limit: 7 });
   const retrievedContext = formatContextForPrompt(retrieval);
+  const userId = String(user?.id || user?.email || "").trim();
+  const projectContext = userId && projectId ? buildProjectContext({ userId, projectId }) : null;
+  const projectMemory = projectContext
+    ? { active: true, projectId, projectType: projectContext.project.type }
+    : { active: false, reason: userId && projectId ? "project_not_found" : "not_requested" };
 
+  rememberProjectMessage(projectContext, {
+    userId,
+    projectId,
+    role: "user",
+    content: trimmed
+  });
+
+  const client = await getOpenAiClient();
   if (!client) {
+    const answer = fallbackAnswer(trimmed, retrieval);
+    rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
+      mode: "rules_fallback",
+      sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }))
+    });
     return {
-      answer: fallbackAnswer(trimmed, retrieval),
+      answer,
       mode: "rules_fallback",
       sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score })),
-      subscriptionRequired: wantsTracking(trimmed) && !subscription?.active
+      subscriptionRequired: wantsTracking(trimmed) && !subscription?.active,
+      projectMemory
     };
   }
 
@@ -99,11 +122,14 @@ export async function askPip({ message, profile, subscription, history = [] }) {
       "Use the retrieved HydroPip knowledge-base context below before generic hydroponic knowledge.",
       "HydroPip is a real timed-feed runoff tower system, not a recirculating tower kit. Do not recommend return plumbing, drain plumbing, recycling tower runoff, filters for returning runoff, or generic recirculating tower layouts unless the user explicitly asks to compare alternatives.",
       "For the physical build, describe the actual HydroPip parts: driven Schedule 40 support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one circulation pump, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media.",
+      "Free mode should be genuinely useful for building and operating the HydroPip system. When parts are relevant, naturally point users to the HydroPip parts list and Amazon affiliate links instead of giving unrelated shopping advice.",
+      "Custom guidance for non-HydroPip systems, including DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip systems, or custom hydro setups, is Pip Pro. Free users can receive a brief explanation of the boundary and should be invited to use HydroPip Build for free.",
       "If the retrieved context is not enough for an exact recommendation, say what is missing and ask one focused follow-up question.",
-      "Free users may receive setup/build guidance and one generated grow plan.",
+      "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "Do not pretend reminders are saved unless create_reminder returns queued.",
-      "Default to short chat answers: 2 to 4 compact bullets or short paragraphs, usually under 90 words. Offer to continue with the next step instead of giving the whole guide at once. Only give long detailed answers when the user asks for a full walkthrough, printable checklist, or full parts list.",
+      "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
+      "Default to short chat answers: 1 to 3 compact bullets or short paragraphs, usually under 70 words. Avoid long headings like 'Short answer' unless helpful. Offer to continue with the next step instead of giving the whole guide at once. Only give long detailed answers when the user asks for a full walkthrough, printable checklist, or full parts list.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
     input: [
@@ -116,7 +142,8 @@ export async function askPip({ message, profile, subscription, history = [] }) {
             text: JSON.stringify({
               message: trimmed,
               currentProfile: profile || null,
-              subscription: subscription || { active: false, plan: "free" }
+              subscription: subscription || { active: false, plan: "free" },
+              projectContext: compactProjectContext(projectContext)
             })
           }
         ]
@@ -140,10 +167,21 @@ export async function askPip({ message, profile, subscription, history = [] }) {
   }
 
   if (!toolResults.length) {
-    return {
-      answer: response.output_text || fallbackAnswer(trimmed, retrieval),
+    const answer = response.output_text || fallbackAnswer(trimmed, retrieval);
+    const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
+    rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
       mode: "ai_rag",
-      sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }))
+      sources
+    });
+    return {
+      answer,
+      mode: "ai_rag",
+      sources,
+      projectMemory
     };
   }
 
@@ -152,20 +190,60 @@ export async function askPip({ message, profile, subscription, history = [] }) {
     instructions: [
       "Answer as Pip using the tool results.",
       "Keep the answer specific to the real HydroPip timed-feed runoff build. Do not add recirculating, return-line, or drain-plumbing steps.",
+      "When parts are relevant, point users toward the HydroPip parts list/Amazon affiliate links as the easiest way to match the build.",
+      "If the user asks for help with a non-HydroPip hydro system, explain briefly that custom support for other systems is Pip Pro.",
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
-      "Keep this final answer brief by default: 2 to 4 compact bullets or short paragraphs, usually under 90 words. End with one useful next-step prompt."
+      "Keep this final answer brief by default: 1 to 3 compact bullets or short paragraphs, usually under 70 words. End with one useful next-step prompt."
     ].join("\n"),
     previous_response_id: response.id,
     input: toolResults
   });
 
-  return {
-    answer: final.output_text || fallbackAnswer(trimmed, retrieval),
+  const answer = final.output_text || fallbackAnswer(trimmed, retrieval);
+  const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
+  rememberProjectMessage(projectContext, {
+    userId,
+    projectId,
+    role: "assistant",
+    content: answer,
     mode: "ai_tools_rag",
-    sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }))
+    sources
+  });
+
+  return {
+    answer,
+    mode: "ai_tools_rag",
+    sources,
+    projectMemory
   };
 }
 
 function wantsTracking(message) {
   return /\b(remind|reminder|track|save|notify|schedule this|log)\b/i.test(message);
+}
+
+async function getOpenAiClient() {
+  if (!process.env.OPENAI_API_KEY) return null;
+  clientPromise ||= import("openai")
+    .then(({ default: OpenAI }) => new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
+    .catch((error) => {
+      console.warn(`OpenAI client unavailable, using rules fallback: ${error.message}`);
+      return null;
+    });
+  return clientPromise;
+}
+
+function compactProjectContext(projectContext) {
+  if (!projectContext) return null;
+  return {
+    project: projectContext.project,
+    activeReminders: projectContext.activeReminders,
+    recentReadings: projectContext.recentReadings,
+    recentMessages: projectContext.recentMessages.map(({ role, content, createdAt }) => ({ role, content, createdAt }))
+  };
+}
+
+function rememberProjectMessage(projectContext, message) {
+  if (!projectContext) return null;
+  return appendProjectMessage(message);
 }

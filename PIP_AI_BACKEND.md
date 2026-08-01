@@ -11,6 +11,12 @@ This folder turns Pip from a local browser prototype into a real backend-backed 
 - Parts recommendation data at `GET /api/pip/parts?towerCount=4`
 - Grow plan generation at `POST /api/pip/grow-plan`
 - Subscription-gated reminder creation at `POST /api/pip/reminders`
+- Project templates at `GET /api/pip/project-templates`
+- Member/project creation at `POST /api/pip/users` and `POST /api/pip/projects`
+- Project-scoped conversation memory at `GET /api/pip/projects/:projectId/messages`
+- Subscription-gated project reminders and readings at:
+  - `POST /api/pip/projects/:projectId/reminders`
+  - `POST /api/pip/projects/:projectId/readings`
 - Health check at `GET /api/pip/health`
 
 If `OPENAI_API_KEY` is not set, Pip uses deterministic HydroPip rules plus the local knowledge search. If `OPENAI_API_KEY` is set, Pip uses OpenAI with retrieved HydroPip context, tool calls, and the subscription boundary.
@@ -104,6 +110,32 @@ POST https://your-pip-api.example.com/api/pip/chat
 
 If the backend is unavailable, the chat falls back to the local rules so visitors are not left with a broken buddy.
 
+## Project Memory MVP
+
+Pip now has a first-pass project memory system. The frontend can create a member-backed project, pass `user.id` and `projectId` into `POST /api/pip/chat`, and Pip will include that project context in future answers.
+
+Built-in project types:
+
+- `hydropip_build`: free member project for the HydroPip build walkthrough
+- `existing_system_setup`: Pip Pro project for mapping any non-HydroPip home hydroponic system
+- `crop_schedule`: Pip Pro project
+- `maintenance_plan`: Pip Pro project
+- `grow_log`: Pip Pro project
+- `sensor_schedule`: future Pip Pro project for sensor-tuned scheduling
+
+The MVP stores memory in JSON at `server/.data/pip-memory.json`, or wherever `PIP_MEMORY_FILE` points. This is good for local testing and wiring the Wix UI. For production on Render, either attach a persistent disk or move this storage to a real database such as Supabase, Neon Postgres, or Wix Data. Render's normal filesystem should be treated as ephemeral between rebuilds/deployments.
+
+Example project-scoped chat payload:
+
+```json
+{
+  "message": "What should I do next?",
+  "user": { "id": "wix-member-id", "email": "grower@example.com" },
+  "projectId": "proj_example",
+  "subscription": { "active": false, "plan": "free" }
+}
+```
+
 ## Subscription Boundary
 
 Free:
@@ -127,7 +159,7 @@ The placeholder reminder endpoint currently returns `402 subscription_required` 
 
 - Add real member authentication before accepting saved reminders.
 - Map Wix Pricing Plans or Stripe subscriptions to `subscription.active`.
-- Store grow profiles and reminders in a database instead of browser state.
+- Store grow profiles, conversations, reminders, and readings in a persistent database.
 - Add scheduled reminder delivery through email, SMS, or push notifications.
 - Add rate limiting and abuse protection before broad public launch.
 - Log failed AI/tool calls so broken flows are visible quickly.
