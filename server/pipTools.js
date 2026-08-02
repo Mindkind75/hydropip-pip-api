@@ -118,6 +118,7 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
 
+  if (wantsHoseEndSize(q)) return hoseEndSizeAnswer(contextLead);
   if (wantsTowerFeedTubing(q) || wantsTubingPurchase(q)) return tubingSupplyAnswer(contextLead);
   if (wantsHoseEnd(q)) return hoseEndSupplyAnswer(contextLead);
   if (wantsPart(q, ["main hose", "main feed hose", "garden hose", "feed hose", "hose from pump", "hose to towers"])) {
@@ -270,7 +271,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   if (/\b(flush|flushing)\b/.test(q) && /\b(main line|feed line|hose|line)\b/.test(q)) {
     return `${contextLead}Yes, flush the main feed line occasionally.\n- Open the end-of-hose valve/nozzle.\n- Run the feed pump briefly into a safe drain bucket/area.\n- Close it and confirm each tower still drips evenly.\n\nFlush valve: ${affiliateLinks.hoseEndValve}`;
   }
-  return `${contextLead}I can help with HydroPip build, parts, feed timing, pH/EC, nutrients, IBC mixing, media reuse, and grow timing.\n\nAsk one specific thing, like “why are leaves yellow?” or “what link do I need for pumps?”`;
+  return `${contextLead}I can help with HydroPip build, parts, feed timing, pH/EC, nutrients, IBC mixing, media reuse, and grow timing.\n\nAsk one specific thing, like "why are leaves yellow?" or "what link do I need for pumps?"`;
 }
 
 function wantsTowerFeedTubing(q) {
@@ -291,6 +292,11 @@ function wantsHoseEnd(q) {
   return endIntent && fittingIntent;
 }
 
+function wantsHoseEndSize(q) {
+  return /\b(what size|which size|size should|what diameter|which diameter|what thread|thread size)\b/.test(q) &&
+    /\b(end of the (main )?hose|hose end|end of the line|shutoff|flush valve|hose adapter|hose connector|future extension)\b/.test(q);
+}
+
 function wantsPart(q, terms) {
   return terms.some((term) => q.includes(term)) &&
     hasShoppingIntent(q);
@@ -307,6 +313,10 @@ function tubingSupplyAnswer(contextLead = "") {
 
 function hoseEndSupplyAnswer(contextLead = "") {
   return `${contextLead}Use two pieces at the end of the main feed hose.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Hose adapters for future extensions: ${affiliateLinks.hoseAdapters}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+}
+
+function hoseEndSizeAnswer(contextLead = "") {
+  return `${contextLead}Use standard 3/4-inch garden-hose-thread (GHT) hardware at the hose end; that thread size is separate from the hose's inside diameter.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Extension adapters: ${affiliateLinks.hoseAdapters}\n- Confirm your hose has standard garden-hose ends before ordering.\n\nHydroPip may earn from qualifying Amazon purchases.`;
 }
 
 function toReminder(start, offsetDays, title, note, category) {

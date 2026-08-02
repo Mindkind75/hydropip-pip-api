@@ -4,10 +4,15 @@
     return location.pathname.split("/").pop()||"index";
   }
   function height(){
-    return Math.max(
-      document.body ? document.body.scrollHeight : 0,
-      document.documentElement ? document.documentElement.scrollHeight : 0
-    );
+    if(!document.body)return 0;
+    var bottom=0;
+    Array.prototype.forEach.call(document.body.children,function(element){
+      if(element.tagName==="SCRIPT"||getComputedStyle(element).position==="fixed")return;
+      var rect=element.getBoundingClientRect();
+      var marginBottom=parseFloat(getComputedStyle(element).marginBottom)||0;
+      bottom=Math.max(bottom,rect.bottom+window.scrollY+marginBottom);
+    });
+    return Math.ceil(bottom);
   }
   function postHeight(){
     var nextHeight=height();

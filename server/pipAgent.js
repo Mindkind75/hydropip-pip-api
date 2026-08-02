@@ -164,16 +164,17 @@ export async function askPip({ message, profile, subscription, history = [], use
 
   const directAnswer = highConfidenceAnswer(withRecentContext(trimmed, recentHistory), retrieval);
   if (directAnswer) {
+    const answer = compactAnswer(directAnswer, trimmed, retrieval);
     await rememberProjectMessage(projectContext, {
       userId,
       projectId,
       role: "assistant",
-      content: directAnswer,
+      content: answer,
       mode: "rules_direct",
       sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }))
     });
     return {
-      answer: directAnswer,
+      answer,
       mode: "rules_direct",
       sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score })),
       projectMemory
@@ -182,7 +183,7 @@ export async function askPip({ message, profile, subscription, history = [], use
 
   const client = await getOpenAiClient();
   if (!client) {
-    const answer = fallbackAnswer(trimmed, retrieval);
+    const answer = compactAnswer(fallbackAnswer(withRecentContext(trimmed, recentHistory), retrieval), trimmed, retrieval);
     await rememberProjectMessage(projectContext, {
       userId,
       projectId,
@@ -324,9 +325,12 @@ function wantsDetailedInfo(message) {
 function compactAnswer(answer, message, retrieval) {
   const disclosed = ensureAffiliateDisclosure(answer);
   if (wantsDetailedInfo(message)) return disclosed;
+  // Preserve complete product URLs and the Amazon disclosure. The prompt keeps
+  // linked answers concise, and a usable link matters more than a few words.
+  if (hasAmazonLink(disclosed)) return disclosed;
   const words = String(disclosed || "").trim().split(/\s+/).filter(Boolean);
   if (words.length <= 100) return disclosed;
-  return ensureAffiliateDisclosure(trimToWordBudget(disclosed, hasAmazonLink(disclosed) ? 95 : 90));
+  return trimToWordBudget(disclosed, 90);
 }
 
 function normalizeHistory(history = []) {
@@ -334,19 +338,25 @@ function normalizeHistory(history = []) {
   return history
     .slice(-8)
     .map((item) => ({
-      role: item?.role === "assistant" ? "assistant" : "user",
+      role: item?.role === "assistant" || item?.role === "pip" ? "assistant" : "user",
       content: String(item?.content || "").slice(0, 1200)
     }))
     .filter((item) => item.content.trim());
 }
 
 function withRecentContext(message, history = []) {
-  if (!history.length) return message;
+  if (!history.length || !isVagueFollowUp(message)) return message;
   const recent = history
     .slice(-4)
     .map((item) => `${item.role}: ${item.content}`)
     .join("\n");
   return `${recent}\ncurrent user: ${message}`;
+}
+
+function isVagueFollowUp(message) {
+  const normalized = String(message || "").trim().toLowerCase();
+  if (!normalized || normalized.length > 140) return false;
+  return /\b(it|that|this|they|them|those|one|same|also|instead|what about|what size|which one|how many|will it|does it|is it|can it|where does|how does)\b/.test(normalized);
 }
 
 function trimToWordBudget(answer, maxWords) {

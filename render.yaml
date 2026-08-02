@@ -19,5 +19,9 @@ services:
         value: https://www.hydropip.com/pip?pro=1
       - key: OPENAI_API_KEY
         sync: false
+      - key: PIP_BRIDGE_SECRET
+        sync: false
+      - key: PIP_REQUIRE_SIGNED_SESSIONS
+        value: false
       - key: PIP_MODEL
         value: gpt-5-mini

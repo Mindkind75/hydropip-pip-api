@@ -23,6 +23,16 @@ const cases = [
   { q: "I need the grow medium.", type: "product", must: ["B0FYTT7D6F", "B08WF8C5CL", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
   { q: "What link do I need for the end of the hose so I can add more towers later?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip2002-20"] },
   { q: "What piece goes on the end of the main hose?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip2002-20"], avoid: ["Main garden hose feed line"] },
+  {
+    q: "What size should it be?",
+    type: "product",
+    history: [
+      { role: "user", content: "I need the piece for the end of the main hose so I can add more towers later." },
+      { role: "assistant", content: "Use the shutoff/flush valve plus hose adapters for future extensions." }
+    ],
+    must: ["3/4-inch", "GHT", "B013646334", "hydrpip2002-20"],
+    avoid: ["Tell me the step", "narrow this"]
+  },
   { q: "Where do I buy seeds for this?", type: "product", must: ["seed", "hydrpip2002-20"] },
   { q: "Give me the full 4 tower shopping list with links.", type: "detailed", must: ["B007TFTW3U", "B07L54HB83"] },
   { q: "Can you save a reminder to prune basil every Friday?", type: "pro", must: ["Pip Pro", proUrl] },
@@ -54,7 +64,7 @@ const cases = [
 
 const results = [];
 for (const item of cases) {
-  const data = await ask(item.q);
+  const data = await ask(item.q, item.history || []);
   const answer = String(data.answer || "");
   const words = answer.trim().split(/\s+/).filter(Boolean).length;
   const detailed = item.type === "detailed";
@@ -69,6 +79,9 @@ for (const item of cases) {
     if (answer.toLowerCase().includes(token.toLowerCase())) failures.push(`bad phrase: ${token}`);
   }
   if (item.type === "product" && !answer.includes("hydrpip2002-20")) failures.push("missing affiliate tag");
+  if (/https?:\/\/(?:www\.)?amazon\.com/i.test(answer) && !answer.includes("HydroPip may earn from qualifying Amazon purchases.")) {
+    failures.push("missing Amazon disclosure");
+  }
   if (item.type === "pro" && !answer.includes(proUrl)) failures.push("missing Pro signup URL");
 
   results.push({ question: item.q, type: item.type, words, mode: data.mode, failures, answer });
@@ -83,13 +96,14 @@ for (const result of results) {
 
 assert.equal(failed.length, 0, `${failed.length} Pip QA case(s) failed`);
 
-async function ask(message) {
+async function ask(message, history = []) {
   if (apiUrl) {
     const response = await fetch(`${apiUrl.replace(/\/$/, "")}/api/pip/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
+        history,
         subscription: { active: false, plan: "free_member" },
         user: { id: "qa-suite", email: "qa@hydropip.com" }
       })
@@ -99,6 +113,7 @@ async function ask(message) {
   }
   return askPip({
     message,
+    history,
     subscription: { active: false, plan: "free_member" },
     user: { id: "qa-suite", email: "qa@hydropip.com" }
   });

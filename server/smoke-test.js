@@ -11,6 +11,16 @@ import {
 } from "./pipMemory.js";
 import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
+import { issuePipSession, verifyPipSession } from "./pipAuth.js";
+
+process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
+
+const signedSession = issuePipSession({
+  member: { id: "test-user", email: "test@hydropip.com" },
+  subscription: { active: true }
+});
+assert.equal(verifyPipSession(signedSession).sub, "test-user");
+assert.equal(verifyPipSession(`${signedSession}tampered`), null);
 
 const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);
@@ -119,5 +129,16 @@ const customSystemGate = await askPip({
 assert.equal(customSystemGate.subscriptionRequired, true);
 assert.equal(customSystemGate.mode, "subscription_gate");
 assert.equal(customSystemGate.answer.includes("Pip Pro"), true);
+
+const contextualPartAnswer = await askPip({
+  message: "What size should it be?",
+  history: [
+    { role: "user", content: "I need the fitting for the end of the main hose so I can add towers later." },
+    { role: "pip", content: "Use a shutoff valve and extension adapters at the end of the main feed hose." }
+  ],
+  subscription: { active: false }
+});
+assert.equal(contextualPartAnswer.answer.includes("3/4-inch"), true);
+assert.equal(contextualPartAnswer.answer.includes("B013646334"), true);
 
 console.log("Pip smoke tests passed");

@@ -7,6 +7,13 @@ import { askPip } from "./pipAgent.js";
 import { createGrowPlan, createReminder, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
 import {
+  bridgeRequestAllowed,
+  issuePipSession,
+  sessionFromRequest,
+  signedSessionsConfigured,
+  signedSessionsRequired
+} from "./pipAuth.js";
+import {
   createProject,
   createProjectReading,
   createProjectReminder,
@@ -74,6 +81,10 @@ app.get("/api/pip/health", async (_req, res, next) => {
       ok: true,
       ai: Boolean(process.env.OPENAI_API_KEY),
       mode: process.env.OPENAI_API_KEY ? "openai" : "rules_fallback",
+      sessions: {
+        configured: signedSessionsConfigured(),
+        required: signedSessionsRequired()
+      },
       memory
     });
   } catch (error) {
@@ -91,9 +102,25 @@ app.get("/api/pip/project-templates", (_req, res) => {
   res.json(getProjectTemplates());
 });
 
+app.post("/api/pip/session/exchange", (req, res) => {
+  if (!bridgeRequestAllowed(req)) {
+    res.status(401).json({ error: "invalid_bridge_credentials" });
+    return;
+  }
+  const token = issuePipSession(req.body || {});
+  if (!token) {
+    res.status(400).json({ error: "invalid_member_session" });
+    return;
+  }
+  res.json({ token, expiresIn: 6 * 60 * 60 });
+});
+
+app.use("/api/pip/users", requirePipMember);
+app.use("/api/pip/projects", requirePipMember);
+
 app.post("/api/pip/users", async (req, res, next) => {
   try {
-    res.status(201).json({ user: await upsertUser(req.body?.user || req.body || {}) });
+    res.status(201).json({ user: await upsertUser(req.pipUser) });
   } catch (error) {
     next(error);
   }
@@ -101,7 +128,7 @@ app.post("/api/pip/users", async (req, res, next) => {
 
 app.get("/api/pip/projects", async (req, res, next) => {
   try {
-    res.json({ projects: await listProjects({ userId: req.query.userId }) });
+    res.json({ projects: await listProjects({ userId: req.pipUser.id }) });
   } catch (error) {
     next(error);
   }
@@ -109,7 +136,11 @@ app.get("/api/pip/projects", async (req, res, next) => {
 
 app.post("/api/pip/projects", async (req, res, next) => {
   try {
-    const result = await createProject(req.body || {});
+    const result = await createProject({
+      ...(req.body || {}),
+      user: req.pipUser,
+      subscription: req.pipSubscription
+    });
     res.status(result.status === "created" ? 201 : 402).json(result);
   } catch (error) {
     next(error);
@@ -118,7 +149,7 @@ app.post("/api/pip/projects", async (req, res, next) => {
 
 app.get("/api/pip/projects/:projectId", async (req, res, next) => {
   try {
-    const project = await getProject({ userId: req.query.userId, projectId: req.params.projectId });
+    const project = await getProject({ userId: req.pipUser.id, projectId: req.params.projectId });
     if (!project) {
       res.status(404).json({ error: "project_not_found" });
       return;
@@ -132,7 +163,7 @@ app.get("/api/pip/projects/:projectId", async (req, res, next) => {
 app.patch("/api/pip/projects/:projectId", async (req, res, next) => {
   try {
     const project = await updateProject({
-      userId: req.body?.userId || req.body?.user?.id,
+      userId: req.pipUser.id,
       projectId: req.params.projectId,
       patch: req.body?.patch || req.body || {}
     });
@@ -149,7 +180,7 @@ app.patch("/api/pip/projects/:projectId", async (req, res, next) => {
 app.get("/api/pip/projects/:projectId/messages", async (req, res, next) => {
   try {
     const messages = await listProjectMessages({
-      userId: req.query.userId,
+      userId: req.pipUser.id,
       projectId: req.params.projectId,
       limit: req.query.limit
     });
@@ -165,7 +196,7 @@ app.get("/api/pip/projects/:projectId/messages", async (req, res, next) => {
 
 app.get("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
   try {
-    const reminders = await listProjectReminders({ userId: req.query.userId, projectId: req.params.projectId });
+    const reminders = await listProjectReminders({ userId: req.pipUser.id, projectId: req.params.projectId });
     if (!reminders) {
       res.status(404).json({ error: "project_not_found" });
       return;
@@ -179,10 +210,10 @@ app.get("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
 app.post("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
   try {
     const result = await createProjectReminder({
-      userId: req.body?.userId || req.body?.user?.id,
+      userId: req.pipUser.id,
       projectId: req.params.projectId,
       reminder: req.body?.reminder,
-      subscription: req.body?.subscription
+      subscription: req.pipSubscription
     });
     if (!result) {
       res.status(404).json({ error: "project_not_found" });
@@ -196,7 +227,7 @@ app.post("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
 
 app.get("/api/pip/projects/:projectId/readings", async (req, res, next) => {
   try {
-    const readings = await listProjectReadings({ userId: req.query.userId, projectId: req.params.projectId });
+    const readings = await listProjectReadings({ userId: req.pipUser.id, projectId: req.params.projectId });
     if (!readings) {
       res.status(404).json({ error: "project_not_found" });
       return;
@@ -210,10 +241,10 @@ app.get("/api/pip/projects/:projectId/readings", async (req, res, next) => {
 app.post("/api/pip/projects/:projectId/readings", async (req, res, next) => {
   try {
     const result = await createProjectReading({
-      userId: req.body?.userId || req.body?.user?.id,
+      userId: req.pipUser.id,
       projectId: req.params.projectId,
       reading: req.body?.reading,
-      subscription: req.body?.subscription
+      subscription: req.pipSubscription
     });
     if (!result) {
       res.status(404).json({ error: "project_not_found" });
@@ -241,13 +272,23 @@ app.post("/api/pip/grow-plan", (req, res) => {
   res.json(createGrowPlan(req.body || {}));
 });
 
-app.post("/api/pip/reminders", (req, res) => {
-  res.status(req.body?.subscription?.active ? 201 : 402).json(createReminder(req.body || {}));
+app.post("/api/pip/reminders", requirePipMember, (req, res) => {
+  const result = createReminder({
+    ...(req.body || {}),
+    user: req.pipUser,
+    subscription: req.pipSubscription
+  });
+  res.status(req.pipSubscription?.active ? 201 : 402).json(result);
 });
 
 app.post("/api/pip/chat", async (req, res, next) => {
   try {
-    res.json(await askPip(req.body || {}));
+    const access = optionalPipSession(req);
+    res.json(await askPip({
+      ...(req.body || {}),
+      user: access.user,
+      subscription: access.subscription
+    }));
   } catch (error) {
     next(error);
   }
@@ -267,4 +308,40 @@ app.listen(port, () => {
 
 function isWixEmbedOrigin(origin) {
   return origin === "null" || /^https:\/\/[a-z0-9-]+\.filesusr\.com$/i.test(origin);
+}
+
+function requirePipMember(req, res, next) {
+  const access = optionalPipSession(req);
+  if (!access.user?.id) {
+    res.status(401).json({ error: "member_session_required" });
+    return;
+  }
+  req.pipUser = access.user;
+  req.pipSubscription = access.subscription;
+  next();
+}
+
+function optionalPipSession(req) {
+  const signed = sessionFromRequest(req);
+  if (signed) {
+    return {
+      user: {
+        id: signed.sub,
+        email: signed.email || null,
+        name: signed.name || null,
+        wixMemberId: signed.sub
+      },
+      subscription: { active: Boolean(signed.pro), plan: signed.plan || "free_member", verified: true }
+    };
+  }
+
+  if (signedSessionsRequired()) {
+    return { user: null, subscription: { active: false, plan: "visitor", verified: false } };
+  }
+
+  const legacyUser = req.body?.user || (req.query?.userId ? { id: req.query.userId } : null);
+  return {
+    user: legacyUser,
+    subscription: req.body?.subscription || { active: false, plan: legacyUser ? "free_member" : "visitor" }
+  };
 }

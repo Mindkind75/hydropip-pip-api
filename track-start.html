@@ -65,8 +65,18 @@ li:before{content:"";width:22px;height:22px;border-radius:999px;background:var(-
 <script>
 (function(){
   var lastHeight=0;
+  function contentHeight(){
+    var bottom=0;
+    Array.prototype.forEach.call(document.body.children,function(element){
+      if(element.tagName==="SCRIPT"||getComputedStyle(element).position==="fixed")return;
+      var rect=element.getBoundingClientRect();
+      var marginBottom=parseFloat(getComputedStyle(element).marginBottom)||0;
+      bottom=Math.max(bottom,rect.bottom+window.scrollY+marginBottom);
+    });
+    return Math.ceil(bottom);
+  }
   function postHeight(){
-    var nextHeight=Math.max(document.body?document.body.scrollHeight:0,document.documentElement?document.documentElement.scrollHeight:0);
+    var nextHeight=contentHeight();
     if(Math.abs(nextHeight-lastHeight)<8)return;
     lastHeight=nextHeight;
     try{window.parent.postMessage({type:"HYDROPIP_EMBED_HEIGHT",page:location.pathname.split("/").pop()||"track-start",height:nextHeight},"*")}catch(error){}
