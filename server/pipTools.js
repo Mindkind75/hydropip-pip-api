@@ -1,6 +1,19 @@
 import { buildSteps, parts, schedulingRules, setupWizardSchema } from "./pipData.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const affiliateLinks = {
+  hoseEndValve: "https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20",
+  hoseAdapters: "https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20",
+  pumps: "https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20",
+  smartPlug: "https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20",
+  nutrients: "https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20",
+  phCalibration: "https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20",
+  phUpDown: "https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20",
+  ecTdsMeter: "https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20",
+  ecTdsCalibration: "https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20",
+  seeds: "https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20",
+  mediaTopOff: "https://www.amazon.com/s?k=perlite+vermiculite+hydroponic+growing+medium&tag=hydrpip2002-20"
+};
 
 export function normalizeProfile(profile = {}) {
   return {
@@ -94,14 +107,20 @@ export function getWizardSchema() {
 export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
+  if ((q.includes("end of the hose") || q.includes("hose end") || q.includes("add more towers") || q.includes("extend the line")) && (q.includes("link") || q.includes("part") || q.includes("adapter") || q.includes("connector") || q.includes("nozzle"))) {
+    return `${contextLead}For the end of the main feed hose, use the shutoff/flush valve plus hose connector adapters if you want future expansion.\n\nEnd-of-hose shutoff/flush valve: ${affiliateLinks.hoseEndValve}\nHose connector adapters: ${affiliateLinks.hoseAdapters}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (/\b(reorder|refill|monthly|recurring|subscription|subscribe|supplies)\b/.test(q) && /\b(nutrient|nutrients|ph|ec|tds|seed|media|ibc|tank|calibration)\b/.test(q)) {
+    return `${contextLead}For recurring HydroPip supplies, start with the items that actually get consumed or need refreshing:\n\nNutrients: ${affiliateLinks.nutrients}\npH calibration solution: ${affiliateLinks.phCalibration}\npH Up/Down: ${affiliateLinks.phUpDown}\nEC/TDS meter or calibration: ${affiliateLinks.ecTdsMeter}\nSeeds: ${affiliateLinks.seeds}\nMedia top-off: ${affiliateLinks.mediaTopOff}\n\nTrack refill dates in Track My Build now. Pip Pro will save those dates to your account and send reminders later. HydroPip may earn from qualifying Amazon purchases.`;
+  }
   if (q.includes("part") || q.includes("buy") || q.includes("amazon")) {
-    return `${contextLead}Start with the core HydroPip parts: two stackable planter orders per tower, one 10-foot Schedule 40 pipe per tower, one cinder block per tower, a 275-gallon IBC, two pumps, a two-outlet outdoor smart plug, feed hose, irrigation tubing, perlite, vermiculite, nutrients, and pH/EC testing.`;
+    return `${contextLead}Start with the core HydroPip parts: two stackable planter orders per tower, one 10-foot 1/2 inch Schedule 40 pipe per tower, one 3/4 inch PVC tee per tower as a loose top hose guide, one cinder block per tower, a 275-gallon IBC, two pumps, a two-outlet outdoor smart plug, feed hose, irrigation tubing, perlite, vermiculite, nutrients, and pH/EC testing. If you need a shopping link, ask for the exact item, like pumps, smart plug, nutrients, or hose-end fittings.`;
   }
   if (q.includes("feed") || q.includes("schedule") || q.includes("runoff")) {
     return `${contextLead}For HydroPip, start with timed feeds and calibrate from runoff. Cool or mild conditions often start around 2 feed windows per day, warm around 3, and hot conditions may need 4-6 shorter feeds. Tell me tower count, crop, feed duration, runoff, pH, and EC/TDS to tune it.`;
   }
   if (q.includes("build") || q.includes("step") || q.includes("setup")) {
-    return `${contextLead}Build order: anchor the 10-foot Schedule 40 pipe, level the cinder block, stack the four-pot planters, guide the hose with a PVC tee, add feed tubes and diffusers, install two IBC pumps, then calibrate timed feeds by runoff.`;
+    return `${contextLead}Build order: anchor the 10-foot 1/2 inch Schedule 40 pipe, level the cinder block, stack the four-pot planters, use the 3/4 inch PVC tee as a loose top hose guide, add feed tubes and diffusers, install two IBC pumps, then calibrate timed feeds by runoff.`;
   }
   if (q.includes("remind") || q.includes("track") || q.includes("save")) {
     return `${contextLead}I can help create the plan here, but saved tracking and reminders are Pip Pro features. Once subscribed, Pip can remember plant dates, pH/EC readings, tank refills, trims, flushes, and harvest windows.`;
