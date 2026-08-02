@@ -1,10 +1,11 @@
 import { currentMember, authentication } from "wix-members-frontend";
 import wixLocation from "wix-location";
+import wixWindowFrontend from "wix-window-frontend";
 import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=pro-20260802b";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=pro-20260802c";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -35,10 +36,19 @@ $w.onReady(() => {
   });
 
   pip.src = wixLocation.query?.pro === "1" ? `${PIP_HTML_SRC}&pro=1` : PIP_HTML_SRC;
+  sizePipToViewport(pip);
 
   setTimeout(() => sendPipSession(pip), 1200);
 
 });
+
+function sizePipToViewport(pip) {
+  wixWindowFrontend.getBoundingRect().then((size) => {
+    const windowHeight = Math.floor(Number(size?.window?.height));
+    if (!Number.isFinite(windowHeight)) return;
+    pip.height = Math.max(560, windowHeight - 80);
+  }).catch(() => {});
+}
 
 function getPipComponent() {
   for (const selector of PIP_HTML_COMPONENT_IDS) {
