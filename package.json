@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node server/index.js",
     "start": "node server/index.js",
-    "smoke": "node server/smoke-test.js"
+    "smoke": "node server/smoke-test.js",
+    "qa:pip": "node server/pip-qa-suite.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
