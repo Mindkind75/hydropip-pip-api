@@ -395,7 +395,7 @@ function isClearlyOffTopic(message) {
   if (/\b(hydropip|hydroponic|hydroponics|plant|plants|grow|garden|tower|towers|ibc|pump|nutrient|nutrients|ph|ec|tds|seed|seeds|leaf|leaves|root|roots|algae|pest|bug|water|runoff|media|perlite|vermiculite|lettuce|basil|tomato|crop|harvest|prune|trim)\b/.test(normalized)) {
     return false;
   }
-  return /\b(politics|president|stock market|crypto|bitcoin|football|baseball|nba|movie|recipe|dating|homework|essay|code|javascript|python|weather|news|celebrity|song|lyrics)\b/.test(normalized);
+  return /\b(politics|president|stock market|crypto|bitcoin|football|baseball|nba|betting|gambling|wager|wagers|betting picks|sports picks|movie|recipe|dating|homework|essay|code|javascript|python|weather|news|celebrity|song|lyrics)\b/.test(normalized);
 }
 
 async function getOpenAiClient() {

@@ -154,6 +154,12 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   if (wantsPart(q, ["stackable", "planter", "tower stack", "four pot", "4 pot", "pots"])) {
     return `${contextLead}Use two orders of the four-pot stackable planter sections per tower.\n- Planter sections: https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20\n- Four towers need 8 orders total.\n\nHydroPip may earn from qualifying Amazon purchases.`;
   }
+  if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on|chewing bugs)\b/.test(q)) {
+    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (/\b(tiny holes|holes in.*leaves|chewed|caterpillar|worm|leaf miner|leafminer)\b/.test(q)) {
+    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
 
   return null;
 }
