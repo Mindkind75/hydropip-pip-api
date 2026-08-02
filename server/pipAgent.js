@@ -300,7 +300,7 @@ function wantsDetailedInfo(message) {
 function compactAnswer(answer, message, retrieval) {
   if (wantsDetailedInfo(message)) return answer;
   const words = String(answer || "").trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 115) return answer;
+  if (words.length <= 90) return answer;
   return fallbackAnswer(message, retrieval);
 }
 
