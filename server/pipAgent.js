@@ -321,10 +321,11 @@ function wantsDetailedInfo(message) {
 }
 
 function compactAnswer(answer, message, retrieval) {
-  if (wantsDetailedInfo(message)) return answer;
-  const words = String(answer || "").trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 90) return answer;
-  return trimToWordBudget(answer, 90);
+  const disclosed = ensureAffiliateDisclosure(answer);
+  if (wantsDetailedInfo(message)) return disclosed;
+  const words = String(disclosed || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 100) return disclosed;
+  return ensureAffiliateDisclosure(trimToWordBudget(disclosed, hasAmazonLink(disclosed) ? 95 : 90));
 }
 
 function trimToWordBudget(answer, maxWords) {
@@ -338,6 +339,16 @@ function trimToWordBudget(answer, maxWords) {
   }
   const compact = chosen.trim() || text.split(/\s+/).slice(0, maxWords).join(" ");
   return compact.endsWith(".") || compact.endsWith("!") || compact.endsWith("?") ? compact : `${compact}.`;
+}
+
+function ensureAffiliateDisclosure(answer) {
+  const text = String(answer || "").trim();
+  if (!hasAmazonLink(text) || /HydroPip may earn from qualifying Amazon purchases/i.test(text)) return text;
+  return `${text}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+}
+
+function hasAmazonLink(answer) {
+  return /https?:\/\/(?:www\.)?amazon\.com/i.test(String(answer || ""));
 }
 
 function wantsCustomNonHydroPipSupport(message) {
