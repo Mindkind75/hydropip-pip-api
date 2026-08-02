@@ -14,7 +14,7 @@ const affiliateLinks = {
   seeds: "https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20",
   mediaTopOff: "https://www.amazon.com/s?k=perlite+vermiculite+hydroponic+growing+medium&tag=hydrpip2002-20"
 };
-const proSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "https://www.hydropip.com/pricing-plans";
+const proSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "https://www.hydropip.com/pip?pro=1";
 
 export function normalizeProfile(profile = {}) {
   return {
