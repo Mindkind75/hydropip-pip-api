@@ -8,7 +8,6 @@ const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
-let assignedPipHeight = 0;
 
 $w.onReady(() => {
   const pip = getPipComponent();
@@ -23,8 +22,6 @@ $w.onReady(() => {
     const message = event.data || {};
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
-      const targetHeight = Number(message.width) > 0 && Number(message.width) <= 750 ? 760 : 820;
-      setRenderedHeight(pip, targetHeight, Number(message.viewportHeight));
       return;
     }
 
@@ -124,22 +121,9 @@ async function getPipSubscription() {
 }
 
 function setPipHeight(pip) {
-  assignPipHeight(pip, wixWindowFrontend.formFactor === "Mobile" ? 760 : 820);
+  pip.height = wixWindowFrontend.formFactor === "Mobile" ? 760 : 1250;
   wixWindowFrontend.getBoundingRect().then((size) => {
     if (!size?.window?.width) return;
-    const targetHeight = size.window.width <= 750 ? 760 : 820;
-    assignPipHeight(pip, targetHeight);
+    pip.height = size.window.width <= 750 ? 760 : size.window.width <= 1024 ? 900 : 1250;
   }).catch(() => {});
-}
-
-function setRenderedHeight(embed, renderedHeight, viewportHeight) {
-  const scale = Number.isFinite(viewportHeight) && viewportHeight > 0 && Number.isFinite(assignedPipHeight) && assignedPipHeight > 0
-    ? viewportHeight / assignedPipHeight
-    : 1;
-  assignPipHeight(embed, renderedHeight / Math.max(scale, 0.5));
-}
-
-function assignPipHeight(embed, height) {
-  assignedPipHeight = Math.ceil(height);
-  embed.height = assignedPipHeight;
 }

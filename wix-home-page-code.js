@@ -1,8 +1,7 @@
 import wixWindowFrontend from "wix-window-frontend";
 
-const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260802b";
+const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260802c";
 const HOME_EMBED_IDS = ["#homeHtml", "#html1", "#html2", "#iFrame1"];
-let assignedHeight = 0;
 
 $w.onReady(() => {
   const embed = getEmbed();
@@ -10,7 +9,6 @@ $w.onReady(() => {
 
   embed.src = HYDROPIP_HOME_SRC;
   setFallbackHeight(embed);
-  embed.onMessage((event) => resizeEmbed(embed, event.data));
 });
 
 function getEmbed() {
@@ -25,33 +23,15 @@ function getEmbed() {
   return null;
 }
 
-function resizeEmbed(embed, message = {}) {
-  if (message.type !== "HYDROPIP_EMBED_HEIGHT") return;
-  const height = Math.max(640, Math.min(18000, Math.ceil(Number(message.height) + 24)));
-  if (Number.isFinite(height)) setRenderedHeight(embed, height, Number(message.viewportHeight));
-}
-
 function setFallbackHeight(embed) {
-  assignHeight(embed, wixWindowFrontend.formFactor === "Mobile" ? 13420 : 4400);
+  embed.height = wixWindowFrontend.formFactor === "Mobile" ? 10300 : 3900;
   wixWindowFrontend.getBoundingRect().then((size) => {
-    if (size?.window?.width) assignHeight(embed, heightForWidth(size.window.width));
+    if (size?.window?.width) embed.height = heightForWidth(size.window.width);
   }).catch(() => {});
 }
 
-function setRenderedHeight(embed, renderedHeight, viewportHeight) {
-  const scale = Number.isFinite(viewportHeight) && viewportHeight > 0 && Number.isFinite(assignedHeight) && assignedHeight > 0
-    ? viewportHeight / assignedHeight
-    : 1;
-  assignHeight(embed, renderedHeight / Math.max(scale, 0.5));
-}
-
-function assignHeight(embed, height) {
-  assignedHeight = Math.ceil(height);
-  embed.height = assignedHeight;
-}
-
 function heightForWidth(width) {
-  if (width <= 750) return 13420;
-  if (width <= 1024) return 12330;
-  return 8320;
+  if (width <= 750) return 10300;
+  if (width <= 1024) return 17800;
+  return 3900;
 }
