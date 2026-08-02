@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -90,7 +90,7 @@
   function projectStorageKey(){return projectsKey+"_"+userId()}
   function savedProjects(){try{return JSON.parse(localStorage.getItem(projectStorageKey())||"{}")||{}}catch(error){return{}}}
   function saveProjectId(type,id){var projects=savedProjects();projects[type]=id;localStorage.setItem(projectStorageKey(),JSON.stringify(projects))}
-  function renderProjects(){projectRow.innerHTML=Object.keys(projectTypes).map(function(type){var item=projectTypes[type];var locked=item.pro&&!isPro();return '<button class="project-btn'+(type===activeProjectType?' active':'')+'" type="button" data-pip-project="'+type+'"><strong>'+item.label+(locked?' · Pro':'')+'</strong><small>'+item.note+'</small></button>'}).join("")}
+  function renderProjects(){projectRow.innerHTML=Object.keys(projectTypes).map(function(type){var item=projectTypes[type];var locked=item.pro&&!isPro();return '<button class="project-btn'+(type===activeProjectType?' active':'')+'" type="button" data-pip-project="'+type+'"><strong>'+item.label+(locked?' � Pro':'')+'</strong><small>'+item.note+'</small></button>'}).join("")}
   function shouldGate(){return !hasLead()&&count()>=freeQuestionLimit}
   function setGate(open,mode){gate.classList.toggle("open",open);form.style.display=open?"none":"grid";var quick=document.querySelector(".quick");if(quick)quick.style.display=open?"none":"";if(projectRow)projectRow.style.display=open?"none":"";if(open){var pro=mode==="pro";gateText.textContent=pro?"Pip Pro unlocks this project type, saved reminders, crop schedules, grow logs, and support for other hydro systems.":"Create a free HydroPip account to keep asking Pip and save your HydroPip build project.";gateButton.textContent=pro?"View Pip Pro":"Create free account"}}
   function requestAccount(mode){try{window.parent.postMessage({type:"HYDROPIP_PIP_LOGIN_REQUEST",mode:mode||"signup"},"*")}catch(error){}}
@@ -121,7 +121,7 @@
   input.focus();
 })();
 </script>
-<script src="/embed-resize.js" defer></script>
+<script src="/hydropip-embed-bridge.js" defer></script>
 </body>
 </html>
 
