@@ -2,7 +2,6 @@ import { currentMember, authentication } from "wix-members-frontend";
 import wixLocation from "wix-location";
 import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
-import wixWindowFrontend from "wix-window-frontend";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
@@ -15,8 +14,6 @@ $w.onReady(() => {
     console.warn("Pip iframe bridge could not find the HTML component. Rename the iframe element to pipHtml or add its ID to PIP_HTML_COMPONENT_IDS.");
     return;
   }
-
-  setPipHeight(pip);
 
   pip.onMessage(async (event) => {
     const message = event.data || {};
@@ -38,9 +35,6 @@ $w.onReady(() => {
 
   setTimeout(() => sendPipSession(pip), 1200);
 
-  if (wixLocation.query?.pro === "1") {
-    setTimeout(() => handlePipLoginRequest("pro"), 900);
-  }
 });
 
 function getPipComponent() {
@@ -63,20 +57,15 @@ async function handlePipLoginRequest(mode) {
     return;
   }
 
-  let member = await getLoggedInMember();
-
-  if (!member) {
-    await authentication.promptLogin({ mode: "login", modal: true }).catch(() => null);
-    member = await getLoggedInMember();
-  }
-
   if (mode === "pro") {
-    if (!member) return;
     await checkout.startOnlinePurchase(PIP_PRO_PLAN_ID).catch((error) => {
       console.warn("Pip Pro checkout could not start", error);
       wixLocation.to(PIP_PRO_FALLBACK_PAGE);
     });
+    return;
   }
+
+  await authentication.promptLogin({ mode: "signup", modal: true }).catch(() => null);
 }
 
 async function sendPipSession(pip, force = false) {
@@ -118,12 +107,4 @@ async function getPipSubscription() {
   } catch (error) {
     return { active: false, plan: "free_member", ordersUnavailable: true };
   }
-}
-
-function setPipHeight(pip) {
-  pip.height = wixWindowFrontend.formFactor === "Mobile" ? 760 : 1250;
-  wixWindowFrontend.getBoundingRect().then((size) => {
-    if (!size?.window?.width) return;
-    pip.height = size.window.width <= 750 ? 760 : size.window.width <= 1024 ? 900 : 1250;
-  }).catch(() => {});
 }

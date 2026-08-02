@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { askPip } from "./pipAgent.js";
+import { askPip, stripSummaryLabel } from "./pipAgent.js";
 import {
   createProject,
   createProjectReading,
@@ -21,6 +21,8 @@ const signedSession = issuePipSession({
 });
 assert.equal(verifyPipSession(signedSession).sub, "test-user");
 assert.equal(verifyPipSession(`${signedSession}tampered`), null);
+assert.equal(stripSummaryLabel("TL;DR: Use shorter feed cycles."), "Use shorter feed cycles.");
+assert.equal(stripSummaryLabel("Summary: Check pH first."), "Check pH first.");
 
 const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);

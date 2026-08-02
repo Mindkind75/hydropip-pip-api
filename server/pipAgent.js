@@ -224,7 +224,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "Do not pretend reminders are saved unless create_reminder returns queued.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
-      "Default to TLDR chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
+      "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
     input: [
@@ -289,7 +289,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       "If the user asks for a shopping link, include the matching HydroPip Amazon affiliate URL directly when it appears in the tool result or known link list.",
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
-      "Keep this final answer TLDR by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions."
+      "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions."
     ].join("\n"),
     previous_response_id: response.id,
     input: toolResults
@@ -323,7 +323,7 @@ function wantsDetailedInfo(message) {
 }
 
 function compactAnswer(answer, message, retrieval) {
-  const disclosed = ensureAffiliateDisclosure(answer);
+  const disclosed = ensureAffiliateDisclosure(stripSummaryLabel(answer));
   if (wantsDetailedInfo(message)) return disclosed;
   // Preserve complete product URLs and the Amazon disclosure. The prompt keeps
   // linked answers concise, and a usable link matters more than a few words.
@@ -331,6 +331,10 @@ function compactAnswer(answer, message, retrieval) {
   const words = String(disclosed || "").trim().split(/\s+/).filter(Boolean);
   if (words.length <= 100) return disclosed;
   return trimToWordBudget(disclosed, 90);
+}
+
+export function stripSummaryLabel(answer) {
+  return String(answer || "").replace(/^\s*(?:TL\s*;?\s*DR|TLDR|SUMMARY)\s*:?\s*/i, "").trim();
 }
 
 function normalizeHistory(history = []) {

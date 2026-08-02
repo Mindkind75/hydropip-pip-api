@@ -32,4 +32,14 @@ for (const file of files) {
   console.log(`${file}: ${hrefs.length} links and ${scripts.length} inline scripts checked`);
 }
 
+const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm"]) {
+  assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
+}
+assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
+assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
+
+const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
+assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");
+
 console.log("HydroPip site QA passed");
