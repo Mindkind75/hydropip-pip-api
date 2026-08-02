@@ -18,6 +18,12 @@ $w.onReady(() => {
   pip.onMessage(async (event) => {
     const message = event.data || {};
 
+    if (message.type === "HYDROPIP_EMBED_HEIGHT") {
+      const height = Math.max(680, Math.min(1200, Math.ceil(Number(message.height) || 0)));
+      if (height) pip.height = height;
+      return;
+    }
+
     if (message.type === "HYDROPIP_PIP_READY") {
       await sendPipSession(pip, true);
       return;
@@ -39,7 +45,7 @@ $w.onReady(() => {
 function getPipComponent() {
   for (const selector of PIP_HTML_COMPONENT_IDS) {
     try {
-      const element = $w(selector);
+      const element = $w(/** @type {any} */ (selector));
       if (element && typeof element.postMessage === "function" && typeof element.onMessage === "function") {
         return element;
       }
