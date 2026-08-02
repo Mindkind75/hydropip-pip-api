@@ -322,14 +322,12 @@ function wantsDetailedInfo(message) {
   return /\b(detailed|full|complete|entire|walkthrough|step[- ]by[- ]step|printable|long answer|deep dive|explain everything|all instructions)\b/i.test(message);
 }
 
-function compactAnswer(answer, message, retrieval) {
+export function compactAnswer(answer, message, retrieval) {
   const disclosed = ensureAffiliateDisclosure(stripSummaryLabel(answer));
   if (wantsDetailedInfo(message)) return disclosed;
-  // Preserve complete product URLs and the Amazon disclosure. The prompt keeps
-  // linked answers concise, and a usable link matters more than a few words.
-  if (hasAmazonLink(disclosed)) return disclosed;
   const words = String(disclosed || "").trim().split(/\s+/).filter(Boolean);
   if (words.length <= 100) return disclosed;
+  if (hasAmazonLink(disclosed)) return trimLinkedAnswer(disclosed, 90);
   return trimToWordBudget(disclosed, 90);
 }
 
@@ -374,6 +372,36 @@ function trimToWordBudget(answer, maxWords) {
   }
   const compact = chosen.trim() || text.split(/\s+/).slice(0, maxWords).join(" ");
   return compact.endsWith(".") || compact.endsWith("!") || compact.endsWith("?") ? compact : `${compact}.`;
+}
+
+function trimLinkedAnswer(answer, maxWords) {
+  const disclosure = "HydroPip may earn from qualifying Amazon purchases.";
+  const urls = [...new Set(String(answer || "").match(/https?:\/\/(?:www\.)?amazon\.com\/[^\s)]+/gi) || [])].slice(0, 3);
+  const reservedWords = 8 + urls.length * 4;
+  const textOnly = String(answer || "")
+    .replace(/https?:\/\/(?:www\.)?amazon\.com\/[^\s)]+/gi, "")
+    .replace(/HydroPip may earn from qualifying Amazon purchases\.?/gi, "")
+    .replace(/\(\s*[^()]{0,60}:\s*\)/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const summary = trimToWordBudget(textOnly, Math.max(45, maxWords - reservedWords));
+  const links = urls.map((url) => `- ${affiliateLabel(url)}: ${url}`).join("\n");
+  return `${summary}\n\n${links}\n\n${disclosure}`;
+}
+
+function affiliateLabel(url) {
+  const labels = [
+    ["B013646334", "Shutoff/flush valve"],
+    ["B09B16KTNM", "Extension adapters"],
+    ["B07L54HB83", "Pump"],
+    ["B0BNG66HGP", "Drip tubing kit"],
+    ["B007TFTW3U", "Stackable planters"],
+    ["B091FXH2FR", "Outdoor smart plug"],
+    ["B0727VTWH5", "Nutrients"],
+    ["B0C1YZ93N6", "IBC cover"]
+  ];
+  return labels.find(([id]) => url.includes(id))?.[1] || "Recommended product";
 }
 
 function ensureAffiliateDisclosure(answer) {

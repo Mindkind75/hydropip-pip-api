@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { askPip, stripSummaryLabel } from "./pipAgent.js";
+import { askPip, compactAnswer, stripSummaryLabel } from "./pipAgent.js";
 import {
   createProject,
   createProjectReading,
@@ -23,6 +23,14 @@ assert.equal(verifyPipSession(signedSession).sub, "test-user");
 assert.equal(verifyPipSession(`${signedSession}tampered`), null);
 assert.equal(stripSummaryLabel("TL;DR: Use shorter feed cycles."), "Use shorter feed cycles.");
 assert.equal(stripSummaryLabel("Summary: Check pH first."), "Check pH first.");
+const linkedCompact = compactAnswer(
+  `${"Check the vertical lift and pump head before changing the layout. ".repeat(14)}Pump: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20`,
+  "Will this layout work?",
+  {}
+);
+assert.equal(linkedCompact.includes("https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20"), true);
+assert.equal(linkedCompact.includes("HydroPip may earn from qualifying Amazon purchases."), true);
+assert.equal(linkedCompact.split(/\s+/).filter(Boolean).length <= 100, true);
 
 const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);
