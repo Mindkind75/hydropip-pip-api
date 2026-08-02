@@ -132,6 +132,27 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   if (/\b(green slime|slime|algae|green film)\b/.test(q)) {
     return `${contextLead}Green slime usually means light is reaching nutrient water.\n- Cover the IBC and any exposed wet spots.\n- Scrub/flush the affected area.\n- Retest pH/EC after cleanup.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
   }
+  if (/\b(white fuzz|white mold|mould|mold|powdery mildew|fuzzy)\b/.test(q)) {
+    return `${contextLead}White fuzz means moisture plus poor airflow is hanging around too long.\n- Remove badly affected leaves or surface debris.\n- Improve airflow and avoid wetting foliage.\n- Check tower pockets for constantly soaked media and shorten feeds if needed.`;
+  }
+  if (/\b(wilt|wilting|limp|drooping|droopy)\b/.test(q)) {
+    return `${contextLead}Wilting in HydroPip usually means water delivery, roots, heat, or EC is off.\n- Confirm the feed pump actually runs and each tower drips.\n- Check roots for brown/slimy smell.\n- Test pH/EC before adding nutrients.`;
+  }
+  if (/\b(leggy|stretching|stretched|pale seedlings|weak seedlings)\b/.test(q)) {
+    return `${contextLead}Leggy seedlings usually need more light or less heat.\n- Move starts into stronger light sooner.\n- Keep airflow gentle but steady.\n- Transplant once roots can hold the 50/50 media without drying out.`;
+  }
+  if (/\b(bolt|bolting|going to seed|bitter lettuce)\b/.test(q)) {
+    return `${contextLead}Bolting is usually heat, age, or stress.\n- Harvest greens earlier in hot weather.\n- Add shade during peak sun if needed.\n- Replant fast; tower flips are designed to make that easy.`;
+  }
+  if (/\b(water temp|water temperature|reservoir temp|tank temp|too hot|hot water)\b/.test(q)) {
+    return `${contextLead}Keep the IBC as cool and shaded as you can.\n- Cover the tote and block sunlight from nutrient water.\n- Circulate before testing pH/EC.\n- If roots look stressed, reduce heat exposure before chasing nutrients.\n\nIBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
+  }
+  if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on)\b/.test(q)) {
+    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves.\n- Improve airflow and keep old plant debris out of pockets.\n- Use crop-safe controls, then rinse harvests well.`;
+  }
+  if (/\b(grow light|lights|lighting|sun|shade|how much light)\b/.test(q)) {
+    return `${contextLead}HydroPip works best when plants get strong, consistent light without cooking the reservoir.\n- Greens usually like bright sun with heat management.\n- Add afternoon shade in brutal heat.\n- Keep the IBC covered so light does not feed algae.`;
+  }
   if (/\b(mixing pump|circulation pump|circulate|mixing)\b/.test(q) && /\b(how often|after|nutrient|nutrients|run)\b/.test(q)) {
     return `${contextLead}For the IBC mixing pump:\n- Run about 15 minutes every 3 daytime hours as a baseline.\n- After adding nutrients, circulate 45-60 minutes before testing.\n- Then check pH and EC/TDS before adjusting.`;
   }
@@ -231,5 +252,5 @@ function buildRecommendations(profile) {
 function buildContextLead(retrieval) {
   const best = retrieval?.matches?.[0];
   if (!best?.title) return "";
-  return `From the HydroPip notes on ${best.title}: `;
+  return "";
 }
