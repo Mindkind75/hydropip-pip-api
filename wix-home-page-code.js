@@ -7,6 +7,12 @@ $w.onReady(() => {
   const embed = getEmbed();
   if (!embed) return;
 
+  embed.onMessage((event) => {
+    const message = event.data || {};
+    if (message.type !== "HYDROPIP_EMBED_HEIGHT" || message.page !== "home.html") return;
+    setEmbedHeight(embed, message.height);
+  });
+
   embed.src = HYDROPIP_HOME_SRC;
   setFallbackHeight(embed);
 });
@@ -24,14 +30,21 @@ function getEmbed() {
 }
 
 function setFallbackHeight(embed) {
-  embed.height = wixWindowFrontend.formFactor === "Mobile" ? 10300 : 3900;
+  setEmbedHeight(embed, wixWindowFrontend.formFactor === "Mobile" ? 14000 : 8500);
   wixWindowFrontend.getBoundingRect().then((size) => {
-    if (size?.window?.width) embed.height = heightForWidth(size.window.width);
+    if (size?.window?.width) setEmbedHeight(embed, heightForWidth(size.window.width));
   }).catch(() => {});
 }
 
 function heightForWidth(width) {
-  if (width <= 750) return 10300;
-  if (width <= 1024) return 17800;
-  return 3900;
+  if (width <= 560) return 14000;
+  if (width <= 900) return 12600;
+  if (width <= 1100) return 7700;
+  return 8300;
+}
+
+function setEmbedHeight(embed, requestedHeight) {
+  const height = Math.ceil(Number(requestedHeight));
+  if (!Number.isFinite(height) || height < 900 || height > 20000) return;
+  embed.height = height + 24;
 }
