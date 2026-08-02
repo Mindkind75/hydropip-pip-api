@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -62,6 +62,21 @@ li:before{content:"";width:22px;height:22px;border-radius:999px;background:var(-
     </div>
   </section>
 </main>
-<script src="/hydropip-embed-bridge.js" defer></script>
+<script>
+(function(){
+  var lastHeight=0;
+  function postHeight(){
+    var nextHeight=Math.max(document.body?document.body.scrollHeight:0,document.documentElement?document.documentElement.scrollHeight:0);
+    if(Math.abs(nextHeight-lastHeight)<8)return;
+    lastHeight=nextHeight;
+    try{window.parent.postMessage({type:"HYDROPIP_EMBED_HEIGHT",page:location.pathname.split("/").pop()||"track-start",height:nextHeight},"*")}catch(error){}
+  }
+  window.addEventListener("load",postHeight);
+  window.addEventListener("resize",postHeight);
+  if("ResizeObserver" in window)new ResizeObserver(postHeight).observe(document.documentElement);
+  setTimeout(postHeight,250);setTimeout(postHeight,1000);setTimeout(postHeight,2500);
+})();
+</script>
 </body>
 </html>
+
