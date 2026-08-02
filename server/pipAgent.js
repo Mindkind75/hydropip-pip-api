@@ -13,6 +13,8 @@ const toolMap = {
   get_wizard_schema: getWizardSchema
 };
 
+const proSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "https://www.hydropip.com/pricing-plans";
+
 const tools = [
   {
     type: "function",
@@ -96,8 +98,8 @@ export async function askPip({ message, profile, subscription, history = [], use
 
   if (wantsCustomNonHydroPipSupport(trimmed) && !subscription?.active) {
     const answer = [
-      "Custom help for DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip, aeroponics, aquaponics, or other non-HydroPip systems is Pip Pro.",
-      "For free, I can walk you through the real HydroPip timed-feed tower build, parts list, Amazon links, first fill, and basic operation. Want to start with one tower or the full four-tower setup?"
+      `I can definitely help with that, but custom support for non-HydroPip systems is a Pip Pro subscription feature: ${proSignupUrl}`,
+      "Free Pip can still walk you through the HydroPip timed-feed tower build, parts list, first fill, and basic operation."
     ].join("\n\n");
     await rememberProjectMessage(projectContext, {
       userId,
@@ -113,6 +115,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       sources: [],
       subscriptionRequired: true,
       upgradeReason: "Pip Pro unlocks custom support for non-HydroPip hydro systems, saved plans, reminders, readings, and grow logs.",
+      upgradeUrl: proSignupUrl,
       projectMemory
     };
   }
@@ -150,13 +153,13 @@ export async function askPip({ message, profile, subscription, history = [], use
       "For shorter towers: explain that the system can be scaled down, but shorter towers reduce pocket count and may change stability, support height, pump head pressure, feed timing, and runoff behavior. Keep the center support pipe driven securely, keep the top hose guide removable, and recalibrate feed duration by runoff. If the user says five-pot-high, clarify that HydroPip uses four-pot stackable sections; five stack sections equals 20 planting pockets per tower. Two five-section towers are a reasonable small test if they are stable and easy to service.",
       "When a user asks for a part link, include the matching HydroPip Amazon affiliate URL directly. Use these known links when relevant: stackable planters https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20; pumps https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20; smart plug https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20; nutrients https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20; vermiculite https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20; perlite https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20; pH meter https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20; pH calibration solution https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20; EC/TDS meter https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20; EC/TDS calibration solution https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20; pH Up/Down https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20; seeds https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20; IBC cover https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20; IBC tote reference https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20; end-of-hose shutoff/flush valve https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20; hose connector adapters for extensions https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20. Mention that HydroPip may earn from qualifying Amazon purchases when sharing direct Amazon links.",
       "For recurring supply or nutrient subscription questions, recommend the light HydroPip reorder rhythm: nutrient refill kit, pH calibration solution, pH Up/Down, EC/TDS calibration or meter check, seeds, and media top-off. Explain that Track My Build can estimate the next supply check now, while Pip Pro will save refill dates to the account and send reminders later.",
-      "Custom guidance for non-HydroPip systems, including DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip systems, or custom hydro setups, is Pip Pro. Free users can receive a brief explanation of the boundary and should be invited to use HydroPip Build for free.",
+      `Custom guidance for non-HydroPip systems, including DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip systems, or custom hydro setups, is Pip Pro. Use this wording style: "I can definitely help with that, but that is a Pip Pro subscription feature." Include this signup link when a subscription is required: ${proSignupUrl}`,
       "If the retrieved context is not enough for an exact recommendation, say what is missing and ask one focused follow-up question.",
       "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "Do not pretend reminders are saved unless create_reminder returns queued.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
-      "Default to short chat answers: 1 to 3 compact bullets or short paragraphs, usually under 70 words. Avoid long headings like 'Short answer' unless helpful. Offer to continue with the next step instead of giving the whole guide at once. Only give long detailed answers when the user asks for a full walkthrough, printable checklist, or full parts list.",
+      "Default to TLDR chat answers: 1 direct sentence plus 2-3 compact bullets, usually under 85 words. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
     input: [
@@ -219,9 +222,9 @@ export async function askPip({ message, profile, subscription, history = [], use
       "Keep the answer specific to the real HydroPip timed-feed runoff build. Do not add recirculating, return-line, or drain-plumbing steps.",
       "When parts are relevant, point users toward the HydroPip parts list/Amazon affiliate links as the easiest way to match the build.",
       "If the user asks for a shopping link, include the matching HydroPip Amazon affiliate URL directly when it appears in the tool result or known link list.",
-      "If the user asks for help with a non-HydroPip hydro system, explain briefly that custom support for other systems is Pip Pro.",
+      `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
-      "Keep this final answer brief by default: 1 to 3 compact bullets or short paragraphs, usually under 70 words. End with one useful next-step prompt."
+      "Keep this final answer TLDR by default: 1 direct sentence plus 2-3 compact bullets, usually under 85 words. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions."
     ].join("\n"),
     previous_response_id: response.id,
     input: toolResults
