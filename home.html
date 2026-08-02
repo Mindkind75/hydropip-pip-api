@@ -370,8 +370,11 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
   }
   window.addEventListener("load",postHeight);
   window.addEventListener("resize",postHeight);
-  if("ResizeObserver" in window)new ResizeObserver(postHeight).observe(document.documentElement);
-  setTimeout(postHeight,250);setTimeout(postHeight,1000);setTimeout(postHeight,2500);
+  Array.prototype.forEach.call(document.images,function(image){
+    if(!image.complete)image.addEventListener("load",postHeight,{once:true});
+  });
+  if("ResizeObserver" in window)new ResizeObserver(postHeight).observe(document.body);
+  setTimeout(postHeight,250);setTimeout(postHeight,1000);setTimeout(postHeight,2500);setTimeout(postHeight,6000);
 })();
 </script>
 </body>

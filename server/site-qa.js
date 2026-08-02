@@ -42,7 +42,8 @@ assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open
 assert.match(pipHtml, /How it works/, "Pip Pro should explain the subscription flow before checkout");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
-assert.match(wixPipBridge, /wixLocation\.query\?\.pro === "1"/, "Wix Pip bridge is not forwarding Pro mode to the iframe");
+assert.match(wixPipBridge, /\["pro", "project", "projectId"\]/, "Wix Pip bridge is not forwarding Pro and project context to the iframe");
+assert.match(wixPipBridge, /buildPipSource\(\)/, "Wix Pip bridge is not building a context-aware embed source");
 assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the current Pip embed source");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
