@@ -39,6 +39,10 @@ for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", 
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 
+const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
+assert.match(wixPipBridge, /wixLocation\.query\?\.pro === "1"/, "Wix Pip bridge is not forwarding Pro mode to the iframe");
+assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the current Pip embed source");
+
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");
 

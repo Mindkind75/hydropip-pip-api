@@ -4,6 +4,7 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=pro-20260802a";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -32,6 +33,8 @@ $w.onReady(() => {
       await sendPipSession(pip);
     }
   });
+
+  pip.src = wixLocation.query?.pro === "1" ? `${PIP_HTML_SRC}&pro=1` : PIP_HTML_SRC;
 
   setTimeout(() => sendPipSession(pip), 1200);
 
