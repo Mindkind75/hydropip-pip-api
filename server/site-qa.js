@@ -33,11 +33,13 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
+assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
+assert.match(pipHtml, /How it works/, "Pip Pro should explain the subscription flow before checkout");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
 assert.match(wixPipBridge, /wixLocation\.query\?\.pro === "1"/, "Wix Pip bridge is not forwarding Pro mode to the iframe");
