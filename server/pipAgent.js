@@ -82,6 +82,7 @@ const tools = [
 export async function askPip({ message, profile, subscription, history = [], user, projectId }) {
   const trimmed = String(message || "").trim();
   if (!trimmed) return { answer: "Ask me where you are in the HydroPip build and I will guide the next step.", mode: "empty" };
+  const recentHistory = normalizeHistory(history);
   const retrieval = retrieveHydroPipContext(trimmed, { limit: 7 });
   const retrievedContext = formatContextForPrompt(retrieval);
   const userId = String(user?.id || user?.email || "").trim();
@@ -161,7 +162,7 @@ export async function askPip({ message, profile, subscription, history = [], use
     };
   }
 
-  const directAnswer = highConfidenceAnswer(trimmed, retrieval);
+  const directAnswer = highConfidenceAnswer(withRecentContext(trimmed, recentHistory), retrieval);
   if (directAnswer) {
     await rememberProjectMessage(projectContext, {
       userId,
@@ -226,7 +227,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
     input: [
-      ...history.slice(-8),
+      ...recentHistory,
       {
         role: "user",
         content: [
@@ -326,6 +327,26 @@ function compactAnswer(answer, message, retrieval) {
   const words = String(disclosed || "").trim().split(/\s+/).filter(Boolean);
   if (words.length <= 100) return disclosed;
   return ensureAffiliateDisclosure(trimToWordBudget(disclosed, hasAmazonLink(disclosed) ? 95 : 90));
+}
+
+function normalizeHistory(history = []) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .slice(-8)
+    .map((item) => ({
+      role: item?.role === "assistant" ? "assistant" : "user",
+      content: String(item?.content || "").slice(0, 1200)
+    }))
+    .filter((item) => item.content.trim());
+}
+
+function withRecentContext(message, history = []) {
+  if (!history.length) return message;
+  const recent = history
+    .slice(-4)
+    .map((item) => `${item.role}: ${item.content}`)
+    .join("\n");
+  return `${recent}\ncurrent user: ${message}`;
 }
 
 function trimToWordBudget(answer, maxWords) {

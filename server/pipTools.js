@@ -286,7 +286,7 @@ function wantsTubingPurchase(q) {
 }
 
 function wantsHoseEnd(q) {
-  const endIntent = /\b(end of the hose|end of hose|hose end|end of my hose|end of the line|end of main|add more later|add more towers|extend the line|extension|future expansion)\b/.test(q);
+  const endIntent = /\b(end of the hose|end of hose|hose end|end of my hose|end of the main hose|main hose end|end of the line|end of main|piece goes on the end|part goes on the end|what goes on the end|for the end|on the end|add more later|add more towers|extend the line|extension|future expansion)\b/.test(q);
   const fittingIntent = /\b(piece|part|fitting|adapter|connector|coupler|coupling|nozzle|hose|link|url|buy|purchase|order|need)\b/.test(q);
   return endIntent && fittingIntent;
 }
