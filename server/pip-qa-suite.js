@@ -2,7 +2,7 @@
 import { askPip } from "./pipAgent.js";
 
 const apiUrl = process.env.HYDROPIP_QA_API_URL || "";
-const proUrl = "https://www.hydropip.com/pricing-plans";
+const proUrl = "https://www.hydropip.com/pip?pro=1";
 
 const cases = [
   { q: "Can I make the system shorter? What if I only wanted 2 five pot high towers?", type: "free", must: ["short", "four-pot"], avoid: ["Tell me the step"] },
