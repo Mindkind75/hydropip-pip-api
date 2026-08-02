@@ -96,6 +96,22 @@ export async function askPip({ message, profile, subscription, history = [], use
     content: trimmed
   });
 
+  if (isClearlyOffTopic(trimmed)) {
+    const answer = [
+      "I am built for HydroPip and home hydroponics, so I will keep us there.",
+      "Ask me about parts, tower sizing, pH/EC, nutrient mix, feed timing, crop timing, pests, or troubleshooting."
+    ].join("\n\n");
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
+      mode: "off_topic",
+      sources: []
+    });
+    return { answer, mode: "off_topic", sources: [], projectMemory };
+  }
+
   if (wantsCustomNonHydroPipSupport(trimmed) && !subscription?.active) {
     const answer = [
       `I can definitely help with that, but custom support for non-HydroPip systems is a Pip Pro subscription feature: ${proSignupUrl}`,
@@ -115,6 +131,30 @@ export async function askPip({ message, profile, subscription, history = [], use
       sources: [],
       subscriptionRequired: true,
       upgradeReason: "Pip Pro unlocks custom support for non-HydroPip hydro systems, saved plans, reminders, readings, and grow logs.",
+      upgradeUrl: proSignupUrl,
+      projectMemory
+    };
+  }
+
+  if (wantsTracking(trimmed) && !subscription?.active) {
+    const answer = [
+      `I can definitely help with that, but saving reminders, readings, logs, and ongoing tracking is Pip Pro subscription behavior: ${proSignupUrl}`,
+      "Free Pip can still tell you the next HydroPip build or grow step right now."
+    ].join("\n\n");
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
+      mode: "subscription_gate",
+      sources: []
+    });
+    return {
+      answer,
+      mode: "subscription_gate",
+      sources: [],
+      subscriptionRequired: true,
+      upgradeReason: "Pip Pro saves reminders, readings, grow logs, crop schedules, and project history.",
       upgradeUrl: proSignupUrl,
       projectMemory
     };
@@ -159,7 +199,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "Do not pretend reminders are saved unless create_reminder returns queued.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
-      "Default to TLDR chat answers: 1 direct sentence plus 2-3 compact bullets, usually under 85 words. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
+      "Default to TLDR chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
     input: [
@@ -197,7 +237,7 @@ export async function askPip({ message, profile, subscription, history = [], use
   }
 
   if (!toolResults.length) {
-    const answer = response.output_text || fallbackAnswer(trimmed, retrieval);
+    const answer = compactAnswer(response.output_text || fallbackAnswer(trimmed, retrieval), trimmed, retrieval);
     const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
     await rememberProjectMessage(projectContext, {
       userId,
@@ -224,13 +264,13 @@ export async function askPip({ message, profile, subscription, history = [], use
       "If the user asks for a shopping link, include the matching HydroPip Amazon affiliate URL directly when it appears in the tool result or known link list.",
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
-      "Keep this final answer TLDR by default: 1 direct sentence plus 2-3 compact bullets, usually under 85 words. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions."
+      "Keep this final answer TLDR by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions."
     ].join("\n"),
     previous_response_id: response.id,
     input: toolResults
   });
 
-  const answer = final.output_text || fallbackAnswer(trimmed, retrieval);
+  const answer = compactAnswer(final.output_text || fallbackAnswer(trimmed, retrieval), trimmed, retrieval);
   const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
   await rememberProjectMessage(projectContext, {
     userId,
@@ -250,7 +290,18 @@ export async function askPip({ message, profile, subscription, history = [], use
 }
 
 function wantsTracking(message) {
-  return /\b(remind|reminder|track|save|notify|schedule this|log)\b/i.test(message);
+  return /\b(remind|reminder|track|save|notify|schedule this|log|readings over|over the next month|every friday|every week)\b/i.test(message);
+}
+
+function wantsDetailedInfo(message) {
+  return /\b(detailed|full|complete|entire|walkthrough|step[- ]by[- ]step|printable|long answer|deep dive|explain everything|all instructions)\b/i.test(message);
+}
+
+function compactAnswer(answer, message, retrieval) {
+  if (wantsDetailedInfo(message)) return answer;
+  const words = String(answer || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 115) return answer;
+  return fallbackAnswer(message, retrieval);
 }
 
 function wantsCustomNonHydroPipSupport(message) {
@@ -259,6 +310,14 @@ function wantsCustomNonHydroPipSupport(message) {
   if (!mentionsOtherSystem) return false;
 
   return /\b(set ?up|setup|build|tune|schedule|plan|troubleshoot|fix|diagnose|optimize|guide|help|walk me through|instructions?)\b/.test(normalized);
+}
+
+function isClearlyOffTopic(message) {
+  const normalized = String(message || "").toLowerCase();
+  if (/\b(hydropip|hydroponic|hydroponics|plant|plants|grow|garden|tower|towers|ibc|pump|nutrient|nutrients|ph|ec|tds|seed|seeds|leaf|leaves|root|roots|algae|pest|bug|water|runoff|media|perlite|vermiculite|lettuce|basil|tomato|crop|harvest|prune|trim)\b/.test(normalized)) {
+    return false;
+  }
+  return /\b(politics|president|stock market|crypto|bitcoin|football|baseball|nba|movie|recipe|dating|homework|essay|code|javascript|python|weather|news|celebrity|song|lyrics)\b/.test(normalized);
 }
 
 async function getOpenAiClient() {
