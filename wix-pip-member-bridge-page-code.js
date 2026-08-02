@@ -51,6 +51,11 @@ function getPipComponent() {
 }
 
 async function handlePipLoginRequest(mode) {
+  if (mode === "account") {
+    wixLocation.to("/account-settings");
+    return;
+  }
+
   let member = await getLoggedInMember();
 
   if (!member) {
