@@ -4,9 +4,15 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const affiliateLinks = {
   hoseEndValve: "https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20",
   hoseAdapters: "https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20",
+  mainHose: "https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20",
+  dripIrrigation: "https://www.amazon.com/dp/B0BNG66HGP?tag=hydrpip2002-20",
+  diffuserTubing: "https://www.amazon.com/s?k=1%2F2+inch+vinyl+tubing+flexible+hose&tag=hydrpip2002-20",
+  tubingPunch: "https://www.amazon.com/s?k=drip+irrigation+tubing+punch+tool&tag=hydrpip2002-20",
   pumps: "https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20",
   smartPlug: "https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20",
   nutrients: "https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20",
+  perlite: "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20",
+  vermiculite: "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20",
   phCalibration: "https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20",
   phUpDown: "https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20",
   ecTdsMeter: "https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20",
@@ -106,23 +112,59 @@ export function getWizardSchema() {
   return setupWizardSchema;
 }
 
+export function highConfidenceAnswer(question = "", retrieval = { matches: [] }) {
+  const q = question.toLowerCase();
+  const contextLead = buildContextLead(retrieval);
+
+  if (wantsTowerFeedTubing(q) || wantsTubingPurchase(q)) return tubingSupplyAnswer(contextLead);
+  if (wantsHoseEnd(q)) return hoseEndSupplyAnswer(contextLead);
+  if (wantsPart(q, ["main hose", "main feed hose", "garden hose", "feed hose", "hose from pump", "hose to towers"])) {
+    return `${contextLead}For the main feed line, use a garden hose long enough to run from the feed pump past each tower.\n- Main hose search: ${affiliateLinks.mainHose}\n- Leave extra length for flushing and future expansion.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["punch", "awl", "hole tool", "poke hole", "punch hole", "hole in the hose"])) {
+    return `${contextLead}Use a tubing punch or awl to make cleaner holes in the main hose.\n- Tubing punch/awl: ${affiliateLinks.tubingPunch}\n- Clean holes seal better around the small tower feed tubes.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["pump", "pumps", "feed pump", "mixing pump", "circulation pump"])) {
+    return `${contextLead}Use two pumps in the IBC: one for circulation and one for feeding the towers.\n- Pump link: ${affiliateLinks.pumps}\n- Keep a spare on hand once plants are established.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["smart plug", "timer", "kasa", "outdoor plug"])) {
+    return `${contextLead}Use an outdoor two-outlet smart plug/timer so the mix pump and feed pump can be scheduled separately.\n- Smart plug: ${affiliateLinks.smartPlug}\n- Keep pump schedules short until runoff is measured.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["nutrient", "nutrients", "masterblend", "master blend"])) {
+    return `${contextLead}Use the MasterBlend-style nutrient kit for the IBC mix.\n- Nutrients: ${affiliateLinks.nutrients}\n- Circulate 45-60 minutes after mixing, then test pH and EC/TDS.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["perlite", "vermiculite", "media", "medium", "grow medium", "growing medium"])) {
+    return `${contextLead}Use a reusable 50/50 perlite and vermiculite blend in the tower pots.\n- Perlite: ${affiliateLinks.perlite || "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20"}\n- Vermiculite: ${affiliateLinks.vermiculite || "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20"}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["ph meter", "ph tester", "ph test", "tds meter", "ec meter", "ppm meter"])) {
+    return `${contextLead}For testing, start with pH and EC/TDS.\n- pH meter: https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20\n- EC/TDS meter: ${affiliateLinks.ecTdsMeter}\n- pH calibration solution: ${affiliateLinks.phCalibration}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["seed", "seeds", "starter plugs", "seed starting"])) {
+    return `${contextLead}For seeds, start with leafy greens and herbs while dialing in HydroPip.\n- Seeds: ${affiliateLinks.seeds}\n- Later, Pip can use your grow zone for better variety timing.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["ibc cover", "tank cover", "tote cover", "cover"])) {
+    return `${contextLead}Cover the IBC to block light and slow algae growth.\n- IBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20\n- Keep lid openings tight around hoses.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["ibc tote", "275 gallon", "reservoir", "tank"])) {
+    return `${contextLead}Use a 275-gallon IBC only if prior contents were food-safe or non-hazardous.\n- IBC reference: https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20\n- Used totes are often cheaper locally; clean thoroughly.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+  if (wantsPart(q, ["stackable", "planter", "tower stack", "four pot", "4 pot", "pots"])) {
+    return `${contextLead}Use two orders of the four-pot stackable planter sections per tower.\n- Planter sections: https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20\n- Four towers need 8 orders total.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  }
+
+  return null;
+}
+
 export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
-  if ((q.includes("end of the hose") || q.includes("hose end") || q.includes("add more towers") || q.includes("extend the line")) && (q.includes("link") || q.includes("part") || q.includes("adapter") || q.includes("connector") || q.includes("nozzle"))) {
-    return `${contextLead}Use two pieces at the end of the main feed hose:\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Hose adapters for future extensions: ${affiliateLinks.hoseAdapters}\n\nHydroPip may earn from qualifying Amazon purchases.`;
-  }
+  const direct = highConfidenceAnswer(question, retrieval);
+  if (direct) return direct;
   if (/\b(shorter|short|smaller|fit|space|footprint|height|compact|scale down|two towers|2 towers|fewer towers|less towers)\b/.test(q) && /\b(tower|towers|system|pots|pot)\b/.test(q)) {
     return `${contextLead}Yes, you can scale HydroPip down to fit a smaller space.\n- HydroPip uses four-pot stack sections, so five sections equals 20 pockets per tower.\n- Keep each center pipe securely driven and the 3/4 inch tee loose/removable.\n- Recalibrate feed time by runoff because shorter towers wet faster.\n\nSend width, depth, height, and wind exposure and I will sanity-check it.`;
   }
   if (/\b(full|complete|entire|4 tower|four tower|shopping list|parts list|materials list)\b/.test(q) && /\b(link|links|buy|shopping|parts|materials|tower|system)\b/.test(q)) {
     return `${contextLead}Core 4-tower shopping links:\n- Planter sections: https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20\n- Two pumps: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20\n- Smart plug: https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20\n- Nutrients: ${affiliateLinks.nutrients}\n- Perlite/vermiculite: https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20 and https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20\n\nLocal: 1/2 inch Schedule 40 pipe, 3/4 inch tees, cinder blocks.`;
-  }
-  if (/\b(pump|pumps|feed pump|mixing pump|circulation pump)\b/.test(q) && /\b(link|url|amazon|buy|order|purchase|get)\b/.test(q)) {
-    return `${contextLead}Use two pumps in the IBC: one for circulation and one for feeding the towers.\n\nPump link: ${affiliateLinks.pumps}\n\nHydroPip may earn from qualifying Amazon purchases.`;
-  }
-  if (/\b(seed|seeds|starter plugs|seed starting)\b/.test(q) && /\b(link|url|amazon|buy|order|purchase|get|where)\b/.test(q)) {
-    return `${contextLead}For seeds, start with leafy greens and herbs while dialing in the system.\n\nSeed/search link: ${affiliateLinks.seeds}\n\nLater, Pip can use your grow zone to suggest better seasonal varieties. HydroPip may earn from qualifying purchases.`;
   }
   if (/\b(yellow|chlorosis|pale)\b/.test(q) && /\b(leaf|leaves|lettuce|plant|plants)\b/.test(q)) {
     return `${contextLead}Check pH first, then nutrient strength.\n- If pH is out of range, plants can look hungry even with nutrients present.\n- Check EC/TDS before adding more feed.\n- Inspect roots and media moisture if yellowing is sudden.\n\nUseful tools: ${affiliateLinks.ecTdsMeter} and ${affiliateLinks.phCalibration}`;
@@ -206,6 +248,42 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Yes, flush the main feed line occasionally.\n- Open the end-of-hose valve/nozzle.\n- Run the feed pump briefly into a safe drain bucket/area.\n- Close it and confirm each tower still drips evenly.\n\nFlush valve: ${affiliateLinks.hoseEndValve}`;
   }
   return `${contextLead}I can help with HydroPip build, parts, feed timing, pH/EC, nutrients, IBC mixing, media reuse, and grow timing.\n\nAsk one specific thing, like “why are leaves yellow?” or “what link do I need for pumps?”`;
+}
+
+function wantsTowerFeedTubing(q) {
+  const tubingIntent = /\b(tubing|tube|small hose|little hose|small line|little line|feed tube|feeder tube|tower line|drip line|irrigation line|irrigation kit|diffuser)\b/.test(q);
+  const towerFeedContext = /\b(main hose|main line|feed hose|feed line|tower|towers|pot|pots|hole|branch|from the hose|off the hose|into the tower|water line)\b/.test(q);
+  const buyIntent = hasShoppingIntent(q);
+  return tubingIntent && towerFeedContext && buyIntent;
+}
+
+function wantsTubingPurchase(q) {
+  return /\b(tubing|tube|small hose|little hose|small line|little line|feed tube|feeder tube|drip line|irrigation line|irrigation kit|diffuser)\b/.test(q) &&
+    hasShoppingIntent(q);
+}
+
+function wantsHoseEnd(q) {
+  const endIntent = /\b(end of the hose|end of hose|hose end|end of my hose|end of the line|end of main|add more later|add more towers|extend the line|extension|future expansion)\b/.test(q);
+  const fittingIntent = /\b(piece|part|fitting|adapter|connector|coupler|coupling|nozzle|hose|link|url|buy|purchase|order|need)\b/.test(q);
+  return endIntent && fittingIntent;
+}
+
+function wantsPart(q, terms) {
+  return terms.some((term) => q.includes(term)) &&
+    hasShoppingIntent(q);
+}
+
+function hasShoppingIntent(q) {
+  return /\b(link|url|amazon|buy|order|purchase|need|part|parts|item|items|shopping|shop)\b/.test(q) ||
+    /\b(where do i get|where can i get|where should i get|where to get)\b/.test(q);
+}
+
+function tubingSupplyAnswer(contextLead = "") {
+  return `${contextLead}You want the small tower feed tubing that branches off the main hose.\n- Drip irrigation kit: ${affiliateLinks.dripIrrigation}\n- Diffuser tubing pieces: ${affiliateLinks.diffuserTubing}\n- Tubing punch/awl for clean holes: ${affiliateLinks.tubingPunch}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+}
+
+function hoseEndSupplyAnswer(contextLead = "") {
+  return `${contextLead}Use two pieces at the end of the main feed hose.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Hose adapters for future extensions: ${affiliateLinks.hoseAdapters}\n\nHydroPip may earn from qualifying Amazon purchases.`;
 }
 
 function toReminder(start, offsetDays, title, note, category) {

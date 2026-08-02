@@ -1,5 +1,5 @@
 import { systemBrain } from "./pipData.js";
-import { createGrowPlan, createReminder, fallbackAnswer, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
+import { createGrowPlan, createReminder, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
 import { appendProjectMessage, buildProjectContext } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 
@@ -157,6 +157,24 @@ export async function askPip({ message, profile, subscription, history = [], use
       subscriptionRequired: true,
       upgradeReason: "Pip Pro saves reminders, readings, grow logs, crop schedules, and project history.",
       upgradeUrl: proSignupUrl,
+      projectMemory
+    };
+  }
+
+  const directAnswer = highConfidenceAnswer(trimmed, retrieval);
+  if (directAnswer) {
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: directAnswer,
+      mode: "rules_direct",
+      sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }))
+    });
+    return {
+      answer: directAnswer,
+      mode: "rules_direct",
+      sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score })),
       projectMemory
     };
   }
