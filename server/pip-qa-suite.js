@@ -28,7 +28,13 @@ const cases = [
   { q: "How do I clean and reuse the perlite vermiculite mix?", type: "free", must: ["reuse"], avoid: ["Pip Pro"] },
   { q: "Can tomatoes grow in this?", type: "free", must: ["tomato"], avoid: ["Tell me the step"] },
   { q: "What if mosquitoes get in the tank?", type: "free", must: ["cover"], avoid: ["Tell me the step"] },
-  { q: "Should I flush the main line?", type: "free", must: ["flush"], avoid: ["return plumbing"] }
+  { q: "Should I flush the main line?", type: "free", must: ["flush"], avoid: ["return plumbing"] },
+  { q: "Why are my plants wilting even though the media is wet?", type: "free", must: ["pump"], avoid: ["Tell me the step"] },
+  { q: "My seedlings are tall and leggy. What should I change?", type: "free", must: ["light"], avoid: ["Pip Pro"] },
+  { q: "My lettuce is bolting and getting bitter. What now?", type: "free", must: ["heat"], avoid: ["Tell me the step"] },
+  { q: "There is white fuzzy mold near the tower pockets.", type: "free", must: ["airflow"], avoid: ["Pip Pro"] },
+  { q: "What if the IBC water gets too hot?", type: "free", must: ["cool"], avoid: ["return plumbing"] },
+  { q: "Can you write me a football bet?", type: "offtopic", must: ["HydroPip"], avoid: ["odds"] }
 ];
 
 const results = [];
