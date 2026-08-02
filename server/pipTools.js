@@ -244,6 +244,15 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   if (/\b(reorder|refill|monthly|recurring|subscription|subscribe|supplies)\b/.test(q) && /\b(nutrient|nutrients|ph|ec|tds|seed|media|ibc|tank|calibration)\b/.test(q)) {
     return `${contextLead}Recurring supplies to keep stocked:\n- Nutrients: ${affiliateLinks.nutrients}\n- pH calibration / pH Up-Down: ${affiliateLinks.phCalibration} and ${affiliateLinks.phUpDown}\n- Seeds and media top-off: ${affiliateLinks.seeds} and ${affiliateLinks.mediaTopOff}\n\nTrack My Build estimates checks now. Saved refill reminders are Pip Pro: ${proSignupUrl}`;
   }
+  if (/\b(uphill|above|higher|vertical rise|elevation|head height|head pressure)\b/.test(q) && /\b(ibc|tank|reservoir|pump|tower|towers)\b/.test(q)) {
+    return `${contextLead}Measure vertical lift before placing the IBC uphill from the towers.\n- Pump head rating must cover the vertical rise plus hose friction.\n- A long uphill run can reduce pressure and make tower flow uneven.\n- Test the farthest tower first and tune by runoff before planting.`;
+  }
+  if (/\b(chlorine|chlorinated|chloramine|tap water)\b/.test(q)) {
+    return `${contextLead}Tap water can work, but identify the disinfectant first.\n- Chlorine usually dissipates with aeration or standing.\n- Chloramine is more persistent; use a suitable filter or verified treatment.\n- Test pH and EC/TDS after treatment, then mix nutrients and circulate before adjusting.`;
+  }
+  if (/\b(add|expand|extend|more|extra)\b/.test(q) && /\b(tower|towers)\b/.test(q) && /\b(hose|line|system|existing|already)\b/.test(q)) {
+    return `${contextLead}You can add towers to the existing HydroPip feed line if flow stays even.\n- Confirm the pump can maintain pressure at the farthest tower.\n- Keep small feed tubes consistent and retune duration by runoff.\n- Use extension adapters if the main hose needs more length: ${affiliateLinks.hoseAdapters}`;
+  }
   if (q.includes("part") || q.includes("buy") || q.includes("amazon")) {
     return `${contextLead}Core HydroPip parts: stackable four-pot sections, 1/2 inch Schedule 40 support pipe, loose 3/4 inch tee, cinder block, 275-gallon IBC, two pumps, smart plug, hose/tubing, 50/50 perlite-vermiculite, nutrients, and pH/EC tools.\n\nAsk for any item by name and I will give the matching link.`;
   }
