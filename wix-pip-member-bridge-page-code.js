@@ -8,6 +8,7 @@ const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
+let assignedPipHeight = 0;
 
 $w.onReady(() => {
   const pip = getPipComponent();
@@ -123,18 +124,22 @@ async function getPipSubscription() {
 }
 
 function setPipHeight(pip) {
-  pip.height = wixWindowFrontend.formFactor === "Mobile" ? 760 : 820;
+  assignPipHeight(pip, wixWindowFrontend.formFactor === "Mobile" ? 760 : 820);
   wixWindowFrontend.getBoundingRect().then((size) => {
     if (!size?.window?.width) return;
     const targetHeight = size.window.width <= 750 ? 760 : 820;
-    pip.height = targetHeight;
+    assignPipHeight(pip, targetHeight);
   }).catch(() => {});
 }
 
 function setRenderedHeight(embed, renderedHeight, viewportHeight) {
-  const assignedHeight = Number(embed.height);
-  const scale = Number.isFinite(viewportHeight) && viewportHeight > 0 && Number.isFinite(assignedHeight) && assignedHeight > 0
-    ? viewportHeight / assignedHeight
+  const scale = Number.isFinite(viewportHeight) && viewportHeight > 0 && Number.isFinite(assignedPipHeight) && assignedPipHeight > 0
+    ? viewportHeight / assignedPipHeight
     : 1;
-  embed.height = Math.ceil(renderedHeight / Math.max(scale, 0.5));
+  assignPipHeight(embed, renderedHeight / Math.max(scale, 0.5));
+}
+
+function assignPipHeight(embed, height) {
+  assignedPipHeight = Math.ceil(height);
+  embed.height = assignedPipHeight;
 }

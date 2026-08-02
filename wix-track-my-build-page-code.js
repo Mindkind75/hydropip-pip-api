@@ -2,6 +2,7 @@ import wixWindowFrontend from "wix-window-frontend";
 
 const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260802b";
 const TRACK_EMBED_IDS = ["#trackHtml", "#partsHtml", "#html1", "#html2", "#iFrame1"];
+let assignedHeight = 0;
 
 $w.onReady(() => {
   const embed = getEmbed();
@@ -31,18 +32,22 @@ function resizeEmbed(embed, message = {}) {
 }
 
 function setFallbackHeight(embed) {
-  embed.height = wixWindowFrontend.formFactor === "Mobile" ? 10440 : 2600;
+  assignHeight(embed, wixWindowFrontend.formFactor === "Mobile" ? 10440 : 2600);
   wixWindowFrontend.getBoundingRect().then((size) => {
-    if (size?.window?.width) embed.height = heightForWidth(size.window.width);
+    if (size?.window?.width) assignHeight(embed, heightForWidth(size.window.width));
   }).catch(() => {});
 }
 
 function setRenderedHeight(embed, renderedHeight, viewportHeight) {
-  const assignedHeight = Number(embed.height);
   const scale = Number.isFinite(viewportHeight) && viewportHeight > 0 && Number.isFinite(assignedHeight) && assignedHeight > 0
     ? viewportHeight / assignedHeight
     : 1;
-  embed.height = Math.ceil(renderedHeight / Math.max(scale, 0.5));
+  assignHeight(embed, renderedHeight / Math.max(scale, 0.5));
+}
+
+function assignHeight(embed, height) {
+  assignedHeight = Math.ceil(height);
+  embed.height = assignedHeight;
 }
 
 function heightForWidth(width) {
