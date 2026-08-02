@@ -13,7 +13,7 @@ const toolMap = {
   get_wizard_schema: getWizardSchema
 };
 
-const proSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "https://www.hydropip.com/pricing-plans";
+const proSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "https://www.hydropip.com/pip?pro=1";
 
 const tools = [
   {
