@@ -18,6 +18,8 @@ const affiliateLinks = {
   ecTdsMeter: "https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20",
   ecTdsCalibration: "https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20",
   seeds: "https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20",
+  stickyTraps: "https://www.amazon.com/s?k=yellow+sticky+traps+for+plants&tag=hydrpip2002-20",
+  foodSafePestControl: "https://www.amazon.com/s?k=food+safe+garden+pest+control+vegetables&tag=hydrpip2002-20",
   mediaTopOff: "https://www.amazon.com/s?k=perlite+vermiculite+hydroponic+growing+medium&tag=hydrpip2002-20"
 };
 const configuredProSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "";
@@ -191,10 +193,10 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Keep the IBC as cool and shaded as you can.\n- Cover the tote and block sunlight from nutrient water.\n- Circulate before testing pH/EC.\n- If roots look stressed, reduce heat exposure before chasing nutrients.\n\nIBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
   }
   if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on)\b/.test(q)) {
-    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves.\n- Improve airflow and keep old plant debris out of pockets.\n- Use crop-safe controls, then rinse harvests well.`;
+    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
   }
   if (/\b(tiny holes|holes in.*leaves|chewed|caterpillar|worm|leaf miner|leafminer)\b/.test(q)) {
-    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Use a food-safe control before it spreads tower to tower.`;
+    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
   }
   if (/\b(strawberry|strawberries)\b/.test(q)) {
     return `${contextLead}Strawberries can work in HydroPip, but they are slower than greens.\n- Give them strong light and steady moisture without soaking crowns.\n- Keep pH/EC steady.\n- Start with greens/herbs first if you are still tuning the system.`;

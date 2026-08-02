@@ -43,7 +43,7 @@ const cases = [
   { q: "What if the IBC water gets too hot?", type: "free", must: ["cool"], avoid: ["return plumbing"] },
   { q: "Can I grow strawberries in this?", type: "free", must: ["Strawberries"], avoid: ["Tell me the step"] },
   { q: "My basil tastes bitter. What happened?", type: "free", must: ["basil"], avoid: ["Pip Pro"] },
-  { q: "The leaves have tiny holes. What should I do?", type: "free", must: ["pests"], avoid: ["Tell me the step"] },
+  { q: "The leaves have tiny holes. What should I do?", type: "free", must: ["pests", "hydrpip2002-20"], avoid: ["Tell me the step"] },
   { q: "Can I use fish tank water in the IBC?", type: "free", must: ["clean water"], avoid: ["Pip Pro"] },
   { q: "Is this safe around kids and pets?", type: "free", must: ["safe"], avoid: ["Tell me the step"] },
   { q: "Can I run this during a storm?", type: "free", must: ["GFCI"], avoid: ["Tell me the step"] },
