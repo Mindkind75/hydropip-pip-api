@@ -41,6 +41,13 @@ const cases = [
   { q: "My lettuce is bolting and getting bitter. What now?", type: "free", must: ["heat"], avoid: ["Tell me the step"] },
   { q: "There is white fuzzy mold near the tower pockets.", type: "free", must: ["airflow"], avoid: ["Pip Pro"] },
   { q: "What if the IBC water gets too hot?", type: "free", must: ["cool"], avoid: ["return plumbing"] },
+  { q: "Can I grow strawberries in this?", type: "free", must: ["Strawberries"], avoid: ["Tell me the step"] },
+  { q: "My basil tastes bitter. What happened?", type: "free", must: ["basil"], avoid: ["Pip Pro"] },
+  { q: "The leaves have tiny holes. What should I do?", type: "free", must: ["pests"], avoid: ["Tell me the step"] },
+  { q: "Can I use fish tank water in the IBC?", type: "free", must: ["clean water"], avoid: ["Pip Pro"] },
+  { q: "Is this safe around kids and pets?", type: "free", must: ["safe"], avoid: ["Tell me the step"] },
+  { q: "Can I run this during a storm?", type: "free", must: ["GFCI"], avoid: ["Tell me the step"] },
+  { q: "What grow zone should I use for plant timing?", type: "free", must: ["zone"], avoid: ["Tell me the step"] },
   { q: "Can you write me a football bet?", type: "offtopic", must: ["HydroPip"], avoid: ["odds"] }
 ];
 

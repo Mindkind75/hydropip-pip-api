@@ -193,6 +193,27 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on)\b/.test(q)) {
     return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves.\n- Improve airflow and keep old plant debris out of pockets.\n- Use crop-safe controls, then rinse harvests well.`;
   }
+  if (/\b(tiny holes|holes in.*leaves|chewed|caterpillar|worm|leaf miner|leafminer)\b/.test(q)) {
+    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Use a food-safe control before it spreads tower to tower.`;
+  }
+  if (/\b(strawberry|strawberries)\b/.test(q)) {
+    return `${contextLead}Strawberries can work in HydroPip, but they are slower than greens.\n- Give them strong light and steady moisture without soaking crowns.\n- Keep pH/EC steady.\n- Start with greens/herbs first if you are still tuning the system.`;
+  }
+  if (/\b(basil|herb|herbs)\b/.test(q) && /\b(bitter|taste|flavor|flower|flowers)\b/.test(q)) {
+    return `${contextLead}Bitter basil is usually stress or flowering.\n- Pinch flowers early and harvest tips often.\n- Reduce heat stress where possible.\n- Check pH/EC before changing nutrients.`;
+  }
+  if (/\b(fish tank|aquarium|pond water)\b/.test(q)) {
+    return `${contextLead}I would not use fish-tank water as the normal HydroPip reservoir mix.\n- It can carry waste, algae, pathogens, and unpredictable nutrients.\n- Use clean water plus measured nutrients.\n- If experimenting, keep it separate from your main grow.`;
+  }
+  if (/\b(kid|kids|child|children|pet|pets|dog|cat|safe around)\b/.test(q)) {
+    return `${contextLead}Make the build physically and electrically safe first.\n- Secure towers so they cannot tip.\n- Keep the IBC covered and cords on outdoor-rated GFCI-protected power.\n- Store nutrients and pH adjusters away from kids and pets.`;
+  }
+  if (/\b(storm|lightning|hurricane|heavy rain|wind|freeze|frost)\b/.test(q)) {
+    return `${contextLead}Bad weather is mostly a stability and power-management problem.\n- Secure towers and hoses before wind hits.\n- Keep plugs elevated, outdoor-rated, and GFCI protected.\n- Pause feeding during unsafe electrical conditions, then inspect pumps/runoff afterward.`;
+  }
+  if (/\b(grow zone|zone|usda zone|planting zone)\b/.test(q)) {
+    return `${contextLead}Grow zone helps with crop timing and variety choices.\n- Tell me your USDA zone or ZIP-level climate area.\n- I can suggest HydroPip crops and planting windows.\n- Saving zone-based schedules and reminders is Pip Pro: ${proSignupUrl}`;
+  }
   if (/\b(grow light|lights|lighting|sun|shade|how much light)\b/.test(q)) {
     return `${contextLead}HydroPip works best when plants get strong, consistent light without cooking the reservoir.\n- Greens usually like bright sun with heat management.\n- Add afternoon shade in brutal heat.\n- Keep the IBC covered so light does not feed algae.`;
   }
