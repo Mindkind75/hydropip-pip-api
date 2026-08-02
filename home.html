@@ -301,9 +301,24 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 (function(){
   var menu=document.querySelector("#menuBtn");
   var nav=document.querySelector("#nav");
+  function goTop(href){
+    try{
+      if(window.top&&window.top!==window){window.top.location.assign(href);return}
+    }catch(error){}
+    window.location.assign(href);
+  }
   if(menu&&nav){
-    menu.addEventListener("click",function(){nav.classList.toggle("open")});
-    nav.addEventListener("click",function(e){if(e.target.tagName==="A")nav.classList.remove("open")});
+    menu.setAttribute("aria-expanded","false");
+    menu.addEventListener("click",function(){
+      var open=nav.classList.toggle("open");
+      menu.setAttribute("aria-expanded",open?"true":"false");
+    });
+    nav.addEventListener("click",function(e){
+      if(e.target.tagName==="A"){
+        nav.classList.remove("open");
+        menu.setAttribute("aria-expanded","false");
+      }
+    });
   }
   document.addEventListener("click",function(event){
     var link=event.target.closest('a[href^="#"]');
@@ -311,6 +326,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     var target=document.querySelector(link.getAttribute("href"));
     if(!target)return;
     event.preventDefault();
+    event.stopPropagation();
     target.scrollIntoView({behavior:"smooth",block:"start"});
     history.replaceState(null,"",link.getAttribute("href"));
   });
@@ -322,10 +338,13 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
   });
   document.addEventListener("click",function(event){
     var link=event.target.closest('a[href]');
-    if(!link||link.getAttribute("href").charAt(0)==="#")return;
-    var href=link.href;
+    if(!link)return;
+    var raw=link.getAttribute("href")||"";
+    if(raw.charAt(0)==="#")return;
+    var forceTop=link.classList.contains("btn")||link.classList.contains("navCta")||link.closest(".partsGrid")||link.closest(".partsHead")||link.closest(".signupPanel")||link.closest(".finalCta")||link.closest(".heroText")||link.closest(".pipLockup");
+    if(!forceTop)return;
     event.preventDefault();
-    try{window.top.location.href=href}catch(error){window.location.href=href}
+    goTop(link.href);
   });
 })();
 </script>
