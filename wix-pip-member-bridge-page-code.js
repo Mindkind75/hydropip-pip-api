@@ -2,6 +2,7 @@ import { currentMember, authentication } from "wix-members-frontend";
 import wixLocation from "wix-location";
 import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
+import wixWindowFrontend from "wix-window-frontend";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
@@ -15,12 +16,14 @@ $w.onReady(() => {
     return;
   }
 
+  setPipHeight(pip);
+
   pip.onMessage(async (event) => {
     const message = event.data || {};
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
-      const height = Math.max(680, Math.min(1200, Math.ceil(Number(message.height) || 0)));
-      if (height) pip.height = height;
+      const targetHeight = Number(message.width) > 0 && Number(message.width) <= 750 ? 760 : 820;
+      setRenderedHeight(pip, targetHeight, Number(message.width));
       return;
     }
 
@@ -117,4 +120,21 @@ async function getPipSubscription() {
   } catch (error) {
     return { active: false, plan: "free_member", ordersUnavailable: true };
   }
+}
+
+function setPipHeight(pip) {
+  pip.height = wixWindowFrontend.formFactor === "Mobile" ? 760 : 820;
+  wixWindowFrontend.getBoundingRect().then((size) => {
+    if (!size?.window?.width) return;
+    const targetHeight = size.window.width <= 750 ? 760 : 820;
+    setRenderedHeight(pip, targetHeight, size.window.width);
+  }).catch(() => {});
+}
+
+function setRenderedHeight(embed, renderedHeight, renderedWidth) {
+  const componentWidth = Number(embed.width);
+  const scale = Number.isFinite(renderedWidth) && renderedWidth > 0 && Number.isFinite(componentWidth) && componentWidth > 0
+    ? renderedWidth / componentWidth
+    : 1;
+  embed.height = Math.ceil(renderedHeight / Math.max(scale, 0.5));
 }
