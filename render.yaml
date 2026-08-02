@@ -16,7 +16,7 @@ services:
       - key: PIP_FREE_MODE
         value: true
       - key: PIP_PRO_SIGNUP_URL
-        value: https://www.hydropip.com/pricing-plans
+        value: https://www.hydropip.com/pip?pro=1
       - key: OPENAI_API_KEY
         sync: false
       - key: PIP_MODEL
