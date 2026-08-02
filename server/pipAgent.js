@@ -183,25 +183,12 @@ export async function askPip({ message, profile, subscription, history = [], use
 
   const client = await getOpenAiClient();
   if (!client) {
-    const answer = compactAnswer(fallbackAnswer(withRecentContext(trimmed, recentHistory), retrieval), trimmed, retrieval);
-    await rememberProjectMessage(projectContext, {
-      userId,
-      projectId,
-      role: "assistant",
-      content: answer,
-      mode: "rules_fallback",
-      sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }))
-    });
-    return {
-      answer,
-      mode: "rules_fallback",
-      sources: retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score })),
-      subscriptionRequired: wantsTracking(trimmed) && !subscription?.active,
-      projectMemory
-    };
+    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory });
   }
 
-  const response = await client.responses.create({
+  let response;
+  try {
+    response = await client.responses.create({
     model: process.env.PIP_MODEL || "gpt-5-mini",
     instructions: [
       systemBrain,
@@ -246,7 +233,11 @@ export async function askPip({ message, profile, subscription, history = [], use
     ],
     tools,
     tool_choice: "auto"
-  });
+    });
+  } catch (error) {
+    console.warn(`OpenAI response failed, using HydroPip fallback: ${error.message}`);
+    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, mode: "ai_error_fallback" });
+  }
 
   const toolResults = [];
   for (const item of response.output || []) {
@@ -280,7 +271,9 @@ export async function askPip({ message, profile, subscription, history = [], use
     };
   }
 
-  const final = await client.responses.create({
+  let final;
+  try {
+    final = await client.responses.create({
     model: process.env.PIP_MODEL || "gpt-5-mini",
     instructions: [
       "Answer as Pip using the tool results.",
@@ -293,7 +286,11 @@ export async function askPip({ message, profile, subscription, history = [], use
     ].join("\n"),
     previous_response_id: response.id,
     input: toolResults
-  });
+    });
+  } catch (error) {
+    console.warn(`OpenAI tool follow-up failed, using HydroPip fallback: ${error.message}`);
+    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, mode: "ai_tool_error_fallback" });
+  }
 
   const answer = compactAnswer(final.output_text || fallbackAnswer(trimmed, retrieval), trimmed, retrieval);
   const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
@@ -310,6 +307,26 @@ export async function askPip({ message, profile, subscription, history = [], use
     answer,
     mode: "ai_tools_rag",
     sources,
+    projectMemory
+  };
+}
+
+async function fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, mode = "rules_fallback" }) {
+  const answer = compactAnswer(fallbackAnswer(withRecentContext(trimmed, recentHistory), retrieval), trimmed, retrieval);
+  const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
+  await rememberProjectMessage(projectContext, {
+    userId,
+    projectId,
+    role: "assistant",
+    content: answer,
+    mode,
+    sources
+  });
+  return {
+    answer,
+    mode,
+    sources,
+    subscriptionRequired: wantsTracking(trimmed) && !subscription?.active,
     projectMemory
   };
 }
