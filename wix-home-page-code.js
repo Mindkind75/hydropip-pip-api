@@ -1,6 +1,6 @@
 import wixWindowFrontend from "wix-window-frontend";
 
-const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260802";
+const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260802b";
 const HOME_EMBED_IDS = ["#homeHtml", "#html1", "#html2", "#iFrame1"];
 
 $w.onReady(() => {
@@ -27,20 +27,20 @@ function getEmbed() {
 function resizeEmbed(embed, message = {}) {
   if (message.type !== "HYDROPIP_EMBED_HEIGHT") return;
   const height = Math.max(640, Math.min(18000, Math.ceil(Number(message.height) + 24)));
-  if (Number.isFinite(height)) setRenderedHeight(embed, height, Number(message.width));
+  if (Number.isFinite(height)) setRenderedHeight(embed, height, Number(message.viewportHeight));
 }
 
 function setFallbackHeight(embed) {
   embed.height = wixWindowFrontend.formFactor === "Mobile" ? 13420 : 4400;
   wixWindowFrontend.getBoundingRect().then((size) => {
-    if (size?.window?.width) setRenderedHeight(embed, heightForWidth(size.window.width), size.window.width);
+    if (size?.window?.width) embed.height = heightForWidth(size.window.width);
   }).catch(() => {});
 }
 
-function setRenderedHeight(embed, renderedHeight, renderedWidth) {
-  const componentWidth = Number(embed.width);
-  const scale = Number.isFinite(renderedWidth) && renderedWidth > 0 && Number.isFinite(componentWidth) && componentWidth > 0
-    ? renderedWidth / componentWidth
+function setRenderedHeight(embed, renderedHeight, viewportHeight) {
+  const assignedHeight = Number(embed.height);
+  const scale = Number.isFinite(viewportHeight) && viewportHeight > 0 && Number.isFinite(assignedHeight) && assignedHeight > 0
+    ? viewportHeight / assignedHeight
     : 1;
   embed.height = Math.ceil(renderedHeight / Math.max(scale, 0.5));
 }

@@ -191,7 +191,7 @@
     var nextHeight=contentHeight();
     if(Math.abs(nextHeight-lastHeight)<8)return;
     lastHeight=nextHeight;
-    try{window.parent.postMessage({type:"HYDROPIP_EMBED_HEIGHT",page:location.pathname.split("/").pop()||"parts",height:nextHeight,width:window.innerWidth||document.documentElement.clientWidth},"*")}catch(error){}
+    try{window.parent.postMessage({type:"HYDROPIP_EMBED_HEIGHT",page:location.pathname.split("/").pop()||"parts",height:nextHeight,width:window.innerWidth||document.documentElement.clientWidth,viewportHeight:window.innerHeight||document.documentElement.clientHeight},"*")}catch(error){}
   }
   window.addEventListener("load",postHeight);
   window.addEventListener("resize",postHeight);

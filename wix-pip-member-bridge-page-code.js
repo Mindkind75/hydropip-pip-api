@@ -23,7 +23,7 @@ $w.onReady(() => {
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
       const targetHeight = Number(message.width) > 0 && Number(message.width) <= 750 ? 760 : 820;
-      setRenderedHeight(pip, targetHeight, Number(message.width));
+      setRenderedHeight(pip, targetHeight, Number(message.viewportHeight));
       return;
     }
 
@@ -127,14 +127,14 @@ function setPipHeight(pip) {
   wixWindowFrontend.getBoundingRect().then((size) => {
     if (!size?.window?.width) return;
     const targetHeight = size.window.width <= 750 ? 760 : 820;
-    setRenderedHeight(pip, targetHeight, size.window.width);
+    pip.height = targetHeight;
   }).catch(() => {});
 }
 
-function setRenderedHeight(embed, renderedHeight, renderedWidth) {
-  const componentWidth = Number(embed.width);
-  const scale = Number.isFinite(renderedWidth) && renderedWidth > 0 && Number.isFinite(componentWidth) && componentWidth > 0
-    ? renderedWidth / componentWidth
+function setRenderedHeight(embed, renderedHeight, viewportHeight) {
+  const assignedHeight = Number(embed.height);
+  const scale = Number.isFinite(viewportHeight) && viewportHeight > 0 && Number.isFinite(assignedHeight) && assignedHeight > 0
+    ? viewportHeight / assignedHeight
     : 1;
   embed.height = Math.ceil(renderedHeight / Math.max(scale, 0.5));
 }
