@@ -3,6 +3,28 @@
   "purpose": "Collect enough information to create a personalized HydroPip grow profile before Pip gives schedules.",
   "questions": [
     {
+      "id": "growZone",
+      "label": "What is your USDA growing zone?",
+      "type": "select",
+      "options": ["not sure", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"],
+      "default": "not sure",
+      "required": true
+    },
+    {
+      "id": "areaType",
+      "label": "Where is this system growing?",
+      "type": "select",
+      "options": ["outdoor open", "outdoor covered", "greenhouse", "indoor grow area"],
+      "default": "outdoor open",
+      "required": true
+    },
+    {
+      "id": "location",
+      "label": "City or ZIP code",
+      "type": "text",
+      "required": false
+    },
+    {
       "id": "towerCount",
       "label": "How many towers are you running?",
       "type": "number",

@@ -7,7 +7,8 @@ import {
   getMemoryHealth,
   getProjectTemplates,
   listProjectMessages,
-  resetMemoryForTests
+  resetMemoryForTests,
+  updateProject
 } from "./pipMemory.js";
 import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
@@ -71,10 +72,38 @@ const freeProject = await createProject({
   user: { id: "test-user", email: "test@example.com" },
   type: "hydropip_build",
   title: "Backyard HydroPip",
-  systemProfile: { systemType: "hydropip_tower", reservoirGallons: 275, crops: ["lettuce"] },
+  systemProfile: {
+    systemType: "hydropip_tower",
+    growZone: "9",
+    location: "Ocala, FL",
+    areaType: "outdoor_open",
+    exposure: "full_sun",
+    reservoirGallons: 275,
+    crops: ["lettuce"],
+    goals: ["steady_harvests"]
+  },
   subscription: { active: false }
 });
 assert.equal(freeProject.status, "created");
+assert.equal(freeProject.project.systemProfile.growZone, "9");
+assert.equal(freeProject.project.systemProfile.areaType, "outdoor_open");
+assert.deepEqual(freeProject.project.systemProfile.goals, ["steady_harvests"]);
+
+const updatedGrow = await updateProject({
+  userId: "test-user",
+  projectId: freeProject.project.id,
+  patch: {
+    title: "Backyard greens",
+    systemProfile: {
+      ...freeProject.project.systemProfile,
+      systemStage: "growing",
+      plantingDate: "2026-08-02"
+    }
+  }
+});
+assert.equal(updatedGrow.title, "Backyard greens");
+assert.equal(updatedGrow.systemProfile.systemStage, "growing");
+assert.equal(updatedGrow.systemProfile.plantingDate, "2026-08-02");
 
 const existingSystemBlocked = await createProject({
   user: { id: "test-user" },

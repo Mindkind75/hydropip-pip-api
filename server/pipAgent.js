@@ -211,6 +211,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "Do not pretend reminders are saved unless create_reminder returns queued.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
+      "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action. A grow zone describes seasonal hardiness, not today's weather; ask for current conditions when a weather-sensitive answer needs them.",
       "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),

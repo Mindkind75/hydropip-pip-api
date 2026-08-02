@@ -574,16 +574,28 @@ function normalizeSystemProfile(profile = {}, type) {
   return {
     systemType: profile.systemType || (type === "hydropip_build" ? "hydropip_tower" : "unknown"),
     title: profile.title || null,
+    growZone: cleanOptionalText(profile.growZone, 12),
+    location: cleanOptionalText(profile.location, 160),
+    areaType: cleanOptionalText(profile.areaType, 40),
+    exposure: cleanOptionalText(profile.exposure, 40),
+    systemStage: cleanOptionalText(profile.systemStage, 40),
+    plantingDate: cleanOptionalText(profile.plantingDate, 20),
     reservoirGallons: normalizeOptionalNumber(profile.reservoirGallons),
     plantSites: normalizeOptionalNumber(profile.plantSites),
     towerCount: normalizeOptionalNumber(profile.towerCount),
     crops: Array.isArray(profile.crops) ? profile.crops.map(String).slice(0, 20) : [],
+    goals: Array.isArray(profile.goals) ? profile.goals.map(String).slice(0, 12) : [],
     medium: profile.medium || null,
     nutrientBrand: profile.nutrientBrand || null,
     indoorOutdoor: profile.indoorOutdoor || null,
     pumpSchedule: profile.pumpSchedule || null,
     notes: profile.notes ? String(profile.notes).slice(0, 2000) : ""
   };
+}
+
+function cleanOptionalText(value, maxLength) {
+  const cleaned = String(value || "").trim();
+  return cleaned ? cleaned.slice(0, maxLength) : null;
 }
 
 function normalizeOptionalNumber(value) {
