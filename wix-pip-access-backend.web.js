@@ -17,12 +17,13 @@ export const getPipAccess = webMethod(Permissions.SiteMember, async () => {
       ACTIVE_ORDER_STATUSES.includes(String(order.status || "").toUpperCase())
     );
     const pipProOrder = activeOrders.find(isPipProOrder);
+    const orderData = /** @type {any} */ (pipProOrder);
 
     access = {
       active: Boolean(pipProOrder),
       plan: pipProOrder ? "pip_pro" : "free_member",
-      planName: pipProOrder?.planName || pipProOrder?.plan?.name || null,
-      orderId: pipProOrder?._id || pipProOrder?.id || null,
+      planName: orderData?.planName || orderData?.plan?.name || null,
+      orderId: orderData?._id || orderData?.id || null,
       checkedBy: "wix_backend"
     };
   } catch (error) {
@@ -40,7 +41,7 @@ export const getPipAccess = webMethod(Permissions.SiteMember, async () => {
 
 async function createPipSession(subscription) {
   const memberResult = await members.getCurrentMember();
-  const member = memberResult?.member || memberResult;
+  const member = /** @type {any} */ (memberResult?.member || memberResult);
   if (!member?._id) return null;
 
   const bridgeSecret = await getSecret("PIP_BRIDGE_SECRET");
@@ -65,7 +66,7 @@ async function createPipSession(subscription) {
   return data.token || null;
 }
 
-function isPipProOrder(order) {
+function isPipProOrder(/** @type {any} */ order) {
   const orderPlanId = order.planId || order.plan?._id || order.plan?.id;
   if (orderPlanId && PIP_PRO_PLAN_IDS.includes(orderPlanId)) return true;
 

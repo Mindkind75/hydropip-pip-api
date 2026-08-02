@@ -36,6 +36,11 @@ const allowedOrigins = (process.env.PIP_ALLOWED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const serviceOrigins = new Set([
+  ...allowedOrigins,
+  process.env.RENDER_EXTERNAL_URL,
+  "https://hydropip-pip-api.onrender.com"
+].filter(Boolean));
 const chatWindowMs = Number(process.env.PIP_RATE_LIMIT_WINDOW_MS || 60_000);
 const chatMaxRequests = Number(process.env.PIP_RATE_LIMIT_MAX || 20);
 const chatHits = new Map();
@@ -43,7 +48,7 @@ const chatHits = new Map();
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin) || isWixEmbedOrigin(origin)) {
+      if (!origin || serviceOrigins.size === 0 || serviceOrigins.has(origin) || isWixEmbedOrigin(origin)) {
         callback(null, true);
         return;
       }

@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PIP_ALLOWED_ORIGINS
-        value: https://www.hydropip.com,https://hydropip.com
+        value: https://www.hydropip.com,https://hydropip.com,https://hydropip-pip-api.onrender.com
       - key: PIP_FREE_MODE
         value: true
       - key: PIP_PRO_SIGNUP_URL
