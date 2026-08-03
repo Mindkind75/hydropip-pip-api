@@ -83,6 +83,12 @@ assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower tur
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");
 assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
 
+for (const productFile of ["home.html", "pip.html", "parts-checklist.html", "server/pipAgent.js", "server/pipData.js", "server/pipTools.js"]) {
+  const productSource = fs.readFileSync(new URL(`../${productFile}`, import.meta.url), "utf8");
+  assert.doesNotMatch(productSource, /B007TFTW3U/, `${productFile} still references the unavailable planter ASIN`);
+  assert.match(productSource, /B007TFTXAC/, `${productFile} is missing the approved 1\/2-inch-center planter ASIN`);
+}
+
 for (const legalFile of ["privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"]) {
   const legalHtml = fs.readFileSync(new URL(`../${legalFile}`, import.meta.url), "utf8");
   assert.match(legalHtml, /Hartshorn Studios LLC|HydroPip Systems by Hartshorn Studios LLC/, `${legalFile} should identify the business`);

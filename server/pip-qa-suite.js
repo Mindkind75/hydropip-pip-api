@@ -39,7 +39,7 @@ const cases = [
     avoid: ["Tell me the step", "narrow this"]
   },
   { q: "Where do I buy seeds for this?", type: "product", must: ["seed", "hydrpip2002-20"] },
-  { q: "Give me the full 4 tower shopping list with links.", type: "detailed", must: ["B007TFTW3U", "B07L54HB83"] },
+  { q: "Give me the full 4 tower shopping list with links.", type: "detailed", must: ["B007TFTXAC", "B07L54HB83"] },
   { q: "Can you save a reminder to prune basil every Friday?", type: "pro", must: ["Pip Pro", proUrl] },
   { q: "Can you track my pH readings over the next month?", type: "pro", must: ["Pip Pro", proUrl] },
   { q: "Can you build a schedule for my DWC bucket?", type: "pro", must: ["Pip Pro", proUrl] },

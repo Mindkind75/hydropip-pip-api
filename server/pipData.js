@@ -77,7 +77,7 @@ export const buildSteps = [
 ];
 
 export const parts = [
-  { name: "Four-pot stackable planter sections", quantity: "2 orders per tower", source: "Amazon", asin: "B007TFTW3U" },
+  { name: "Mr. Stacky four-pot planter sections with 1/2-inch center opening", quantity: "2 five-tier orders per tower", source: "Amazon", asin: "B007TFTXAC" },
   { name: "275 gallon IBC tote", quantity: "1 per system", source: "Amazon or used local food-safe/non-hazardous tote", asin: "B0876C67GR" },
   { name: "Submersible pumps", quantity: "2 per system", source: "Amazon", asin: "B07L54HB83" },
   { name: "Outdoor smart plug", quantity: "1 two-outlet outdoor unit", source: "Amazon", asin: "B091FXH2FR" },
