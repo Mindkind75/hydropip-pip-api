@@ -2,12 +2,8 @@
 (function () {
   if (location.pathname !== "/pip") return;
 
-  var query = new URLSearchParams(location.search);
-  var tier = query.get("app") === "pro" || query.get("pro") === "1" ? "pro" : "build";
   var base = "https://hydropip-pip-api.onrender.com";
-  var title = tier === "pro" ? "HydroPip Pro" : "HydroPip Build";
-  var icon = base + "/assets/app-icons/hydropip-" + tier + "-180.png";
-  var manifest = base + "/manifest-" + tier + ".webmanifest";
+  var icon = base + "/assets/app-icons/hydropip-build-180.png";
 
   function setMeta(name, content) {
     var node = document.querySelector('meta[name="' + name + '"]');
@@ -29,18 +25,10 @@
     }
     node.href = href;
     if (sizes) node.sizes = sizes;
-    if (rel === "manifest") node.crossOrigin = "anonymous";
   }
 
-  setMeta("apple-mobile-web-app-capable", "yes");
-  setMeta("mobile-web-app-capable", "yes");
-  setMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
-  setMeta("apple-mobile-web-app-title", title);
-  setMeta("application-name", title);
-  setMeta("theme-color", tier === "pro" ? "#0f4f37" : "#f7f5ef");
+  setMeta("theme-color", "#f7f5ef");
   setLink("apple-touch-icon", icon, "180x180");
   setLink("icon", icon, "180x180");
-  setLink("manifest", manifest);
-  document.title = title;
 })();
 </script>
