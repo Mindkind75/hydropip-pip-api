@@ -1,8 +1,7 @@
 const plannerUrl = "https://www.hydropip.com/pip?pro=1";
 
 export function buildPipCalendar({ reminders = [], calendarName = "HydroPip Planner" } = {}) {
-  const events = reminders
-    .filter((item) => item.status === "active" && (item.dueAt || item.dueDate))
+  const events = dedupeReminders(reminders.filter((item) => item.status === "active" && (item.dueAt || item.dueDate)))
     .map(calendarEvent)
     .filter(Boolean);
 
@@ -30,9 +29,10 @@ function calendarEvent(item) {
     `UID:${escapeCalendarText(item.id)}@hydropip.com`,
     `DTSTAMP:${formatUtc(item.updatedAt || item.createdAt || new Date())}`,
     `SUMMARY:${escapeCalendarText(item.title || "HydroPip task")}`,
-    `DESCRIPTION:${escapeCalendarText(`${category}. Open this task in Pip Pro: ${plannerUrl}`)}`,
+    `DESCRIPTION:${escapeCalendarText(calendarDescription(item, category))}`,
     `CATEGORIES:${escapeCalendarText(category)}`,
     `URL:${plannerUrl}`,
+    "STATUS:CONFIRMED",
     ...start
   ];
   const frequency = String(item.repeat?.frequency || "").toUpperCase();
@@ -52,9 +52,31 @@ function eventStart(item) {
     return [`DTSTART:${formatUtc(date)}`, `DTEND:${formatUtc(end)}`];
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(item.dueDate || ""))) return null;
-  const start = new Date(`${item.dueDate}T00:00:00Z`);
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return [`DTSTART;VALUE=DATE:${formatDate(start)}`, `DTEND;VALUE=DATE:${formatDate(end)}`];
+  const day = String(item.dueDate).replace(/-/g, "");
+  return [`DTSTART:${day}T090000`, `DTEND:${day}T093000`];
+}
+
+function dedupeReminders(reminders) {
+  const seen = new Set();
+  return reminders.filter((item) => {
+    if (item.note === "hydropip_default") return false;
+    const marker = /^hydropip_(weekly|monthly)_v2$/.test(item.note || "") ? item.note : "";
+    const when = item.dueAt || item.dueDate || "";
+    const repeat = item.repeat?.frequency || "";
+    const key = marker || `${String(item.title || "").trim().toLowerCase()}|${when}|${repeat}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function calendarDescription(item, category) {
+  const starterDetails = {
+    hydropip_weekly_v2: "Check the IBC level and leaks, pH and EC/TDS after circulation, flow at every tower, and plants for pests or stress.",
+    hydropip_monthly_v2: "Flush the main feed line, clean pump intakes, inspect hoses, calibrate meters, and check nutrient supply."
+  }[item.note];
+  const note = starterDetails || (/^hydropip_/.test(item.note || "") ? "" : String(item.note || "").trim());
+  return `${category}.${note ? ` ${note}` : ""}\n\nOpen this task in Pip Pro: ${plannerUrl}`;
 }
 
 function categoryLabel(value) {

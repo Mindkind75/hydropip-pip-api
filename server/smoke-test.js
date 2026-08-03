@@ -404,15 +404,25 @@ const savedReminder = await createProjectReminder({
   subscription: { active: true }
 });
 assert.equal(savedReminder.status, "queued");
+await createProjectReminder({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  reminder: { title: "Old daily-looking starter task", note: "hydropip_default", dueDate: "2026-08-03", repeat: { frequency: "weekly" } },
+  subscription: { active: true }
+});
 
 const defaultSchedule = await seedProjectDefaults({
   userId: "test-user",
   projectId: paidProject.project.id,
   subscription: { active: true }
 });
-assert.equal(defaultSchedule.reminders.length, 12);
+assert.equal(defaultSchedule.reminders.length, 6);
+assert.equal(defaultSchedule.removedCount, 1);
 assert.equal(defaultSchedule.reminders.some((item) => item.title.includes("Plant or transplant leafy greens")), true);
+assert.equal(defaultSchedule.reminders.some((item) => item.title === "Weekly HydroPip check-in"), true);
+assert.equal(defaultSchedule.reminders.some((item) => item.title === "Monthly HydroPip service"), true);
 const savedSchedule = await listProjectReminders({ userId: "test-user", projectId: paidProject.project.id });
+assert.equal(savedSchedule.some((item) => item.note === "hydropip_default"), false);
 const readySchedule = await seedProjectDefaults({
   userId: "test-user",
   projectId: paidProject.project.id,
@@ -420,7 +430,7 @@ const readySchedule = await seedProjectDefaults({
 });
 assert.equal(readySchedule.status, "already_ready");
 assert.equal(readySchedule.addedCount, 0);
-const completedStarter = savedSchedule.find((item) => item.note === "hydropip_default");
+const completedStarter = savedSchedule.find((item) => item.note === "hydropip_weekly_v2");
 const completedRecurring = await updateProjectReminder({
   userId: "test-user",
   projectId: paidProject.project.id,
@@ -431,6 +441,13 @@ const completedRecurring = await updateProjectReminder({
 assert.equal(completedRecurring.reminder.status, "active");
 assert.equal(completedRecurring.reminder.completionCount, 1);
 assert.equal(new Date(completedRecurring.reminder.dueAt) > new Date(completedRecurring.reminder.lastCompletedAt), true);
+await updateProjectReminder({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  reminderId: completedStarter.id,
+  patch: { title: "My weekly garden check" },
+  subscription: { active: true }
+});
 const restoredSchedule = await seedProjectDefaults({
   userId: "test-user",
   projectId: paidProject.project.id,
@@ -457,6 +474,16 @@ const calendarText = buildPipCalendar(calendarData);
 assert.match(calendarText, /BEGIN:VCALENDAR/);
 assert.match(calendarText, /X-WR-CALNAME:HydroPip Planner/);
 assert.match(calendarText, /RRULE:FREQ=WEEKLY/);
+const duplicateCalendarText = buildPipCalendar({ reminders: [savedSchedule[0], savedSchedule[0]] });
+assert.equal((duplicateCalendarText.match(/BEGIN:VEVENT/g) || []).length, 1);
+const activeStarter = savedSchedule.find((item) => item.note === "hydropip_weekly_v2");
+const completedDuplicateText = buildPipCalendar({ reminders: [{ ...activeStarter, status: "completed" }, activeStarter] });
+assert.equal((completedDuplicateText.match(/BEGIN:VEVENT/g) || []).length, 1);
+const legacyCalendarText = buildPipCalendar({ reminders: [{ ...savedSchedule[0], id: "legacy", note: "hydropip_default" }] });
+assert.equal((legacyCalendarText.match(/BEGIN:VEVENT/g) || []).length, 0);
+const timedLegacyDate = buildPipCalendar({ reminders: [{ ...savedSchedule[0], id: "date-only", dueAt: null, dueDate: "2026-08-15", note: "" }] });
+assert.match(timedLegacyDate, /DTSTART:20260815T090000/);
+assert.doesNotMatch(timedLegacyDate, /VALUE=DATE/);
 await revokeCalendarSubscription({ userId: "test-user", subscription: { active: true } });
 assert.equal(await getCalendarByToken({ token: calendarToken }), null);
 

@@ -412,7 +412,9 @@ export async function getCalendarByToken({ token } = {}) {
     );
     const owner = await pool.query("select id from pip_users where calendar_token = $1", [calendarToken]);
     if (!owner.rows[0]) return null;
-    return { reminders: result.rows.map((row) => ({ ...rowToReminder(row), projectTitle: row.project_title })) };
+    return { reminders: result.rows
+      .map((row) => ({ ...rowToReminder(row), projectTitle: row.project_title }))
+      .filter((item) => item.note !== "hydropip_default") };
   }
   const state = readState();
   const user = Object.values(state.users).find((item) => item.calendarToken === calendarToken);
@@ -420,6 +422,7 @@ export async function getCalendarByToken({ token } = {}) {
   const projects = Object.values(state.projects).filter((item) => item.userId === user.id && item.status === "active");
   const reminders = projects.flatMap((project) => (state.reminders[project.id] || [])
     .filter((item) => item.status === "active")
+    .filter((item) => item.note !== "hydropip_default")
     .map((item) => ({ ...item, projectTitle: project.title })));
   return { reminders };
 }
@@ -1244,16 +1247,22 @@ export async function seedProjectDefaults({ userId, projectId, subscription = {}
   if (!project) return null;
   const current = await listProjectReminders({ userId, projectId });
   if (!subscription?.active) return subscriptionRequired("Saved maintenance schedules require Pip Pro.");
+  const legacy = current.filter((item) => item.note === "hydropip_default");
+  for (const item of legacy) {
+    await deleteProjectReminder({ userId, projectId, reminderId: item.id, subscription });
+  }
+  const retained = current.filter((item) => item.note !== "hydropip_default");
   const defaults = standardReminderDefaults(project.systemProfile);
-  const existingTitles = new Set(current.map((item) => String(item.title || "").trim().toLowerCase()));
-  const missing = defaults.filter((item) => !existingTitles.has(item.title.trim().toLowerCase()));
-  if (!missing.length) return { status: "already_ready", reminders: current, addedCount: 0 };
+  const existingTitles = new Set(retained.map((item) => String(item.title || "").trim().toLowerCase()));
+  const existingStarterMarkers = new Set(retained.map((item) => item.note).filter((note) => /^hydropip_(weekly|monthly)_v2$/.test(note || "")));
+  const missing = defaults.filter((item) => !existingTitles.has(item.title.trim().toLowerCase()) && !existingStarterMarkers.has(item.note));
+  if (!missing.length) return { status: "already_ready", reminders: retained, addedCount: 0, removedCount: legacy.length };
   const saved = [];
   for (const reminder of missing) {
     const result = await createProjectReminder({ userId, projectId, reminder, subscription });
     if (result?.reminder) saved.push(result.reminder);
   }
-  return { status: "created", reminders: saved, addedCount: saved.length };
+  return { status: "created", reminders: saved, addedCount: saved.length, removedCount: legacy.length };
 }
 
 export async function listProjectSeeds({ userId, projectId } = {}) {
@@ -2140,22 +2149,16 @@ function normalizeSeed(seed = {}) {
 }
 
 function standardReminderDefaults(profile = {}) {
-  const dueAt = (days, hour = 9, anchor = null) => {
+  const dueAt = (days, hour = 9, anchor = null, minute = 0) => {
     const date = anchor ? new Date(`${anchor}T09:00:00`) : new Date();
     if (Number.isNaN(date.getTime())) return dueAt(days, hour);
     date.setDate(date.getDate() + days);
-    date.setHours(hour, 0, 0, 0);
+    date.setHours(hour, minute, 0, 0);
     return date.toISOString();
   };
   const systemCare = [
-    { title: "Check IBC level and leaks", note: "hydropip_default", category: "maintenance", dueAt: dueAt(1), repeat: { frequency: "weekly" }, notify: true },
-    { title: "Check pH and EC/TDS after circulation", note: "hydropip_default", category: "nutrients", dueAt: dueAt(2), repeat: { frequency: "weekly" }, notify: true },
-    { title: "Inspect flow at every tower", note: "hydropip_default", category: "maintenance", dueAt: dueAt(3), repeat: { frequency: "weekly" }, notify: true },
-    { title: "Inspect plants for pests or stress", note: "hydropip_default", category: "grow", dueAt: dueAt(4), repeat: { frequency: "weekly" }, notify: true },
-    { title: "Flush the main feed line", note: "hydropip_default", category: "maintenance", dueAt: dueAt(14), repeat: { frequency: "monthly" }, notify: true },
-    { title: "Clean pump intakes and inspect hoses", note: "hydropip_default", category: "maintenance", dueAt: dueAt(21), repeat: { frequency: "monthly" }, notify: true },
-    { title: "Calibrate pH and EC/TDS meters", note: "hydropip_default", category: "nutrients", dueAt: dueAt(28), repeat: { frequency: "monthly" }, notify: true },
-    { title: "Check nutrient supply before the next refill", note: "hydropip_default", category: "nutrients", dueAt: dueAt(24), repeat: { frequency: "monthly" }, notify: false }
+    { title: "Weekly HydroPip check-in", note: "hydropip_weekly_v2", category: "maintenance", dueAt: dueAt(2), repeat: { frequency: "weekly" }, notify: true },
+    { title: "Monthly HydroPip service", note: "hydropip_monthly_v2", category: "maintenance", dueAt: dueAt(2, 9, null, 30), repeat: { frequency: "monthly" }, notify: true }
   ];
   if (!profile.plantingDate) return systemCare;
   const crops = cropSummary(profile.crops);
