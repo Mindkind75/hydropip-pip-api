@@ -319,6 +319,30 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
   }
 
+  if (actions.length) {
+    const taskCount = actions.reduce((total, action) => total + (action.reminders?.length || 0), 0);
+    const answer = taskCount === 1
+      ? "I prepared that reminder for your grow. Review it below, then tap Add to Calendar."
+      : `I prepared a ${taskCount}-task schedule for your grow. Review it below, then tap Add to Calendar.`;
+    const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
+      mode: "ai_calendar_confirmation",
+      sources
+    });
+    return {
+      answer,
+      mode: "ai_calendar_confirmation",
+      sources,
+      projectMemory,
+      actions,
+      aiUsage: { model, ...combineOpenAiUsage(response) }
+    };
+  }
+
   let final;
   try {
     final = await client.responses.create({
