@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const files = ["home.html", "pip.html", "parts-checklist.html", "track-start.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
+const files = ["home.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
 const bannedCopy = [/HydroSync/i, /My Site 2/i, /concept render/i, /\brebuild\b/i];
 
 for (const file of files) {
@@ -82,6 +82,16 @@ for (const legalFile of ["privacy.html", "terms.html", "affiliate-disclosure.htm
   assert.match(legalHtml, /info@hydropip\.com/, `${legalFile} should provide a contact email`);
 }
 assert.match(fs.readFileSync(new URL("../affiliate-disclosure.html", import.meta.url), "utf8"), /As an Amazon Associate I earn from qualifying purchases\./, "Affiliate disclosure needs Amazon's required statement");
+
+const betaTestHtml = fs.readFileSync(new URL("../beta-test.html", import.meta.url), "utf8");
+assert.match(betaTestHtml, /\/api\/pip\/beta\/apply/, "Beta application form must submit to the backend");
+assert.match(betaTestHtml, /No payment information required/, "Beta applicants should understand the complimentary offer");
+assert.match(betaTestHtml, /No spam or unrelated marketing/, "Beta application contact consent should be specific");
+
+const betaAdminHtml = fs.readFileSync(new URL("../beta-admin.html", import.meta.url), "utf8");
+assert.match(betaAdminHtml, /X-Pip-Admin-Key/, "Beta review data must require the private admin key");
+assert.match(betaAdminHtml, /Download CSV/, "Beta review should support operational exports");
+assert.match(betaAdminHtml, /Tester progress/, "Beta review should show checklist progress");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
 assert.match(wixPipBridge, /\["pro", "project", "projectId", "app", "install"\]/, "Wix Pip bridge is not forwarding project and app-install context to the iframe");

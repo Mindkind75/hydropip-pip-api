@@ -61,6 +61,7 @@ const defaultState = {
   version: 2,
   users: {},
   feedback: {},
+  betaApplications: {},
   projects: {},
   chatThreads: {},
   conversations: {},
@@ -457,6 +458,179 @@ export async function createBetaFeedback({ userId, feedback = {} } = {}) {
   state.users[ownerId].updatedAt = nowIso();
   writeState(state);
   return record;
+}
+
+export async function createBetaApplication({ application = {} } = {}) {
+  const normalized = normalizeBetaApplication(application);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `insert into pip_beta_applications
+       (id, name, email, experience, build_timeline, system_interest, grow_zone, region, grow_area,
+        devices, testing_commitment, motivation, consent, status, created_at, updated_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'new',now(),now())
+       on conflict (lower(email)) do update set
+         name = excluded.name,
+         experience = excluded.experience,
+         build_timeline = excluded.build_timeline,
+         system_interest = excluded.system_interest,
+         grow_zone = excluded.grow_zone,
+         region = excluded.region,
+         grow_area = excluded.grow_area,
+         devices = excluded.devices,
+         testing_commitment = excluded.testing_commitment,
+         motivation = excluded.motivation,
+         consent = excluded.consent,
+         updated_at = now()
+       returning *`,
+      [makeId("beta"), normalized.name, normalized.email, normalized.experience, normalized.buildTimeline,
+        normalized.systemInterest, normalized.growZone, normalized.region, normalized.growArea,
+        JSON.stringify(normalized.devices), normalized.testingCommitment, normalized.motivation, normalized.consent]
+    );
+    return rowToBetaApplication(result.rows[0]);
+  }
+
+  const state = readState();
+  const existing = Object.values(state.betaApplications).find((item) => item.email === normalized.email);
+  const now = nowIso();
+  const record = {
+    id: existing?.id || makeId("beta"),
+    ...normalized,
+    status: existing?.status || "new",
+    adminNotes: existing?.adminNotes || "",
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  };
+  state.betaApplications[record.id] = record;
+  writeState(state);
+  return record;
+}
+
+export async function listBetaApplications({ status, limit = 200 } = {}) {
+  const normalizedStatus = normalizeApplicationStatus(status, true);
+  const safeLimit = Math.min(500, Math.max(1, Number(limit) || 200));
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select * from pip_beta_applications
+       where ($1::text is null or status = $1)
+       order by created_at desc
+       limit $2`,
+      [normalizedStatus, safeLimit]
+    );
+    return result.rows.map(rowToBetaApplication);
+  }
+  return Object.values(readState().betaApplications)
+    .filter((item) => !normalizedStatus || item.status === normalizedStatus)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, safeLimit);
+}
+
+export async function updateBetaApplicationReview({ id, status, adminNotes } = {}) {
+  const applicationId = requireRecordId(id, "applicationId");
+  const normalizedStatus = normalizeApplicationStatus(status);
+  const notes = String(adminNotes || "").trim().slice(0, 3000);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_beta_applications set status = $2, admin_notes = $3, updated_at = now()
+       where id = $1 returning *`,
+      [applicationId, normalizedStatus, notes]
+    );
+    if (!result.rows[0]) throw Object.assign(new Error("Beta application not found"), { statusCode: 404 });
+    return rowToBetaApplication(result.rows[0]);
+  }
+  const state = readState();
+  const record = state.betaApplications[applicationId];
+  if (!record) throw Object.assign(new Error("Beta application not found"), { statusCode: 404 });
+  record.status = normalizedStatus;
+  record.adminNotes = notes;
+  record.updatedAt = nowIso();
+  writeState(state);
+  return record;
+}
+
+export async function listBetaFeedback({ status, category, rating, limit = 300 } = {}) {
+  const normalizedStatus = normalizeReviewStatus(status, true);
+  const normalizedCategory = normalizeFeedbackCategory(category, true);
+  const normalizedRating = normalizeFeedbackRating(rating, true);
+  const safeLimit = Math.min(1000, Math.max(1, Number(limit) || 300));
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select f.*, u.name as user_name, u.email as user_email
+       from pip_feedback f
+       left join pip_users u on u.id = f.user_id
+       where ($1::text is null or f.review_status = $1)
+         and ($2::text is null or f.category = $2)
+         and ($3::text is null or f.rating = $3)
+       order by case f.priority when 'urgent' then 0 when 'high' then 1 when 'normal' then 2 else 3 end,
+                f.created_at desc
+       limit $4`,
+      [normalizedStatus, normalizedCategory, normalizedRating, safeLimit]
+    );
+    return result.rows.map(rowToBetaFeedback);
+  }
+  const state = readState();
+  return Object.values(state.feedback)
+    .filter((item) => (!normalizedStatus || (item.reviewStatus || "new") === normalizedStatus)
+      && (!normalizedCategory || item.category === normalizedCategory)
+      && (!normalizedRating || item.rating === normalizedRating))
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, safeLimit)
+    .map((item) => rowToBetaFeedback({
+      ...item,
+      userName: state.users[item.userId]?.name || null,
+      userEmail: state.users[item.userId]?.email || null
+    }));
+}
+
+export async function updateBetaFeedbackReview({ id, status, priority, adminNotes } = {}) {
+  const feedbackId = requireRecordId(id, "feedbackId");
+  const normalizedStatus = normalizeReviewStatus(status);
+  const normalizedPriority = normalizeFeedbackPriority(priority);
+  const notes = String(adminNotes || "").trim().slice(0, 3000);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_feedback
+       set review_status = $2, priority = $3, admin_notes = $4, updated_at = now()
+       where id = $1
+       returning *`,
+      [feedbackId, normalizedStatus, normalizedPriority, notes]
+    );
+    if (!result.rows[0]) throw Object.assign(new Error("Feedback not found"), { statusCode: 404 });
+    return rowToBetaFeedback(result.rows[0]);
+  }
+  const state = readState();
+  const record = state.feedback[feedbackId];
+  if (!record) throw Object.assign(new Error("Feedback not found"), { statusCode: 404 });
+  record.reviewStatus = normalizedStatus;
+  record.priority = normalizedPriority;
+  record.adminNotes = notes;
+  record.updatedAt = nowIso();
+  writeState(state);
+  return record;
+}
+
+export async function listBetaTesterProgress({ limit = 300 } = {}) {
+  const safeLimit = Math.min(1000, Math.max(1, Number(limit) || 300));
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, name, email, beta_welcome_seen_at, beta_activity, updated_at
+       from pip_users
+       where beta_welcome_seen_at is not null or beta_activity <> '{}'::jsonb
+       order by updated_at desc limit $1`,
+      [safeLimit]
+    );
+    return result.rows.map((row) => betaTesterFromValues(row));
+  }
+  return Object.values(readState().users)
+    .filter((user) => user.betaWelcomeSeenAt || Object.values(normalizeBetaActivity(user.betaActivity)).some(Boolean))
+    .map(betaTesterFromValues)
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+    .slice(0, safeLimit);
 }
 
 export async function getBuildPhotoAllowance({ userId, subscription = {} } = {}) {
@@ -1302,8 +1476,34 @@ async function ensureSchema(pool) {
       device jsonb not null default '{}'::jsonb,
       created_at timestamptz not null default now()
     );
+    alter table pip_feedback add column if not exists review_status text not null default 'new';
+    alter table pip_feedback add column if not exists priority text not null default 'normal';
+    alter table pip_feedback add column if not exists admin_notes text not null default '';
+    alter table pip_feedback add column if not exists updated_at timestamptz not null default now();
     create index if not exists pip_feedback_user_created_idx on pip_feedback(user_id, created_at desc);
     create index if not exists pip_feedback_rating_created_idx on pip_feedback(rating, created_at desc);
+
+    create table if not exists pip_beta_applications (
+      id text primary key,
+      name text not null,
+      email text not null,
+      experience text not null,
+      build_timeline text not null,
+      system_interest text not null,
+      grow_zone text,
+      region text,
+      grow_area text not null,
+      devices jsonb not null default '[]'::jsonb,
+      testing_commitment boolean not null default false,
+      motivation text not null default '',
+      consent boolean not null default false,
+      status text not null default 'new',
+      admin_notes text not null default '',
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create unique index if not exists pip_beta_applications_email_idx on pip_beta_applications (lower(email));
+    create index if not exists pip_beta_applications_status_created_idx on pip_beta_applications(status, created_at desc);
 
     create table if not exists pip_usage_events (
       id text primary key,
@@ -1364,6 +1564,7 @@ function readState() {
   }
   stateCache.users ||= {};
   stateCache.feedback ||= {};
+  stateCache.betaApplications ||= {};
   stateCache.projects ||= {};
   stateCache.chatThreads ||= {};
   stateCache.conversations ||= {};
@@ -1505,6 +1706,38 @@ function normalizeBetaFeedback(feedback = {}) {
   };
 }
 
+function normalizeBetaApplication(application = {}) {
+  const name = String(application.name || "").trim().slice(0, 120);
+  const email = String(application.email || "").trim().toLowerCase().slice(0, 240);
+  const experience = ["new", "beginner", "experienced"].includes(application.experience) ? application.experience : "";
+  const buildTimeline = ["building_now", "within_30_days", "researching", "existing_system"].includes(application.buildTimeline) ? application.buildTimeline : "";
+  const systemInterest = ["hydropip", "both", "existing_system"].includes(application.systemInterest) ? application.systemInterest : "";
+  const growArea = ["outdoor", "greenhouse", "indoor", "mixed", "not_sure"].includes(application.growArea) ? application.growArea : "";
+  const devices = Array.isArray(application.devices)
+    ? [...new Set(application.devices.filter((item) => ["iphone", "android", "tablet", "desktop"].includes(item)))].slice(0, 4)
+    : [];
+  if (!name || !/^\S+@\S+\.\S+$/.test(email) || !experience || !buildTimeline || !systemInterest || !growArea || !devices.length) {
+    throw Object.assign(new Error("Complete all required beta application fields"), { statusCode: 400 });
+  }
+  if (!application.testingCommitment || !application.consent) {
+    throw Object.assign(new Error("Testing commitment and contact consent are required"), { statusCode: 400 });
+  }
+  return {
+    name,
+    email,
+    experience,
+    buildTimeline,
+    systemInterest,
+    growZone: cleanOptionalText(application.growZone, 20),
+    region: cleanOptionalText(application.region, 120),
+    growArea,
+    devices,
+    testingCommitment: true,
+    motivation: String(application.motivation || "").trim().slice(0, 1500),
+    consent: true
+  };
+}
+
 function normalizeFeedbackDevice(device = {}) {
   if (!device || typeof device !== "object" || Array.isArray(device)) return {};
   return {
@@ -1517,19 +1750,111 @@ function normalizeFeedbackDevice(device = {}) {
 function rowToBetaFeedback(row) {
   return {
     id: row.id,
-    userId: row.user_id,
-    projectId: row.project_id,
-    conversationId: row.conversation_id,
+    userId: row.user_id || row.userId,
+    projectId: row.project_id || row.projectId,
+    conversationId: row.conversation_id || row.conversationId,
     rating: row.rating,
     category: row.category,
     message: row.message,
     page: row.page,
-    includeContext: Boolean(row.include_context),
+    includeContext: Boolean(row.include_context ?? row.includeContext),
     prompt: row.prompt,
     response: row.response,
     device: row.device || {},
-    createdAt: toIso(row.created_at)
+    reviewStatus: row.review_status || row.reviewStatus || "new",
+    priority: row.priority || "normal",
+    adminNotes: row.admin_notes || row.adminNotes || "",
+    userName: row.user_name || row.userName || null,
+    userEmail: row.user_email || row.userEmail || null,
+    createdAt: toIso(row.created_at || row.createdAt),
+    updatedAt: toIso(row.updated_at || row.updatedAt || row.created_at || row.createdAt)
   };
+}
+
+function rowToBetaApplication(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    experience: row.experience,
+    buildTimeline: row.build_timeline || row.buildTimeline,
+    systemInterest: row.system_interest || row.systemInterest,
+    growZone: row.grow_zone || row.growZone,
+    region: row.region,
+    growArea: row.grow_area || row.growArea,
+    devices: row.devices || [],
+    testingCommitment: Boolean(row.testing_commitment ?? row.testingCommitment),
+    motivation: row.motivation || "",
+    consent: Boolean(row.consent),
+    status: row.status || "new",
+    adminNotes: row.admin_notes || row.adminNotes || "",
+    createdAt: toIso(row.created_at || row.createdAt),
+    updatedAt: toIso(row.updated_at || row.updatedAt)
+  };
+}
+
+function betaTesterFromValues(row) {
+  const activity = normalizeBetaActivity(row.beta_activity || row.betaActivity);
+  return {
+    id: row.id,
+    name: row.name || null,
+    email: row.email || null,
+    welcomeSeenAt: toIso(row.beta_welcome_seen_at || row.betaWelcomeSeenAt),
+    activity,
+    completed: Object.values(activity).filter(Boolean).length,
+    total: Object.keys(activity).length,
+    updatedAt: toIso(row.updated_at || row.updatedAt)
+  };
+}
+
+function normalizeApplicationStatus(value, allowBlank = false) {
+  const cleaned = String(value || "").trim();
+  if (allowBlank && !cleaned) return null;
+  if (!["new", "shortlisted", "invited", "active", "declined"].includes(cleaned)) {
+    throw Object.assign(new Error("Invalid beta application status"), { statusCode: 400 });
+  }
+  return cleaned;
+}
+
+function normalizeReviewStatus(value, allowBlank = false) {
+  const cleaned = String(value || "").trim();
+  if (allowBlank && !cleaned) return null;
+  if (!["new", "reviewing", "planned", "resolved", "closed"].includes(cleaned)) {
+    throw Object.assign(new Error("Invalid feedback status"), { statusCode: 400 });
+  }
+  return cleaned;
+}
+
+function normalizeFeedbackPriority(value) {
+  const cleaned = String(value || "").trim();
+  if (!["urgent", "high", "normal", "low"].includes(cleaned)) {
+    throw Object.assign(new Error("Invalid feedback priority"), { statusCode: 400 });
+  }
+  return cleaned;
+}
+
+function normalizeFeedbackCategory(value, allowBlank = false) {
+  const cleaned = String(value || "").trim();
+  if (allowBlank && !cleaned) return null;
+  if (!["pip_answer", "broken", "confusing", "mobile", "idea", "general"].includes(cleaned)) {
+    throw Object.assign(new Error("Invalid feedback category"), { statusCode: 400 });
+  }
+  return cleaned;
+}
+
+function normalizeFeedbackRating(value, allowBlank = false) {
+  const cleaned = String(value || "").trim();
+  if (allowBlank && !cleaned) return null;
+  if (!["helpful", "not_helpful", "general"].includes(cleaned)) {
+    throw Object.assign(new Error("Invalid feedback rating"), { statusCode: 400 });
+  }
+  return cleaned;
+}
+
+function requireRecordId(value, name) {
+  const id = String(value || "").trim();
+  if (!id) throw Object.assign(new Error(`${name} is required`), { statusCode: 400 });
+  return id;
 }
 
 async function getBuildPhotoChecksUsed(userId) {

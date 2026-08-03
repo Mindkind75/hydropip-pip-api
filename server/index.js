@@ -7,6 +7,7 @@ import { askPip } from "./pipAgent.js";
 import { createGrowPlan, createReminder, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
 import {
+  adminRequestAllowed,
   bridgeRequestAllowed,
   issuePipSession,
   sessionFromRequest,
@@ -14,6 +15,7 @@ import {
   signedSessionsRequired
 } from "./pipAuth.js";
 import {
+  createBetaApplication,
   createProject,
   createProjectConversation,
   createProjectReading,
@@ -39,6 +41,9 @@ import {
   listProjectReminders,
   listProjectSeeds,
   listProjects,
+  listBetaApplications,
+  listBetaFeedback,
+  listBetaTesterProgress,
   refundBuildPhotoCheck,
   reserveAiUsage,
   seedProjectConversationDefaults,
@@ -48,6 +53,8 @@ import {
   updateProjectReminder,
   updateProjectSeed,
   updateBetaExperience,
+  updateBetaApplicationReview,
+  updateBetaFeedbackReview,
   upsertUser
 } from "./pipMemory.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
@@ -79,6 +86,7 @@ const serviceOrigins = new Set([
 const chatWindowMs = Number(process.env.PIP_RATE_LIMIT_WINDOW_MS || 60_000);
 const chatMaxRequests = Number(process.env.PIP_RATE_LIMIT_MAX || 20);
 const chatHits = new Map();
+const betaApplicationHits = new Map();
 
 app.use(
   cors({
@@ -93,6 +101,9 @@ app.use(
 );
 app.use(express.json({ limit: "4mb" }));
 app.use(express.static(rootDir));
+
+app.get("/beta-test", (_req, res) => res.sendFile(path.join(rootDir, "beta-test.html")));
+app.get("/beta-admin", (_req, res) => res.sendFile(path.join(rootDir, "beta-admin.html")));
 
 app.use("/api/pip/chat", (req, res, next) => {
   const forwarded = req.headers["x-forwarded-for"];
@@ -170,6 +181,75 @@ app.post("/api/pip/admin/credits/grant", async (req, res, next) => {
       metadata: req.body?.metadata
     });
     res.status(201).json({ entry, balance: (await getDailyAiUsageSummary({ userId, tier: "free_member" })).topUpBalance });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/beta/apply", betaApplicationRateLimit, async (req, res, next) => {
+  if (String(req.body?.website || "").trim()) {
+    res.status(202).json({ received: true });
+    return;
+  }
+  try {
+    const application = await createBetaApplication({ application: req.body?.application });
+    res.status(201).json({
+      received: true,
+      application: { id: application.id, status: application.status, updatedAt: application.updatedAt }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/admin/beta/overview", requirePipAdmin, async (req, res, next) => {
+  try {
+    const [applications, feedback, testers] = await Promise.all([
+      listBetaApplications({ status: req.query.status, limit: req.query.limit }),
+      listBetaFeedback({
+        status: req.query.feedbackStatus,
+        category: req.query.category,
+        rating: req.query.rating,
+        limit: req.query.limit
+      }),
+      listBetaTesterProgress({ limit: req.query.limit })
+    ]);
+    res.json({
+      applications,
+      feedback,
+      testers,
+      summary: betaAdminSummary({ applications, feedback, testers }),
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/pip/admin/beta/applications/:id", requirePipAdmin, async (req, res, next) => {
+  try {
+    res.json({
+      application: await updateBetaApplicationReview({
+        id: req.params.id,
+        status: req.body?.status,
+        adminNotes: req.body?.adminNotes
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/pip/admin/beta/feedback/:id", requirePipAdmin, async (req, res, next) => {
+  try {
+    res.json({
+      feedback: await updateBetaFeedbackReview({
+        id: req.params.id,
+        status: req.body?.status,
+        priority: req.body?.priority,
+        adminNotes: req.body?.adminNotes
+      })
+    });
   } catch (error) {
     next(error);
   }
@@ -738,4 +818,42 @@ function requirePipBeta(req, res, next) {
     }
     next();
   });
+}
+
+function requirePipAdmin(req, res, next) {
+  if (!adminRequestAllowed(req)) {
+    res.status(401).json({ error: "admin_key_required", message: "Enter the HydroPip beta admin key." });
+    return;
+  }
+  res.set("Cache-Control", "no-store");
+  next();
+}
+
+function betaApplicationRateLimit(req, res, next) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const recent = (betaApplicationHits.get(ip) || []).filter((timestamp) => now - timestamp < windowMs);
+  if (recent.length >= 5) {
+    res.status(429).json({ error: "application_rate_limited", message: "We already received several applications from this connection. Please try again later." });
+    return;
+  }
+  recent.push(now);
+  betaApplicationHits.set(ip, recent);
+  next();
+}
+
+function betaAdminSummary({ applications, feedback, testers }) {
+  const completed = testers.filter((tester) => tester.completed === tester.total).length;
+  return {
+    applicants: applications.length,
+    newApplicants: applications.filter((item) => item.status === "new").length,
+    invited: applications.filter((item) => ["invited", "active"].includes(item.status)).length,
+    feedback: feedback.length,
+    unresolvedFeedback: feedback.filter((item) => !["resolved", "closed"].includes(item.reviewStatus)).length,
+    negativeAnswers: feedback.filter((item) => item.rating === "not_helpful").length,
+    activeTesters: testers.length,
+    completedTesters: completed
+  };
 }

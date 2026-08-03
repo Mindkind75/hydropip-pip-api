@@ -20,6 +20,7 @@ Production web service for Pip, the HydroPip AI Buddy.
 - `PIP_AI_DISABLED`: set to `true` to skip OpenAI and keep deterministic/rules guidance available.
 - `PIP_MODEL_INPUT_COST_PER_MILLION`, `PIP_MODEL_OUTPUT_COST_PER_MILLION`: model cost estimates (defaults `0.25` and `2.00`).
 - `PIP_USAGE_HASH_SECRET`: optional salt for anonymous IP hashes; falls back to `PIP_BRIDGE_SECRET`.
+- `PIP_ADMIN_KEY`: private key for the beta applicant and feedback review dashboard. Use a unique random value; it falls back to `PIP_BRIDGE_SECRET` only for backward compatibility.
 - `PIP_ALLOWED_ORIGINS`: comma-separated allowed website origins.
 - `PIP_MODEL`: defaults to `gpt-5-mini` for a strong cost/performance launch balance.
 - `PORT`: set automatically by Render.
@@ -34,6 +35,15 @@ Production web service for Pip, the HydroPip AI Buddy.
 - `GET /api/pip/parts?towerCount=4`: parts and quantities.
 - `POST /api/pip/grow-plan`: creates a deterministic first grow plan.
 - `POST /api/pip/reminders`: returns `402` until subscription is active.
+- `POST /api/pip/beta/apply`: public, rate-limited beta tester application.
+- `GET /api/pip/admin/beta/overview`: private applicant, feedback, and tester-progress review data.
+- `PATCH /api/pip/admin/beta/applications/:id`: updates applicant status and private notes.
+- `PATCH /api/pip/admin/beta/feedback/:id`: updates feedback priority, review status, and private notes.
+
+## Beta Operations
+
+- `/beta-test` is the public tester intake form.
+- `/beta-admin` is the private review dashboard. Enter `PIP_ADMIN_KEY`; the key is kept in session storage and removed by the dashboard's Lock button.
 
 ## RAG Strategy
 

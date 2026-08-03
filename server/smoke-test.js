@@ -8,6 +8,7 @@ import {
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
+  createBetaApplication,
   createBetaFeedback,
   cancelAiUsageReservation,
   completeAiUsage,
@@ -24,6 +25,9 @@ import {
   listProjectReminders,
   listProjectSeeds,
   listProjects,
+  listBetaApplications,
+  listBetaFeedback,
+  listBetaTesterProgress,
   resetMemoryForTests,
   refundBuildPhotoCheck,
   reserveAiUsage,
@@ -33,6 +37,8 @@ import {
   updateProjectConversation,
   updateProjectReminder,
   updateBetaExperience,
+  updateBetaApplicationReview,
+  updateBetaFeedbackReview,
   updateProject,
   upsertUser
 } from "./pipMemory.js";
@@ -242,6 +248,34 @@ const privateFeedback = await createBetaFeedback({
 assert.equal(privateFeedback.prompt, null);
 assert.equal(privateFeedback.response, null);
 assert.equal((await getBetaExperience({ userId: "test-user" })).activity.feedback, true);
+const betaApplication = await createBetaApplication({
+  application: {
+    name: "Garden Tester",
+    email: "tester@example.com",
+    experience: "beginner",
+    buildTimeline: "within_30_days",
+    systemInterest: "both",
+    growZone: "9a",
+    region: "Central Florida",
+    growArea: "outdoor",
+    devices: ["iphone", "desktop"],
+    testingCommitment: true,
+    motivation: "I want to test a real build.",
+    consent: true
+  }
+});
+assert.equal(betaApplication.status, "new");
+assert.equal((await listBetaApplications({})).length, 1);
+const updatedApplication = await updateBetaApplicationReview({ id: betaApplication.id, status: "shortlisted", adminNotes: "Good device mix" });
+assert.equal(updatedApplication.status, "shortlisted");
+assert.equal(updatedApplication.adminNotes, "Good device mix");
+const feedbackList = await listBetaFeedback({ rating: "not_helpful" });
+assert.equal(feedbackList.length, 1);
+const reviewedFeedback = await updateBetaFeedbackReview({ id: privateFeedback.id, status: "reviewing", priority: "high", adminNotes: "Reproduce fitting question" });
+assert.equal(reviewedFeedback.reviewStatus, "reviewing");
+assert.equal(reviewedFeedback.priority, "high");
+const testerProgress = await listBetaTesterProgress({});
+assert.equal(testerProgress.some((tester) => tester.id === "test-user" && tester.completed >= 3), true);
 
 assert.equal(classifyPhotoRequest({ message: "Is this tower section seated correctly?", projectType: "hydropip_build" }).access, "free_build");
 assert.equal(classifyPhotoRequest({ message: "What bug is eating these leaves?", projectType: "hydropip_build" }).access, "pip_pro_required");

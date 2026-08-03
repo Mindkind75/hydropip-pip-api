@@ -59,6 +59,15 @@ export function bridgeRequestAllowed(req) {
   return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
+export function adminRequestAllowed(req) {
+  const secret = String(process.env.PIP_ADMIN_KEY || process.env.PIP_BRIDGE_SECRET || "").trim();
+  const supplied = String(req.headers["x-pip-admin-key"] || "");
+  if (!secret || !supplied) return false;
+  const actualBuffer = Buffer.from(supplied);
+  const expectedBuffer = Buffer.from(secret);
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
 export function signedSessionsRequired() {
   return String(process.env.PIP_REQUIRE_SIGNED_SESSIONS || "false").toLowerCase() === "true";
 }

@@ -21,6 +21,8 @@ services:
         sync: false
       - key: PIP_BRIDGE_SECRET
         sync: false
+      - key: PIP_ADMIN_KEY
+        sync: false
       - key: PIP_REQUIRE_SIGNED_SESSIONS
         value: false
       - key: PIP_MODEL
