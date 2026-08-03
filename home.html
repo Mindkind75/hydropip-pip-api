@@ -97,8 +97,42 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .part a{align-self:end;width:max-content;padding:10px 12px;border-radius:8px;background:var(--gold);font-weight:950}
 .disclosure{margin:18px 0 0;padding:14px 16px;border-left:4px solid var(--gold);background:#fff8e8;color:#5c4b24;border-radius:0 8px 8px 0;font-weight:800}
 .finalCta{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.turnoverBand{background:#edf6e7}
+.turnoverGrid{display:grid;grid-template-columns:minmax(0,.82fr) minmax(380px,1.18fr);gap:clamp(30px,5vw,72px);align-items:center}
+.turnoverCopy h2{max-width:760px}
+.turnoverCopy>p:not(.eyebrow){max-width:680px}
+.turnoverFacts{display:grid;gap:0;margin:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.turnoverFacts div{display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:start;padding:14px 0;border-bottom:1px solid var(--line)}
+.turnoverFacts div:last-child{border-bottom:0}
+.turnoverFacts b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--deep);color:#fff;font-size:.82rem}
+.turnoverFacts strong{display:block;margin-bottom:3px}
+.turnoverFacts span{color:var(--muted);line-height:1.45}
+.pipQuest{overflow:hidden;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}
+.questTop{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--line);background:#173f30;color:#fff}
+.questTop strong{font-size:1.08rem}
+.pointsBadge{display:flex;align-items:baseline;gap:6px;padding:8px 11px;border-radius:8px;background:var(--gold);color:var(--ink);font-weight:950;white-space:nowrap}
+.pointsBadge span{font-size:1.2rem}
+.questBody{padding:20px}
+.pipGuide{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:center;margin-bottom:16px}
+.pipHead{position:relative;width:62px;height:62px;overflow:hidden;border:3px solid #cfe8a5;border-radius:50%;background:#f7f5ef}
+.pipHead img{display:block;width:92px;height:92px;max-width:none;object-fit:contain;transform:translate(-15px,-7px)}
+.pipBubble{position:relative;min-height:62px;padding:12px 14px;border:1px solid #b7d5c2;border-radius:8px;background:var(--mint);color:#29443a;line-height:1.4;font-weight:800}
+.pipBubble:before{content:"";position:absolute;left:-9px;top:22px;width:16px;height:16px;border-left:1px solid #b7d5c2;border-bottom:1px solid #b7d5c2;background:var(--mint);transform:rotate(45deg)}
+.questSteps{display:grid;gap:8px}
+.questStep{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:center;width:100%;min-height:72px;padding:11px 13px;border:1px solid var(--line);border-radius:8px;background:#fff;text-align:left;cursor:pointer;transition:border-color .18s,background .18s,transform .18s}
+.questStep:hover{border-color:#72a486}
+.questStep.current{border:2px solid var(--leaf);background:#f3faf5;box-shadow:0 0 0 4px rgba(31,122,79,.1)}
+.questStep.complete{background:#eef5e6;border-color:#aacb7a}
+.questStep.complete .questNumber{background:var(--leaf);color:#fff}
+.questNumber{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#edf0ee;font-weight:950}
+.questStep strong,.questStep small{display:block}
+.questStep small{margin-top:3px;color:var(--muted);font-size:.79rem;line-height:1.35}
+.questAward{color:var(--deep);font-weight:950}
+.questActions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.questStatus{margin:0;color:var(--muted);font-size:.82rem;font-weight:800}
+.questReplay{min-height:40px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:900;cursor:pointer}
 .footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding:28px clamp(18px,4vw,54px);border-top:1px solid var(--line);background:#17221c;color:rgba(255,255,255,.78);font-weight:900}.footerLinks{display:flex;flex-wrap:wrap;gap:10px 16px}.footer a{color:#fff;text-decoration:underline;text-underline-offset:3px}
-@media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}}
+@media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta,.turnoverGrid{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}}
 @media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
 @media(max-width:430px){.nav.open{grid-template-columns:1fr}.brand{font-size:.95rem}.brand img{width:50px;height:50px}.photoCaption{left:12px;right:12px;bottom:12px;gap:9px;padding:13px}.photoCaption>strong{font-size:1.25rem}.photoCaption span{font-size:.92rem;line-height:1.38}.statGrid div{padding:8px 6px}.statGrid small{font-size:.65rem}.statGrid b{font-size:.82rem}.photoFeature{min-height:500px}.card,.step,.part,.pipPanel,.signupPanel{padding:18px}}
 .deviceMobile .featureSplit{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
@@ -124,6 +158,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .deviceMobile .statGrid b{font-size:.82rem}
 .deviceMobile .photoFeature{min-height:500px}
 .deviceMobile .card,.deviceMobile .step,.deviceMobile .part,.deviceMobile .pipPanel,.deviceMobile .signupPanel{padding:18px}
+.deviceMobile .turnoverGrid{grid-template-columns:1fr}.deviceMobile .questTop{align-items:flex-start}.deviceMobile .questBody{padding:14px}.deviceMobile .pipGuide{grid-template-columns:50px 1fr;gap:10px}.deviceMobile .pipHead{width:50px;height:50px}.deviceMobile .pipHead img{width:76px;height:76px;transform:translate(-13px,-6px)}.deviceMobile .pipBubble{min-height:52px;font-size:.9rem}.deviceMobile .pipBubble:before{top:17px}.deviceMobile .questStep{grid-template-columns:34px 1fr auto;gap:8px;min-height:78px;padding:10px}.deviceMobile .questAward{font-size:.82rem}.deviceMobile .questActions{align-items:flex-start;flex-direction:column}.deviceMobile .questReplay{width:100%}
 </style>
 </head>
 <body>
@@ -187,7 +222,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
         <article><strong>2. Ask Pip</strong><p>Get HydroPip-specific answers for parts, setup, feeding, nutrients, and troubleshooting.</p></article>
         <article><strong>3. Buy parts</strong><p>Use the organized parts list for stack pots, pumps, nutrients, media, meters, and fittings.</p></article>
         <article><strong>4. Build + plant</strong><p>Set the tower, test the flow, mix the IBC, and get your first crop started.</p></article>
-        <article><strong>5. Repeat</strong><p>Reset the media, replant, and let Pip help you improve the next grow.</p></article>
+        <article><strong>5. Harvest + flip</strong><p>Move healthy mature plants to raised beds, recover the reusable media, and replant the next crop in a few focused hours.</p></article>
       </div>
     </div>
   </section>
@@ -225,6 +260,38 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
       </div>
       <div class="actions" style="margin-top:22px">
         <a class="btn primary" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Start Track My Build</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="flip-day" class="band turnoverBand">
+    <div class="inner turnoverGrid">
+      <div class="turnoverCopy">
+        <p class="eyebrow">Tower turnover</p>
+        <h2>Harvest today. Reset all 160 pockets in a few hours. Start the next crop.</h2>
+        <p>A HydroPip harvest does not end with an empty tower. Lift off the pot stacks, move healthy mature plants into raised beds so they can keep producing, recover the reusable 50/50 perlite-vermiculite media, clear roots and debris, inspect the pots and feed line, then replant.</p>
+        <div class="turnoverFacts">
+          <div><b>1</b><span><strong>Keep productive plants growing</strong>Move suitable mature plants into raised beds instead of treating every tower flip as waste.</span></div>
+          <div><b>2</b><span><strong>Recover the grow medium</strong>Shake plants over a screened collection tub, remove roots, and top off only the media that was lost.</span></div>
+          <div><b>3</b><span><strong>Restart in one focused session</strong>Clean, inspect, stack, and replant while Pip helps prepare the next crop plan and schedule.</span></div>
+        </div>
+        <div class="actions"><a class="btn primary" href="https://www.hydropip.com/pip" target="_top">Ask Pip about tower turnover</a><a class="btn" href="https://www.hydropip.com/pip?pro=1" target="_top">Plan the next crop</a></div>
+      </div>
+      <div class="pipQuest" id="flipQuest" aria-labelledby="flipQuestTitle">
+        <div class="questTop"><strong id="flipQuestTitle">Flip Day challenge</strong><div class="pointsBadge"><span id="flipQuestPoints">0</span> Pip Points</div></div>
+        <div class="questBody">
+          <div class="pipGuide">
+            <span class="pipHead" aria-hidden="true"><img src="/assets/app-icons/hydropip-build-180.png" alt=""></span>
+            <div class="pipBubble" id="flipQuestGuide" aria-live="polite">I will guide this turnover one milestone at a time. Start with the harvest when the crop is ready.</div>
+          </div>
+          <div class="questSteps" role="group" aria-label="Flip Day milestones">
+            <button class="questStep current" type="button" data-quest-step="harvest" data-points="10" aria-pressed="false"><span class="questNumber">1</span><span><strong>Harvest the tower</strong><small>Pick the crop and identify plants that can keep producing.</small></span><span class="questAward">+10</span></button>
+            <button class="questStep" type="button" data-quest-step="transplant" data-points="10" aria-pressed="false"><span class="questNumber">2</span><span><strong>Move mature plants</strong><small>Transplant suitable healthy plants into raised beds.</small></span><span class="questAward">+10</span></button>
+            <button class="questStep" type="button" data-quest-step="recover" data-points="10" aria-pressed="false"><span class="questNumber">3</span><span><strong>Recover and clean</strong><small>Collect reusable media, clear roots, and inspect the feed path.</small></span><span class="questAward">+10</span></button>
+            <button class="questStep" type="button" data-quest-step="replant" data-points="20" aria-pressed="false"><span class="questNumber">4</span><span><strong>Stack and replant</strong><small>Refill the pockets and begin the next crop plan.</small></span><span class="questAward">+20</span></button>
+          </div>
+          <div class="questActions"><p class="questStatus">Interactive Pip Points preview. Rewards are not active during beta.</p><button class="questReplay" id="flipQuestReplay" type="button">Replay challenge</button></div>
+        </div>
       </div>
     </div>
   </section>
@@ -387,6 +454,50 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     target.scrollIntoView({behavior:"smooth",block:"start"});
     history.replaceState(null,"",link.getAttribute("href"));
   });
+})();
+</script>
+<script>
+(function(){
+  var quest=document.querySelector("#flipQuest");
+  if(!quest)return;
+  var steps=Array.prototype.slice.call(quest.querySelectorAll("[data-quest-step]"));
+  var pointsNode=document.querySelector("#flipQuestPoints");
+  var guide=document.querySelector("#flipQuestGuide");
+  var replay=document.querySelector("#flipQuestReplay");
+  var storageKey="hydropipFlipDayDemo";
+  var messages={
+    harvest:"Start by harvesting. Set aside healthy mature plants that could keep producing in a raised bed.",
+    transplant:"Good harvest. Move suitable mature plants before shaking out the grow medium.",
+    recover:"Now recover the perlite-vermiculite mix, remove roots, and inspect each pot and feed opening.",
+    replant:"The tower is ready. Top off the media, stack the pots, and plant the next crop.",
+    complete:"Flip Day complete. The tower is ready for its next crop, and you earned 50 Pip Points."
+  };
+  var saved={completed:[]};
+  try{saved=JSON.parse(localStorage.getItem(storageKey)||'{"completed":[]}')||saved}catch(error){}
+  if(!Array.isArray(saved.completed))saved.completed=[];
+  function render(){
+    var points=0;
+    steps.forEach(function(step){
+      var complete=saved.completed.indexOf(step.dataset.questStep)!==-1;
+      step.classList.toggle("complete",complete);
+      step.classList.remove("current");
+      step.setAttribute("aria-pressed",complete?"true":"false");
+      if(complete)points+=Number(step.dataset.points)||0;
+    });
+    var next=steps.find(function(step){return saved.completed.indexOf(step.dataset.questStep)===-1});
+    if(next){next.classList.add("current");guide.textContent=messages[next.dataset.questStep]}else{guide.textContent=messages.complete}
+    pointsNode.textContent=String(points);
+  }
+  steps.forEach(function(step){step.addEventListener("click",function(){
+    var next=steps.find(function(item){return saved.completed.indexOf(item.dataset.questStep)===-1});
+    if(!next){guide.textContent=messages.complete;return}
+    if(next!==step){guide.textContent="Pip is pointing to the next milestone: "+next.querySelector("strong").textContent+".";return}
+    saved.completed.push(step.dataset.questStep);
+    try{localStorage.setItem(storageKey,JSON.stringify(saved))}catch(error){}
+    render();
+  })});
+  replay.addEventListener("click",function(){saved={completed:[]};try{localStorage.removeItem(storageKey)}catch(error){}render();steps[0].focus()});
+  render();
 })();
 </script>
 <script>
