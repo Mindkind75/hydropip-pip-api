@@ -80,6 +80,7 @@ assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style la
 assert.equal((agentSource.match(/store:\s*false/g) || []).length >= 2, true, "Pip should disable OpenAI Responses application-state storage");
 assert.match(agentSource, /input: \[\.\.\.responseInput, \.\.\.\(response\.output \|\| \[\]\), \.\.\.toolResults\]/, "Stored-disabled tool continuations must replay the original image, response output, and tool results");
 assert.doesNotMatch(agentSource, /previous_response_id:\s*response\.id/, "Pip cannot use previous_response_id when OpenAI response storage is disabled");
+assert.match(agentSource, /Never spend the whole reply describing the photo/, "Photo replies must reserve space for the user's next action");
 
 for (const manifest of ["manifest-build.webmanifest", "manifest-pro.webmanifest"]) {
   const value = JSON.parse(fs.readFileSync(new URL(`../${manifest}`, import.meta.url), "utf8"));

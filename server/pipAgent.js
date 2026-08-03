@@ -237,7 +237,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "Do not pretend reminders are saved unless create_reminder returns queued.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action. A grow zone describes seasonal hardiness, not today's weather; ask for current conditions when a weather-sensitive answer needs them.",
-      "When a photo is attached, inspect it directly and use visible details in the answer. State what you can actually see before recommending the next action, and clearly separate visible evidence from anything the photo cannot confirm.",
+      "When a photo is attached, inspect it directly and use visible details in the answer. Use this compact order: one sentence naming the most useful visible evidence; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Clearly separate visible evidence from anything the photo cannot confirm.",
       "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
@@ -295,7 +295,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
       "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions.",
-      "When the original user input includes a photo, lead with one concrete visible observation before applying the tool result. Do not imply that you saw a detail that is not visible."
+      "When the original user input includes a photo, use this compact order: one sentence naming the most useful concrete visible observation; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Do not imply that you saw a detail that is not visible."
     ].join("\n"),
     input: [...responseInput, ...(response.output || []), ...toolResults]
     });
