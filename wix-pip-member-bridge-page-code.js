@@ -140,12 +140,22 @@ async function sendPipSession(pip, force = false) {
           id: member._id,
           email: member.loginEmail || member.contactDetails?.emails?.[0] || null,
           name: member.profile?.nickname || member.contactDetails?.firstName || null,
-          photo: member.profile?.photo?.url || member.profilePhoto?.url || null
+          photo: memberPhoto(member)
         }
       : null,
     subscription: publicSubscription,
     sessionToken: sessionToken || null
   });
+}
+
+function memberPhoto(member) {
+  const value = member?.profile?.photo?.url || member?.profile?.photo || member?.profilePhoto?.url || member?.profilePhoto || null;
+  const source = typeof value === "string" ? value : value?.url;
+  if (!source) return null;
+  if (source.startsWith("wix:image://v1/")) {
+    return `https://static.wixstatic.com/media/${source.slice(15).split("/")[0]}`;
+  }
+  return source;
 }
 
 async function getLoggedInMember() {
