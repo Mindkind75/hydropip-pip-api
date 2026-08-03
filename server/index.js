@@ -19,6 +19,7 @@ import {
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
+  deleteUserData,
   deleteProjectReminder,
   deleteProjectSeed,
   getMemoryHealth,
@@ -138,6 +139,18 @@ app.use("/api/pip/projects", requirePipMember);
 app.post("/api/pip/users", async (req, res, next) => {
   try {
     res.status(201).json({ user: await upsertUser(req.pipUser) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/pip/users/me", async (req, res, next) => {
+  if (req.body?.confirm !== "DELETE") {
+    res.status(400).json({ error: "deletion_confirmation_required" });
+    return;
+  }
+  try {
+    res.json(await deleteUserData({ userId: req.pipUser.id }));
   } catch (error) {
     next(error);
   }

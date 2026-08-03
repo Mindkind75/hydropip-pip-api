@@ -84,7 +84,7 @@ for (const item of cases) {
     if (answer.toLowerCase().includes(token.toLowerCase())) failures.push(`bad phrase: ${token}`);
   }
   if (item.type === "product" && !answer.includes("hydrpip2002-20")) failures.push("missing affiliate tag");
-  if (/https?:\/\/(?:www\.)?amazon\.com/i.test(answer) && !answer.includes("HydroPip may earn from qualifying Amazon purchases.")) {
+  if (/https?:\/\/(?:www\.)?amazon\.com/i.test(answer) && !answer.includes("As an Amazon Associate I earn from qualifying purchases.")) {
     failures.push("missing Amazon disclosure");
   }
   if (item.type === "pro" && !answer.includes(proUrl)) failures.push("missing Pro signup URL");

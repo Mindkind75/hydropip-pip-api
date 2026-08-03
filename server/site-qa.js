@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const files = ["home.html", "pip.html", "parts-checklist.html", "track-start.html"];
+const files = ["home.html", "pip.html", "parts-checklist.html", "track-start.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
 const bannedCopy = [/HydroSync/i, /My Site 2/i, /concept render/i, /\brebuild\b/i];
 
 for (const file of files) {
@@ -33,7 +33,7 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
 for (const page of ["profile", "schedule", "log", "history"]) {
@@ -48,6 +48,24 @@ assert.match(pipHtml, /How it works/, "Pip Pro should explain the subscription f
 assert.match(pipHtml, /\/conversations/, "Pip chat is not connected to the saved-conversation API");
 assert.match(pipHtml, /conversationId:activeConversationId/, "Pip chat requests are not scoped to the selected conversation");
 assert.match(pipHtml, /New conversation/, "Pip should offer focused topic conversations");
+assert.match(pipHtml, /window\.open\(destination,"_top"\)/, "Home Screen install should have a direct top-level navigation fallback");
+assert.match(pipHtml, /Your Pip Pro workspace is ready/, "Pro activation should offer a Home Screen install CTA");
+assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");
+
+const partsHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
+assert.match(partsHtml, /Supply plan saved/, "The supply planner should visibly confirm a save");
+assert.match(partsHtml, /Saved on this device/, "The supply planner should show persistent saved-state copy");
+
+const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");
+assert.match(homeHtml, /class=["']featureSplit["']/, "Home hero should compare the new tower with mature growth");
+assert.match(homeHtml, /5fe7cb_264e8a42fb11486b808d289b14e6b079/, "Home hero is missing the mature tower photo");
+
+for (const legalFile of ["privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"]) {
+  const legalHtml = fs.readFileSync(new URL(`../${legalFile}`, import.meta.url), "utf8");
+  assert.match(legalHtml, /Hartshorn Studios LLC|HydroPip Systems by Hartshorn Studios LLC/, `${legalFile} should identify the business`);
+  assert.match(legalHtml, /info@hydropip\.com/, `${legalFile} should provide a contact email`);
+}
+assert.match(fs.readFileSync(new URL("../affiliate-disclosure.html", import.meta.url), "utf8"), /As an Amazon Associate I earn from qualifying purchases\./, "Affiliate disclosure needs Amazon's required statement");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
 assert.match(wixPipBridge, /\["pro", "project", "projectId", "app", "install"\]/, "Wix Pip bridge is not forwarding project and app-install context to the iframe");
@@ -57,6 +75,7 @@ assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the 
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");
+assert.equal((agentSource.match(/store:\s*false/g) || []).length >= 2, true, "Pip should disable OpenAI Responses application-state storage");
 
 for (const manifest of ["manifest-build.webmanifest", "manifest-pro.webmanifest"]) {
   const value = JSON.parse(fs.readFileSync(new URL(`../${manifest}`, import.meta.url), "utf8"));

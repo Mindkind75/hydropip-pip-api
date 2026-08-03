@@ -7,6 +7,7 @@ import {
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
+  deleteUserData,
   deleteProjectSeed,
   getMemoryHealth,
   getProjectTemplates,
@@ -14,6 +15,7 @@ import {
   listProjectConversations,
   listProjectReminders,
   listProjectSeeds,
+  listProjects,
   resetMemoryForTests,
   seedProjectDefaults,
   updateProjectConversation,
@@ -40,7 +42,7 @@ const linkedCompact = compactAnswer(
   {}
 );
 assert.equal(linkedCompact.includes("https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20"), true);
-assert.equal(linkedCompact.includes("HydroPip may earn from qualifying Amazon purchases."), true);
+assert.equal(linkedCompact.includes("As an Amazon Associate I earn from qualifying purchases."), true);
 assert.equal(linkedCompact.split(/\s+/).filter(Boolean).length <= 100, true);
 
 const steps = getBuildStep();
@@ -277,5 +279,9 @@ const contextualPartAnswer = await askPip({
 });
 assert.equal(contextualPartAnswer.answer.includes("3/4-inch"), true);
 assert.equal(contextualPartAnswer.answer.includes("B013646334"), true);
+
+const deletedData = await deleteUserData({ userId: "test-user" });
+assert.equal(deletedData.deleted, true);
+assert.equal((await listProjects({ userId: "test-user" })).length, 0);
 
 console.log("Pip smoke tests passed");

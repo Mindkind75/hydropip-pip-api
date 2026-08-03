@@ -15,6 +15,7 @@
   .section-title{grid-column:1/-1}
   .part{height:100%}
 }
+.legal-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px;margin:0 0 30px;color:var(--muted);font-size:.82rem}.legal-links a{text-underline-offset:3px}
 </style>
 </head>
 <body>
@@ -53,15 +54,16 @@
       <label>Crop <select id="profileCrop"><option>Leafy greens</option><option>Herbs</option><option>Strawberries</option><option>Mixed crops</option></select></label>
       <label>Last IBC refill <input id="profileRefill" type="date"></label>
       <label>Check every <select id="profileInterval"><option value="21">3 weeks</option><option value="28" selected>4 weeks</option><option value="35">5 weeks</option><option value="42">6 weeks</option></select></label>
-      <button type="submit">Save supply plan</button>
-      <div class="planner-output" id="supplyOutput"></div>
+      <button id="saveSupplyPlanButton" type="submit">Save supply plan</button>
+      <div class="planner-output" id="supplyOutput" role="status" aria-live="polite"></div>
     </form>
   </section>
   <section class="grid" id="partsGrid" aria-label="HydroPip parts checklist"></section>
   <p class="empty" id="empty">No parts match this filter.</p>
   <p class="note"><strong>Before driving a support pipe:</strong> <a href="tel:811">call 811</a> or <a href="https://call811.com/" target="_blank" rel="noopener">start an 811 request online</a>, wait for underground utilities to be marked, and identify private irrigation, septic, electrical, or water lines that may not be included in public utility markings. Do not drive a pipe until the location is confirmed clear.</p>
-  <p class="note">Affiliate disclosure: HydroPip may earn from qualifying Amazon purchases. The tower support is an 8-10 foot, 1/2-inch galvanized steel pipe, not flexible plumbing or PVC. Keep roughly 5 feet above grade; use a 10-foot pipe where wind exposure calls for deeper anchoring. A 3/4-inch PVC tee remains an intentionally loose, removable top hose guide. Pipe, tees, and cinder blocks are usually better bought locally. Only use an IBC tote if prior contents were food-safe or non-hazardous and the tote is thoroughly cleaned.</p>
+  <p class="note"><strong>Paid-link disclosure:</strong> As an Amazon Associate I earn from qualifying purchases. The tower support is an 8-10 foot, 1/2-inch galvanized steel pipe, not flexible plumbing or PVC. Keep roughly 5 feet above grade; use a 10-foot pipe where wind exposure calls for deeper anchoring. A 3/4-inch PVC tee remains an intentionally loose, removable top hose guide. Pipe, tees, and cinder blocks are usually better bought locally. Only use an IBC tote if prior contents were food-safe or non-hazardous and the tote is thoroughly cleaned.</p>
   <section class="return-band"><div><h2>Ready for the next step?</h2><p>Return to Pip Pro for schedules, maintenance, seeds, grow logs, and project history.</p></div><div class="actions"><a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a><a class="btn primary" href="https://www.hydropip.com/pip?pro=1" target="_top">Back to Pip Pro</a></div></section>
+  <nav class="legal-links" aria-label="Legal"><a href="https://hydropip-pip-api.onrender.com/privacy.html" target="_top">Privacy</a><a href="https://hydropip-pip-api.onrender.com/terms.html" target="_top">Terms</a><a href="https://hydropip-pip-api.onrender.com/affiliate-disclosure.html" target="_top">Affiliate disclosure</a><a href="https://hydropip-pip-api.onrender.com/safety.html" target="_top">Safety</a><a href="https://hydropip-pip-api.onrender.com/cancellation.html" target="_top">Cancellation</a></nav>
 </main>
 <script>
 (function(){
@@ -108,6 +110,7 @@
   var supplyKey="hydropipSupplyPlan";
   var supplyForm=document.querySelector("#supplyForm");
   var supplyOutput=document.querySelector("#supplyOutput");
+  var saveSupplyPlanButton=document.querySelector("#saveSupplyPlanButton");
   var active="all";
   function id(name){return name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
   function save(){localStorage.setItem(key,JSON.stringify(checked))}
@@ -154,23 +157,29 @@
   function saveSupplyPlan(plan){localStorage.setItem(supplyKey,JSON.stringify(plan))}
   function renderSupplyPlan(){
     var plan=loadSupplyPlan();
+    var saved=Object.keys(plan).length>0;
     document.querySelector("#profileTowers").value=plan.towers||4;
     document.querySelector("#profileCrop").value=plan.crop||"Leafy greens";
     document.querySelector("#profileInterval").value=plan.interval||28;
     document.querySelector("#profileRefill").value=plan.refill||"";
     var links='<div class="planner-links"><a href="https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20" target="_blank" rel="noopener sponsored">Nutrients</a><a href="https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20" target="_blank" rel="noopener sponsored">pH calibration</a><a href="https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20" target="_blank" rel="noopener sponsored">pH adjusters</a><a href="https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20" target="_blank" rel="noopener sponsored">Seeds</a></div>';
-    if(!plan.refill){supplyOutput.innerHTML="Add your last IBC mix/refill date and Pip will estimate the next supply check. Set a reminder in Pip Pro when you are ready for account-based notifications."+links;return}
+    if(!plan.refill){supplyOutput.innerHTML=(saved?"<strong>Saved on this device.</strong> ":"")+"Add your last IBC mix/refill date and Pip will estimate the next supply check. Set a reminder in Pip Pro when you are ready for account-based notifications."+links;return}
     var next=new Date(plan.refill+"T12:00:00");
     next.setDate(next.getDate()+Number(plan.interval||28));
     var today=new Date();today.setHours(12,0,0,0);
     var diff=Math.ceil((next-today)/(24*60*60*1000));
     var timing=diff<0?"overdue by "+Math.abs(diff)+" day"+(Math.abs(diff)===1?"":"s"):diff===0?"due today":"due in "+diff+" day"+(diff===1?"":"s");
-    supplyOutput.innerHTML="For "+(plan.towers||4)+" tower(s) growing "+(plan.crop||"leafy greens").toLowerCase()+", your next tank/supply check is "+timing+" ("+friendlyDate(isoDate(next))+"). Check water level, nutrient supply, pH calibration fluid, pH Up/Down, seeds, and media top-off. Set a reminder in Pip Pro before the next refill."+links;
+    supplyOutput.innerHTML=(saved?"<strong>Saved on this device.</strong> ":"")+"For "+(plan.towers||4)+" tower(s) growing "+(plan.crop||"leafy greens").toLowerCase()+", your next tank/supply check is "+timing+" ("+friendlyDate(isoDate(next))+"). Check water level, nutrient supply, pH calibration fluid, pH Up/Down, seeds, and media top-off. Set a reminder in Pip Pro before the next refill."+links;
   }
   supplyForm.addEventListener("submit",function(event){
     event.preventDefault();
     saveSupplyPlan({towers:document.querySelector("#profileTowers").value,crop:document.querySelector("#profileCrop").value,refill:document.querySelector("#profileRefill").value,interval:document.querySelector("#profileInterval").value});
     renderSupplyPlan();
+    var originalLabel="Save supply plan";
+    saveSupplyPlanButton.textContent="Supply plan saved";
+    saveSupplyPlanButton.disabled=true;
+    setTimeout(function(){saveSupplyPlanButton.textContent=originalLabel;saveSupplyPlanButton.disabled=false},1800);
+    supplyOutput.scrollIntoView({behavior:"smooth",block:"nearest"});
   });
   render();
   renderSupplyPlan();

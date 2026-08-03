@@ -91,6 +91,37 @@ export async function upsertUser(user = {}) {
   return state.users[normalized.id];
 }
 
+export async function deleteUserData({ userId } = {}) {
+  const ownerId = requireUserId(userId);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query("delete from pip_users where id = $1", [ownerId]);
+    return { deleted: result.rowCount > 0 };
+  }
+
+  const state = readState();
+  const projectIds = Object.values(state.projects)
+    .filter((project) => project.userId === ownerId)
+    .map((project) => project.id);
+  const conversationIds = Object.values(state.chatThreads)
+    .filter((conversation) => conversation.userId === ownerId)
+    .map((conversation) => conversation.id);
+  projectIds.forEach((projectId) => {
+    delete state.projects[projectId];
+    delete state.reminders[projectId];
+    delete state.readings[projectId];
+    delete state.seeds[projectId];
+  });
+  conversationIds.forEach((conversationId) => {
+    delete state.chatThreads[conversationId];
+    delete state.conversations[conversationId];
+  });
+  const deleted = Boolean(state.users[ownerId]);
+  delete state.users[ownerId];
+  writeState(state);
+  return { deleted };
+}
+
 export async function listProjects({ userId } = {}) {
   const ownerId = requireUserId(userId);
   if (usesPostgres()) {

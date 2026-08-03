@@ -126,43 +126,43 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
     return `${contextLead}Before driving any support, call 811 or visit https://call811.com/, wait for utility markings, and identify private irrigation, septic, electrical, and water lines. Once the location is confirmed clear, use an 8-10 foot, 1/2-inch galvanized steel pipe for each tower support. It must be rigid metal, not flexible plumbing or PVC.\n- Home Depot 10-foot reference: ${supportPipeUrl}\n- Keep roughly 5 feet above grade; choose 10 feet for deeper anchoring in exposed or windier locations.`;
   }
   if (wantsPart(q, ["main hose", "main feed hose", "garden hose", "feed hose", "hose from pump", "hose to towers"])) {
-    return `${contextLead}For the main feed line, use a garden hose long enough to run from the feed pump past each tower.\n- Main hose search: ${affiliateLinks.mainHose}\n- Leave extra length for flushing and future expansion.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}For the main feed line, use a garden hose long enough to run from the feed pump past each tower.\n- Main hose search: ${affiliateLinks.mainHose}\n- Leave extra length for flushing and future expansion.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["punch", "awl", "hole tool", "poke hole", "punch hole", "hole in the hose"])) {
-    return `${contextLead}Use a tubing punch or awl to make cleaner holes in the main hose.\n- Tubing punch/awl: ${affiliateLinks.tubingPunch}\n- Clean holes seal better around the small tower feed tubes.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Use a tubing punch or awl to make cleaner holes in the main hose.\n- Tubing punch/awl: ${affiliateLinks.tubingPunch}\n- Clean holes seal better around the small tower feed tubes.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["pump", "pumps", "feed pump", "mixing pump", "circulation pump"])) {
-    return `${contextLead}Use two pumps in the IBC: one for circulation and one for feeding the towers.\n- Pump link: ${affiliateLinks.pumps}\n- Keep a spare on hand once plants are established.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Use two pumps in the IBC: one for circulation and one for feeding the towers.\n- Pump link: ${affiliateLinks.pumps}\n- Keep a spare on hand once plants are established.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["smart plug", "timer", "kasa", "outdoor plug"])) {
-    return `${contextLead}Use an outdoor two-outlet smart plug/timer so the mix pump and feed pump can be scheduled separately.\n- Smart plug: ${affiliateLinks.smartPlug}\n- Keep pump schedules short until runoff is measured.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Use an outdoor two-outlet smart plug/timer so the mix pump and feed pump can be scheduled separately.\n- Smart plug: ${affiliateLinks.smartPlug}\n- Keep pump schedules short until runoff is measured.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["nutrient", "nutrients", "masterblend", "master blend"])) {
-    return `${contextLead}Use the MasterBlend-style nutrient kit for the IBC mix.\n- Nutrients: ${affiliateLinks.nutrients}\n- Circulate 45-60 minutes after mixing, then test pH and EC/TDS.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Use the MasterBlend-style nutrient kit for the IBC mix.\n- Nutrients: ${affiliateLinks.nutrients}\n- Circulate 45-60 minutes after mixing, then test pH and EC/TDS.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["perlite", "vermiculite", "media", "medium", "grow medium", "growing medium"])) {
-    return `${contextLead}Use a reusable 50/50 perlite and vermiculite blend in the tower pots.\n- Perlite: ${affiliateLinks.perlite || "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20"}\n- Vermiculite: ${affiliateLinks.vermiculite || "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20"}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Use a reusable 50/50 perlite and vermiculite blend in the tower pots.\n- Perlite: ${affiliateLinks.perlite || "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20"}\n- Vermiculite: ${affiliateLinks.vermiculite || "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20"}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["ph meter", "ph tester", "ph test", "tds meter", "ec meter", "ppm meter"])) {
-    return `${contextLead}For testing, start with pH and EC/TDS.\n- pH meter: https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20\n- EC/TDS meter: ${affiliateLinks.ecTdsMeter}\n- pH calibration solution: ${affiliateLinks.phCalibration}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}For testing, start with pH and EC/TDS.\n- pH meter: https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20\n- EC/TDS meter: ${affiliateLinks.ecTdsMeter}\n- pH calibration solution: ${affiliateLinks.phCalibration}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["seed", "seeds", "starter plugs", "seed starting"])) {
-    return `${contextLead}For seeds, start with leafy greens and herbs while dialing in HydroPip.\n- Seeds: ${affiliateLinks.seeds}\n- Later, Pip can use your grow zone for better variety timing.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}For seeds, start with leafy greens and herbs while dialing in HydroPip.\n- Seeds: ${affiliateLinks.seeds}\n- Later, Pip can use your grow zone for better variety timing.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["ibc cover", "tank cover", "tote cover", "cover"])) {
-    return `${contextLead}Cover the IBC to block light and slow algae growth.\n- IBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20\n- Keep lid openings tight around hoses.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Cover the IBC to block light and slow algae growth.\n- IBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20\n- Keep lid openings tight around hoses.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["ibc tote", "275 gallon", "reservoir", "tank"])) {
-    return `${contextLead}Use a 275-gallon IBC only if prior contents were food-safe or non-hazardous.\n- IBC reference: https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20\n- Used totes are often cheaper locally; clean thoroughly.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Use a 275-gallon IBC only if prior contents were food-safe or non-hazardous.\n- IBC reference: https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20\n- Used totes are often cheaper locally; clean thoroughly.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["stackable", "planter", "tower stack", "four pot", "4 pot", "pots"])) {
-    return `${contextLead}Use two orders of the four-pot stackable planter sections per tower.\n- Planter sections: https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20\n- Four towers need 8 orders total.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Use two orders of the four-pot stackable planter sections per tower.\n- Planter sections: https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20\n- Four towers need 8 orders total.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on|chewing bugs)\b/.test(q)) {
-    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (/\b(tiny holes|holes in.*leaves|chewed|caterpillar|worm|leaf miner|leafminer)\b/.test(q)) {
-    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
 
   return null;
@@ -204,10 +204,10 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Keep the IBC as cool and shaded as you can.\n- Cover the tote and block sunlight from nutrient water.\n- Circulate before testing pH/EC.\n- If roots look stressed, reduce heat exposure before chasing nutrients.\n\nIBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
   }
   if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on)\b/.test(q)) {
-    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (/\b(tiny holes|holes in.*leaves|chewed|caterpillar|worm|leaf miner|leafminer)\b/.test(q)) {
-    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (/\b(strawberry|strawberries)\b/.test(q)) {
     return `${contextLead}Strawberries can work in HydroPip, but they are slower than greens.\n- Give them strong light and steady moisture without soaking crowns.\n- Keep pH/EC steady.\n- Start with greens/herbs first if you are still tuning the system.`;
@@ -327,15 +327,15 @@ function hasShoppingIntent(q) {
 }
 
 function tubingSupplyAnswer(contextLead = "") {
-  return `${contextLead}Use the more rigid 1/4-inch drip tubing for the small tower feed lines that branch off the main hose. It holds its shape better than soft microtubing.\n- Rigid 1/4-inch tower feed tubing: ${affiliateLinks.dripIrrigation}\n- Diffuser tubing pieces: ${affiliateLinks.diffuserTubing}\n- Tubing punch/awl for clean holes: ${affiliateLinks.tubingPunch}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  return `${contextLead}Use the more rigid 1/4-inch drip tubing for the small tower feed lines that branch off the main hose. It holds its shape better than soft microtubing.\n- Rigid 1/4-inch tower feed tubing: ${affiliateLinks.dripIrrigation}\n- Diffuser tubing pieces: ${affiliateLinks.diffuserTubing}\n- Tubing punch/awl for clean holes: ${affiliateLinks.tubingPunch}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
 }
 
 function hoseEndSupplyAnswer(contextLead = "") {
-  return `${contextLead}Use two pieces at the end of the main feed hose.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Hose adapters for future extensions: ${affiliateLinks.hoseAdapters}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  return `${contextLead}Use two pieces at the end of the main feed hose.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Hose adapters for future extensions: ${affiliateLinks.hoseAdapters}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
 }
 
 function hoseEndSizeAnswer(contextLead = "") {
-  return `${contextLead}Use standard 3/4-inch garden-hose-thread (GHT) hardware at the hose end; that thread size is separate from the hose's inside diameter.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Extension adapters: ${affiliateLinks.hoseAdapters}\n- Confirm your hose has standard garden-hose ends before ordering.\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  return `${contextLead}Use standard 3/4-inch garden-hose-thread (GHT) hardware at the hose end; that thread size is separate from the hose's inside diameter.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Extension adapters: ${affiliateLinks.hoseAdapters}\n- Confirm your hose has standard garden-hose ends before ordering.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
 }
 
 function toReminder(start, offsetDays, title, note, category) {

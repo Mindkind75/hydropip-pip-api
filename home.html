@@ -44,7 +44,10 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .btn.dark{background:var(--deep);border-color:var(--deep);color:#fff}.band.deep .btn:not(.gold){color:var(--ink)}
 .photoFeature{position:relative;min-height:580px;border:1px solid var(--line);border-radius:8px;background:#0f2119;box-shadow:var(--shadow);overflow:hidden}
 .photoFeature img,.photoCard img{display:block;width:100%;height:100%;object-fit:cover}
-.photoFeature img{position:absolute;inset:0}
+.featureSplit{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr}
+.featureSplit img{min-width:0;min-height:100%}
+.featureSplit img:first-child{object-position:center}
+.featureSplit img:last-child{object-position:center}
 .photoFeature:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,33,25,.04),rgba(15,33,25,.8))}
 .photoCaption{position:absolute;left:18px;right:18px;bottom:18px;z-index:1;display:grid;gap:12px;padding:18px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(15,33,25,.74);color:#fff;backdrop-filter:blur(10px)}
 .photoCaption>strong{font-size:1.45rem;line-height:1.08}
@@ -90,10 +93,11 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .part a{align-self:end;width:max-content;padding:10px 12px;border-radius:8px;background:var(--gold);font-weight:950}
 .disclosure{margin:18px 0 0;padding:14px 16px;border-left:4px solid var(--gold);background:#fff8e8;color:#5c4b24;border-radius:0 8px 8px 0;font-weight:800}
 .finalCta{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
-.footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding:28px clamp(18px,4vw,54px);border-top:1px solid var(--line);background:#17221c;color:rgba(255,255,255,.78);font-weight:900}
+.footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding:28px clamp(18px,4vw,54px);border-top:1px solid var(--line);background:#17221c;color:rgba(255,255,255,.78);font-weight:900}.footerLinks{display:flex;flex-wrap:wrap;gap:10px 16px}.footer a{color:#fff;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}}
 @media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
 @media(max-width:430px){.nav.open{grid-template-columns:1fr}.brand{font-size:.95rem}.brand img{width:50px;height:50px}.photoCaption{left:12px;right:12px;bottom:12px;gap:9px;padding:13px}.photoCaption>strong{font-size:1.25rem}.photoCaption span{font-size:.92rem;line-height:1.38}.statGrid div{padding:8px 6px}.statGrid small{font-size:.65rem}.statGrid b{font-size:.82rem}.photoFeature{min-height:500px}.card,.step,.part,.pipPanel,.signupPanel{padding:18px}}
+.deviceMobile .featureSplit{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
 .deviceMobile .topbar{position:relative;top:auto;align-items:flex-start}
 .deviceMobile .menuBtn{display:grid;place-items:center;flex:0 0 auto}
 .deviceMobile .nav{display:none;position:absolute;left:14px;right:14px;top:70px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}
@@ -153,8 +157,11 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
         <a class="btn" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Track My Build</a>
       </div>
     </div>
-    <figure class="photoFeature" aria-label="Real HydroPip tower system">
-      <img src="https://static.wixstatic.com/media/5fe7cb_8829592151b24d90aa5a8a88ba1a85a7~mv2.jpg" alt="Real HydroPip tower system in the backyard" loading="eager">
+    <figure class="photoFeature" aria-label="HydroPip tower at planting and filled out with food">
+      <div class="featureSplit">
+        <img src="https://static.wixstatic.com/media/5fe7cb_8829592151b24d90aa5a8a88ba1a85a7~mv2.jpg" alt="Newly planted HydroPip tower system" loading="eager">
+        <img src="https://static.wixstatic.com/media/5fe7cb_264e8a42fb11486b808d289b14e6b079~mv2.jpg" alt="Mature HydroPip towers filled out with edible greens" loading="eager">
+      </div>
       <figcaption class="photoCaption">
         <strong>This is what you can build.</strong>
         <span>A backyard-tested HydroPip system built from common parts, with Pip guiding each step from the first post to the next harvest.</span>
@@ -288,7 +295,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
         <article class="part"><small>Local pickup</small><h3>Pipe, tee, cinder blocks</h3><a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">See local list</a></article>
         <article class="part"><small>Tank setup</small><h3>IBC tote and cover</h3><a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">See tank links</a></article>
       </div>
-      <p class="disclosure">Affiliate disclosure: HydroPip may earn from qualifying Amazon purchases. Used IBC totes should only be selected if prior contents were food-safe or non-hazardous and the tote is thoroughly cleaned.</p>
+      <p class="disclosure"><strong>Paid-link disclosure:</strong> As an Amazon Associate I earn from qualifying purchases. Used IBC totes should only be selected if prior contents were food-safe or non-hazardous and the tote is thoroughly cleaned.</p>
     </div>
   </section>
 
@@ -331,8 +338,14 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 </main>
 
 <footer class="footer">
-  <span>HydroPip Systems</span>
-  <span>Sign up. Ask Pip. Build. Grow. Repeat.</span>
+  <span>HydroPip Systems by Hartshorn Studios LLC</span>
+  <nav class="footerLinks" aria-label="Legal">
+    <a href="https://hydropip-pip-api.onrender.com/privacy.html" target="_top">Privacy</a>
+    <a href="https://hydropip-pip-api.onrender.com/terms.html" target="_top">Terms</a>
+    <a href="https://hydropip-pip-api.onrender.com/affiliate-disclosure.html" target="_top">Affiliate disclosure</a>
+    <a href="https://hydropip-pip-api.onrender.com/safety.html" target="_top">Build and AI safety</a>
+    <a href="https://hydropip-pip-api.onrender.com/cancellation.html" target="_top">Cancellation and refunds</a>
+  </nav>
 </footer>
 
 <script>

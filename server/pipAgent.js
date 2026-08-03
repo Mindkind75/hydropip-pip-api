@@ -196,6 +196,7 @@ export async function askPip({ message, profile, subscription, history = [], use
   try {
     response = await client.responses.create({
     model: process.env.PIP_MODEL || "gpt-5-mini",
+    store: false,
     instructions: [
       systemBrain,
       "Use HydroPip tools whenever the user asks for build steps, parts, grow plans, reminders, or setup questions.",
@@ -209,7 +210,7 @@ export async function askPip({ message, profile, subscription, history = [], use
       "For any shopping or 'what do I need' question, infer the most likely HydroPip part from the user's wording and conversation context. If there are two likely meanings, give the best guess first and name the alternate briefly with its link.",
       "HydroPip scale, space, and variation questions are allowed in free mode when they are still based on the HydroPip timed-feed tower design. Answer practical questions such as shorter towers, fewer towers, tower spacing, footprint, partial builds, height limits, expansion, and whether a layout will fit. Do not punt these to a generic follow-up unless a key measurement is missing.",
       "For shorter towers: explain that the system can be scaled down, but shorter towers reduce pocket count and may change stability, support height, pump head pressure, feed timing, and runoff behavior. Keep the center support pipe driven securely, keep the top hose guide removable, and recalibrate feed duration by runoff. If the user says five-pot-high, clarify that HydroPip uses four-pot stackable sections; five stack sections equals 20 planting pockets per tower. Two five-section towers are a reasonable small test if they are stable and easy to service.",
-      "When a user asks for a part link, include the matching HydroPip Amazon affiliate URL directly. Use these known links when relevant: stackable planters https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20; rigid 1/4-inch tower feed tubing https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20; pumps https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20; smart plug https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20; nutrients https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20; vermiculite https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20; perlite https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20; pH meter https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20; pH calibration solution https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20; EC/TDS meter https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20; EC/TDS calibration solution https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20; pH Up/Down https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20; seeds https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20; yellow sticky traps https://www.amazon.com/s?k=yellow+sticky+traps+for+plants&tag=hydrpip2002-20; food-safe pest controls https://www.amazon.com/s?k=food+safe+garden+pest+control+vegetables&tag=hydrpip2002-20; IBC cover https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20; IBC tote reference https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20; end-of-hose shutoff/flush valve https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20; hose connector adapters for extensions https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20. Mention that HydroPip may earn from qualifying Amazon purchases when sharing direct Amazon links.",
+      "When a user asks for a part link, include the matching HydroPip Amazon affiliate URL directly. Use these known links when relevant: stackable planters https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20; rigid 1/4-inch tower feed tubing https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20; pumps https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20; smart plug https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20; nutrients https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20; vermiculite https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20; perlite https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20; pH meter https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20; pH calibration solution https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20; EC/TDS meter https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20; EC/TDS calibration solution https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20; pH Up/Down https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20; seeds https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20; yellow sticky traps https://www.amazon.com/s?k=yellow+sticky+traps+for+plants&tag=hydrpip2002-20; food-safe pest controls https://www.amazon.com/s?k=food+safe+garden+pest+control+vegetables&tag=hydrpip2002-20; IBC cover https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20; IBC tote reference https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20; end-of-hose shutoff/flush valve https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20; hose connector adapters for extensions https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20. Include the disclosure 'As an Amazon Associate I earn from qualifying purchases.' when sharing direct Amazon links.",
       "For recurring supply or nutrient subscription questions, recommend the light HydroPip reorder rhythm: nutrient refill kit, pH calibration solution, pH Up/Down, EC/TDS calibration or meter check, seeds, and media top-off. Explain that Track My Build can estimate the next supply check now, while Pip Pro will save refill dates to the account and send reminders later.",
       `Custom guidance for non-HydroPip systems, including DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip systems, or custom hydro setups, is Pip Pro. Use this wording style: "I can definitely help with that, but that is a Pip Pro subscription feature." Include this signup link when a subscription is required: ${proSignupUrl}`,
       "General hydroponics education is allowed in free mode when it helps the user understand HydroPip or decide to build. Custom plans, optimization, troubleshooting, schedules, logs, reminders, or saved memory for a different non-HydroPip system are Pip Pro.",
@@ -283,6 +284,7 @@ export async function askPip({ message, profile, subscription, history = [], use
   try {
     final = await client.responses.create({
     model: process.env.PIP_MODEL || "gpt-5-mini",
+    store: false,
     instructions: [
       "Answer as Pip using the tool results.",
       "Keep the answer specific to the real HydroPip timed-feed runoff build. Do not add recirculating, return-line, or drain-plumbing steps.",
@@ -400,12 +402,12 @@ function trimToWordBudget(answer, maxWords) {
 }
 
 function trimLinkedAnswer(answer, maxWords) {
-  const disclosure = "HydroPip may earn from qualifying Amazon purchases.";
+  const disclosure = "As an Amazon Associate I earn from qualifying purchases.";
   const urls = [...new Set(String(answer || "").match(/https?:\/\/(?:www\.)?amazon\.com\/[^\s)]+/gi) || [])].slice(0, 3);
-  const reservedWords = 8 + urls.length * 4;
+  const reservedWords = 10 + urls.length * 4;
   const textOnly = String(answer || "")
     .replace(/https?:\/\/(?:www\.)?amazon\.com\/[^\s)]+/gi, "")
-    .replace(/HydroPip may earn from qualifying Amazon purchases\.?/gi, "")
+    .replace(/(?:HydroPip may earn from qualifying Amazon purchases|As an Amazon Associate,? (?:I |HydroPip )?(?:may )?earn from qualifying purchases)\.?/gi, "")
     .replace(/\(\s*[^()]{0,60}:\s*\)/g, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
@@ -431,8 +433,9 @@ function affiliateLabel(url) {
 
 function ensureAffiliateDisclosure(answer) {
   const text = String(answer || "").trim();
-  if (!hasAmazonLink(text) || /HydroPip may earn from qualifying Amazon purchases/i.test(text)) return text;
-  return `${text}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  if (!hasAmazonLink(text)) return text;
+  const normalized = text.replace(/(?:HydroPip may earn from qualifying Amazon purchases|As an Amazon Associate,? (?:I |HydroPip )?(?:may )?earn from qualifying purchases)\.?/gi, "").trim();
+  return `${normalized}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
 }
 
 function hasAmazonLink(answer) {
