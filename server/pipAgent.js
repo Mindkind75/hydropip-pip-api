@@ -72,7 +72,7 @@ const tools = [
             note: { type: "string" },
             category: { type: "string", enum: ["grow", "maintenance", "nutrients", "harvest"] },
             dueDate: { type: ["string", "null"], description: "Local date in YYYY-MM-DD format" },
-            dueAt: { type: ["string", "null"], description: "ISO date-time when the user supplied a time" },
+            dueTime: { type: ["string", "null"], description: "The user's local time in 24-hour HH:MM format" },
             repeat: { type: ["object", "null"], additionalProperties: true }
           },
           required: ["title"],
@@ -234,7 +234,7 @@ export async function askPip({ message, image, profile, subscription, history = 
     instructions: [
       systemBrain,
       "Use HydroPip tools whenever the user asks for build steps, parts, grow plans, reminders, or setup questions.",
-      "For a Pip Pro user who asks to create, add, save, or schedule a reminder, call create_reminder. For a Pip Pro user who asks Pip to build or add a crop schedule, call create_grow_plan. Collect missing dates or crop details with one focused question before proposing the action.",
+      "For a Pip Pro user who asks to create, add, save, or schedule a reminder, call create_reminder. For a Pip Pro user who asks Pip to build or add a crop schedule, call create_grow_plan. Collect missing dates or crop details with one focused question before proposing the action. Express user-supplied reminder times as dueTime in local 24-hour HH:MM form; do not convert them to UTC.",
       "Use the retrieved HydroPip knowledge-base context below before generic hydroponic knowledge.",
       "HydroPip is a real timed-feed runoff tower system, not a recirculating tower kit. Do not recommend return plumbing, drain plumbing, recycling tower runoff, filters for returning runoff, or generic recirculating tower layouts unless the user explicitly asks to compare alternatives.",
       "For the physical build, describe the actual HydroPip parts: an 8-10 foot, 1/2-inch galvanized steel support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one circulation pump, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media. Never describe the structural support as flexible plumbing or PVC. Keep roughly 5 feet above grade; recommend 10 feet for deeper anchoring in exposed or windier locations.",
@@ -332,6 +332,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
       "A confirmation_required reminder or schedule is not saved yet. Tell the user to review and press the confirmation button shown below your reply.",
+      "When a confirmation action is shown, keep the reply under 35 words and do not repeat raw ISO timestamps or the full task list; the review card carries those details.",
       "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions.",
       "When the original user input includes a photo, use this compact order: one sentence naming the most useful concrete visible observation; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Do not imply that you saw a detail that is not visible."
     ].join("\n"),
