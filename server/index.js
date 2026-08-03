@@ -15,6 +15,7 @@ import {
 } from "./pipAuth.js";
 import {
   createProject,
+  createProjectConversation,
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
@@ -24,12 +25,14 @@ import {
   getProject,
   getProjectTemplates,
   listProjectMessages,
+  listProjectConversations,
   listProjectReadings,
   listProjectReminders,
   listProjectSeeds,
   listProjects,
   seedProjectDefaults,
   updateProject,
+  updateProjectConversation,
   updateProjectReminder,
   updateProjectSeed,
   upsertUser
@@ -189,11 +192,59 @@ app.patch("/api/pip/projects/:projectId", async (req, res, next) => {
   }
 });
 
+app.get("/api/pip/projects/:projectId/conversations", async (req, res, next) => {
+  try {
+    const conversations = await listProjectConversations({
+      userId: req.pipUser.id,
+      projectId: req.params.projectId,
+      includeArchived: req.query.archived === "1"
+    });
+    if (!conversations) return res.status(404).json({ error: "project_not_found" });
+    res.json({ conversations });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/projects/:projectId/conversations", async (req, res, next) => {
+  try {
+    const result = await createProjectConversation({
+      userId: req.pipUser.id,
+      projectId: req.params.projectId,
+      title: req.body?.title,
+      subscription: req.pipSubscription
+    });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "created" ? 201 : 402).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/pip/projects/:projectId/conversations/:conversationId", async (req, res, next) => {
+  try {
+    const result = await updateProjectConversation({
+      userId: req.pipUser.id,
+      projectId: req.params.projectId,
+      conversationId: req.params.conversationId,
+      patch: req.body?.patch || req.body || {},
+      subscription: req.pipSubscription
+    });
+    if (!result) return res.status(404).json({ error: "conversation_not_found" });
+    const statusCode = result.status === "subscription_required" ? 402 : result.status === "last_conversation" ? 409 : 200;
+    res.status(statusCode).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/pip/projects/:projectId/messages", async (req, res, next) => {
   try {
     const messages = await listProjectMessages({
       userId: req.pipUser.id,
       projectId: req.params.projectId,
+      conversationId: req.query.conversationId,
+      allConversations: req.query.all === "1",
       limit: req.query.limit
     });
     if (!messages) {

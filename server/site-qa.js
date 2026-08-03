@@ -33,7 +33,7 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
 for (const page of ["profile", "schedule", "log", "history"]) {
@@ -45,6 +45,9 @@ assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge mes
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
 assert.match(pipHtml, /How it works/, "Pip Pro should explain the subscription flow before checkout");
+assert.match(pipHtml, /\/conversations/, "Pip chat is not connected to the saved-conversation API");
+assert.match(pipHtml, /conversationId:activeConversationId/, "Pip chat requests are not scoped to the selected conversation");
+assert.match(pipHtml, /New conversation/, "Pip should offer focused topic conversations");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
 assert.match(wixPipBridge, /\["pro", "project", "projectId"\]/, "Wix Pip bridge is not forwarding Pro and project context to the iframe");

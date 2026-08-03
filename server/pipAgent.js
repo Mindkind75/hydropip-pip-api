@@ -79,16 +79,22 @@ const tools = [
   }
 ];
 
-export async function askPip({ message, profile, subscription, history = [], user, projectId }) {
+export async function askPip({ message, profile, subscription, history = [], user, projectId, conversationId }) {
   const trimmed = String(message || "").trim();
   if (!trimmed) return { answer: "Ask me where you are in the HydroPip build and I will guide the next step.", mode: "empty" };
   const recentHistory = normalizeHistory(history);
   const retrieval = retrieveHydroPipContext(trimmed, { limit: 7 });
   const retrievedContext = formatContextForPrompt(retrieval);
   const userId = String(user?.id || user?.email || "").trim();
-  const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId }) : null;
+  const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId, conversationId }) : null;
   const projectMemory = projectContext
-    ? { active: true, projectId, projectType: projectContext.project.type }
+    ? {
+        active: true,
+        projectId,
+        projectType: projectContext.project.type,
+        conversationId: projectContext.conversation.id,
+        conversationTitle: projectContext.conversation.title
+      }
     : { active: false, reason: userId && projectId ? "project_not_found" : "not_requested" };
 
   await rememberProjectMessage(projectContext, {
@@ -463,6 +469,7 @@ function compactProjectContext(projectContext) {
   if (!projectContext) return null;
   return {
     project: projectContext.project,
+    conversation: projectContext.conversation,
     activeReminders: projectContext.activeReminders,
     recentReadings: projectContext.recentReadings,
     recentMessages: projectContext.recentMessages.map(({ role, content, createdAt }) => ({ role, content, createdAt }))
@@ -471,5 +478,8 @@ function compactProjectContext(projectContext) {
 
 async function rememberProjectMessage(projectContext, message) {
   if (!projectContext) return null;
-  return appendProjectMessage(message);
+  return appendProjectMessage({
+    ...message,
+    conversationId: message.conversationId || projectContext.conversation?.id
+  });
 }

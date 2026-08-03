@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { askPip, compactAnswer, stripSummaryLabel } from "./pipAgent.js";
 import {
+  appendProjectMessage,
   createProject,
+  createProjectConversation,
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
@@ -9,10 +11,12 @@ import {
   getMemoryHealth,
   getProjectTemplates,
   listProjectMessages,
+  listProjectConversations,
   listProjectReminders,
   listProjectSeeds,
   resetMemoryForTests,
   seedProjectDefaults,
+  updateProjectConversation,
   updateProjectReminder,
   updateProject
 } from "./pipMemory.js";
@@ -94,6 +98,39 @@ assert.equal(freeProject.status, "created");
 assert.equal(freeProject.project.systemProfile.growZone, "9");
 assert.equal(freeProject.project.systemProfile.areaType, "outdoor_open");
 assert.deepEqual(freeProject.project.systemProfile.goals, ["steady_harvests"]);
+
+const defaultConversations = await listProjectConversations({ userId: "test-user", projectId: freeProject.project.id });
+assert.equal(defaultConversations.length, 1);
+assert.equal(defaultConversations[0].title, "HydroPip Build");
+
+const freeConversationBlocked = await createProjectConversation({
+  userId: "test-user",
+  projectId: freeProject.project.id,
+  title: "Bugs and pests",
+  subscription: { active: false }
+});
+assert.equal(freeConversationBlocked.status, "subscription_required");
+
+const pestConversation = await createProjectConversation({
+  userId: "test-user",
+  projectId: freeProject.project.id,
+  title: "Bugs and pests",
+  subscription: { active: true }
+});
+assert.equal(pestConversation.status, "created");
+await appendProjectMessage({ userId: "test-user", projectId: freeProject.project.id, conversationId: defaultConversations[0].id, role: "user", content: "I am stacking the first tower." });
+await appendProjectMessage({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id, role: "user", content: "I found aphids." });
+const buildMessages = await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id, conversationId: defaultConversations[0].id });
+const pestMessages = await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id });
+assert.deepEqual(buildMessages.map((item) => item.content), ["I am stacking the first tower."]);
+assert.deepEqual(pestMessages.map((item) => item.content), ["I found aphids."]);
+assert.equal((await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id, allConversations: true })).length, 2);
+const renamedConversation = await updateProjectConversation({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id, patch: { title: "Pests" }, subscription: { active: true } });
+assert.equal(renamedConversation.conversation.title, "Pests");
+const archivedConversation = await updateProjectConversation({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id, patch: { status: "archived" }, subscription: { active: true } });
+assert.equal(archivedConversation.conversation.status, "archived");
+const lastConversationBlocked = await updateProjectConversation({ userId: "test-user", projectId: freeProject.project.id, conversationId: defaultConversations[0].id, patch: { status: "archived" }, subscription: { active: true } });
+assert.equal(lastConversationBlocked.status, "last_conversation");
 
 const updatedGrow = await updateProject({
   userId: "test-user",

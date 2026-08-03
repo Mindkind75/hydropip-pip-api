@@ -49,6 +49,7 @@ const defaultState = {
   version: 1,
   users: {},
   projects: {},
+  chatThreads: {},
   conversations: {},
   reminders: {},
   readings: {},
@@ -153,7 +154,6 @@ export async function createProject({ user, type, title, systemProfile = {}, sub
 
   const state = readState();
   state.projects[id] = project;
-  state.conversations[id] = [];
   state.reminders[id] = [];
   state.readings[id] = [];
   writeState(state);
@@ -208,9 +208,97 @@ export async function updateProject({ userId, projectId, patch = {} } = {}) {
   return project;
 }
 
-export async function listProjectMessages({ userId, projectId, limit = 50 } = {}) {
+export async function listProjectConversations({ userId, projectId, includeArchived = false } = {}) {
   const project = await getProject({ userId, projectId });
   if (!project) return null;
+  await ensureDefaultConversation({ userId, projectId });
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, project_id, user_id, title, status, summary, created_at, updated_at
+       from pip_conversations
+       where project_id = $1 and user_id = $2 ${includeArchived ? "" : "and status = 'active'"}
+       order by updated_at desc`,
+      [projectId, userId]
+    );
+    return result.rows.map(rowToConversation);
+  }
+  return Object.values(readState().chatThreads)
+    .filter((item) => item.projectId === projectId && item.userId === userId && (includeArchived || item.status === "active"))
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+}
+
+export async function createProjectConversation({ userId, projectId, title, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  const existing = await listProjectConversations({ userId, projectId, includeArchived: true });
+  if (!subscription?.active && existing.some((item) => item.status === "active")) {
+    return subscriptionRequired("Multiple saved conversations require Pip Pro.");
+  }
+  const now = nowIso();
+  const conversation = {
+    id: makeId("chat"),
+    projectId,
+    userId,
+    title: cleanOptionalText(title, 80) || "New conversation",
+    status: "active",
+    summary: "",
+    createdAt: now,
+    updatedAt: now
+  };
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `insert into pip_conversations (id, project_id, user_id, title, status, summary, created_at, updated_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $7)
+       returning id, project_id, user_id, title, status, summary, created_at, updated_at`,
+      [conversation.id, projectId, userId, conversation.title, conversation.status, conversation.summary, now]
+    );
+    return { status: "created", conversation: rowToConversation(result.rows[0]) };
+  }
+  const state = readState();
+  state.chatThreads[conversation.id] = conversation;
+  state.conversations[conversation.id] = [];
+  writeState(state);
+  return { status: "created", conversation };
+}
+
+export async function updateProjectConversation({ userId, projectId, conversationId, patch = {}, subscription = {} } = {}) {
+  const conversation = await getProjectConversation({ userId, projectId, conversationId });
+  if (!conversation) return null;
+  if (!subscription?.active) return subscriptionRequired("Managing multiple saved conversations requires Pip Pro.");
+  const nextStatus = patch.status === undefined ? conversation.status : String(patch.status || "active");
+  if (nextStatus === "archived" && conversation.status !== "archived") {
+    const active = await listProjectConversations({ userId, projectId });
+    if (active.length <= 1) return { status: "last_conversation", message: "Keep at least one active conversation in this grow." };
+  }
+  const saved = {
+    ...conversation,
+    title: patch.title === undefined ? conversation.title : cleanOptionalText(patch.title, 80) || conversation.title,
+    status: nextStatus,
+    updatedAt: nowIso()
+  };
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_conversations set title=$1, status=$2, updated_at=$3
+       where id=$4 and project_id=$5 and user_id=$6
+       returning id, project_id, user_id, title, status, summary, created_at, updated_at`,
+      [saved.title, saved.status, saved.updatedAt, conversationId, projectId, userId]
+    );
+    return result.rows[0] ? { status: "updated", conversation: rowToConversation(result.rows[0]) } : null;
+  }
+  const state = readState();
+  state.chatThreads[conversationId] = saved;
+  writeState(state);
+  return { status: "updated", conversation: saved };
+}
+
+export async function listProjectMessages({ userId, projectId, conversationId, limit = 50, allConversations = false } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  const conversation = allConversations ? null : await resolveConversation({ userId, projectId, conversationId });
+  if (!allConversations && !conversation) return null;
   const safeLimit = Math.max(1, Math.min(200, Number(limit || 50)));
 
   if (usesPostgres()) {
@@ -218,21 +306,27 @@ export async function listProjectMessages({ userId, projectId, limit = 50 } = {}
     const result = await pool.query(
       `select id, role, content, mode, sources, created_at
        from pip_messages
-       where project_id = $1 and user_id = $2
+       where project_id = $1 and user_id = $2 ${allConversations ? "" : "and conversation_id = $3"}
        order by created_at desc
-       limit $3`,
-      [projectId, userId, safeLimit]
+       limit $${allConversations ? 3 : 4}`,
+      allConversations ? [projectId, userId, safeLimit] : [projectId, userId, conversation.id, safeLimit]
     );
     return result.rows.reverse().map(rowToMessage);
   }
 
   const state = readState();
-  return (state.conversations[projectId] || []).slice(-safeLimit);
+  if (allConversations) {
+    const threadIds = Object.values(state.chatThreads).filter((item) => item.projectId === projectId).map((item) => item.id);
+    return threadIds.flatMap((id) => state.conversations[id] || []).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))).slice(-safeLimit);
+  }
+  return (state.conversations[conversation.id] || []).slice(-safeLimit);
 }
 
-export async function appendProjectMessage({ userId, projectId, role, content, mode, sources = [] } = {}) {
+export async function appendProjectMessage({ userId, projectId, conversationId, role, content, mode, sources = [] } = {}) {
   const project = await getProject({ userId, projectId });
   if (!project) return null;
+  const conversation = await resolveConversation({ userId, projectId, conversationId });
+  if (!conversation) return null;
 
   const message = {
     id: makeId("msg"),
@@ -246,16 +340,18 @@ export async function appendProjectMessage({ userId, projectId, role, content, m
   if (usesPostgres()) {
     const pool = await readyPool();
     await pool.query(
-      `insert into pip_messages (id, project_id, user_id, role, content, mode, sources, created_at)
-       values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)`,
-      [message.id, projectId, userId, message.role, message.content, message.mode, JSON.stringify(sources || []), message.createdAt]
+      `insert into pip_messages (id, project_id, user_id, conversation_id, role, content, mode, sources, created_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)`,
+      [message.id, projectId, userId, conversation.id, message.role, message.content, message.mode, JSON.stringify(sources || []), message.createdAt]
     );
+    await pool.query("update pip_conversations set updated_at = $1 where id = $2", [message.createdAt, conversation.id]);
     await pool.query("update pip_projects set updated_at = $1 where id = $2", [message.createdAt, projectId]);
     return message;
   }
 
   const state = readState();
-  state.conversations[projectId] = [...(state.conversations[projectId] || []), message].slice(-200);
+  state.conversations[conversation.id] = [...(state.conversations[conversation.id] || []), message].slice(-200);
+  state.chatThreads[conversation.id].updatedAt = message.createdAt;
   state.projects[projectId].updatedAt = message.createdAt;
   writeState(state);
   return message;
@@ -536,15 +632,18 @@ export async function createProjectReading({ userId, projectId, reading = {}, su
   return { status: "saved", reading: saved };
 }
 
-export async function buildProjectContext({ userId, projectId } = {}) {
+export async function buildProjectContext({ userId, projectId, conversationId } = {}) {
   if (!userId || !projectId) return null;
   const project = await getProject({ userId, projectId });
   if (!project) return null;
-  const messages = (await listProjectMessages({ userId, projectId, limit: 8 })) || [];
+  const conversation = await resolveConversation({ userId, projectId, conversationId });
+  if (!conversation) return null;
+  const messages = (await listProjectMessages({ userId, projectId, conversationId: conversation.id, limit: 8 })) || [];
   const reminders = (await listProjectReminders({ userId, projectId })) || [];
   const readings = (await listProjectReadings({ userId, projectId })) || [];
   return {
     project,
+    conversation,
     recentMessages: messages,
     activeReminders: reminders.filter((item) => item.status === "active").slice(-10),
     recentReadings: readings.slice(-10)
@@ -607,6 +706,18 @@ async function ensureSchema(pool) {
     );
     create index if not exists pip_projects_user_updated_idx on pip_projects(user_id, updated_at desc);
 
+    create table if not exists pip_conversations (
+      id text primary key,
+      project_id text not null references pip_projects(id) on delete cascade,
+      user_id text not null references pip_users(id) on delete cascade,
+      title text not null,
+      status text not null default 'active',
+      summary text not null default '',
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create index if not exists pip_conversations_project_updated_idx on pip_conversations(project_id, updated_at desc);
+
     create table if not exists pip_messages (
       id text primary key,
       project_id text not null references pip_projects(id) on delete cascade,
@@ -617,7 +728,9 @@ async function ensureSchema(pool) {
       sources jsonb not null default '[]'::jsonb,
       created_at timestamptz not null default now()
     );
+    alter table pip_messages add column if not exists conversation_id text references pip_conversations(id) on delete set null;
     create index if not exists pip_messages_project_created_idx on pip_messages(project_id, created_at desc);
+    create index if not exists pip_messages_conversation_created_idx on pip_messages(conversation_id, created_at desc);
 
     create table if not exists pip_reminders (
       id text primary key,
@@ -687,6 +800,14 @@ function readState() {
   } catch (_error) {
     stateCache = cloneDefaultState();
   }
+  stateCache.users ||= {};
+  stateCache.projects ||= {};
+  stateCache.chatThreads ||= {};
+  stateCache.conversations ||= {};
+  stateCache.reminders ||= {};
+  stateCache.readings ||= {};
+  stateCache.seeds ||= {};
+  stateCache.pushSubscriptions ||= {};
   return stateCache;
 }
 
@@ -789,6 +910,93 @@ function rowToProject(row) {
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
   };
+}
+
+function rowToConversation(row) {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    userId: row.user_id,
+    title: row.title,
+    status: row.status,
+    summary: row.summary || "",
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
+async function ensureDefaultConversation({ userId, projectId }) {
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const existing = await pool.query(
+      `select id, project_id, user_id, title, status, summary, created_at, updated_at
+       from pip_conversations
+       where project_id = $1 and user_id = $2 and status = 'active'
+       order by updated_at desc
+       limit 1`,
+      [projectId, userId]
+    );
+    if (existing.rows[0]) return rowToConversation(existing.rows[0]);
+
+    const now = nowIso();
+    const id = makeId("chat");
+    const created = await pool.query(
+      `insert into pip_conversations (id, project_id, user_id, title, status, summary, created_at, updated_at)
+       values ($1, $2, $3, $4, 'active', '', $5, $5)
+       returning id, project_id, user_id, title, status, summary, created_at, updated_at`,
+      [id, projectId, userId, "HydroPip Build", now]
+    );
+    await pool.query(
+      "update pip_messages set conversation_id = $1 where project_id = $2 and user_id = $3 and conversation_id is null",
+      [id, projectId, userId]
+    );
+    return rowToConversation(created.rows[0]);
+  }
+
+  const state = readState();
+  const existing = Object.values(state.chatThreads)
+    .filter((item) => item.projectId === projectId && item.userId === userId && item.status === "active")
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0];
+  if (existing) return existing;
+
+  const now = nowIso();
+  const conversation = {
+    id: makeId("chat"),
+    projectId,
+    userId,
+    title: "HydroPip Build",
+    status: "active",
+    summary: "",
+    createdAt: now,
+    updatedAt: now
+  };
+  state.chatThreads[conversation.id] = conversation;
+  state.conversations[conversation.id] = state.conversations[projectId] || [];
+  delete state.conversations[projectId];
+  writeState(state);
+  return conversation;
+}
+
+async function getProjectConversation({ userId, projectId, conversationId }) {
+  if (!conversationId) return null;
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select id, project_id, user_id, title, status, summary, created_at, updated_at
+       from pip_conversations where id = $1 and project_id = $2 and user_id = $3`,
+      [conversationId, projectId, userId]
+    );
+    return result.rows[0] ? rowToConversation(result.rows[0]) : null;
+  }
+  const conversation = readState().chatThreads[conversationId];
+  return conversation && conversation.projectId === projectId && conversation.userId === userId ? conversation : null;
+}
+
+async function resolveConversation({ userId, projectId, conversationId }) {
+  const conversation = conversationId
+    ? await getProjectConversation({ userId, projectId, conversationId })
+    : await ensureDefaultConversation({ userId, projectId });
+  return conversation?.status === "active" ? conversation : null;
 }
 
 function rowToMessage(row) {
