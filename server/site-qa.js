@@ -87,6 +87,12 @@ const betaTestHtml = fs.readFileSync(new URL("../beta-test.html", import.meta.ur
 assert.match(betaTestHtml, /\/api\/pip\/beta\/apply/, "Beta application form must submit to the backend");
 assert.match(betaTestHtml, /No payment information required/, "Beta applicants should understand the complimentary offer");
 assert.match(betaTestHtml, /No spam or unrelated marketing/, "Beta application contact consent should be specific");
+assert.match(betaTestHtml, /property="og:title" content="Join the HydroPip Closed Beta"/, "Beta application needs a branded Open Graph title");
+assert.match(betaTestHtml, /property="og:image" content="https:\/\/hydropip-pip-api\.onrender\.com\/assets\/share\/hydropip-beta-share\.jpg"/, "Beta application needs its branded social card");
+assert.match(betaTestHtml, /property="og:image:width" content="1200"/, "Beta social card should declare its width");
+assert.match(betaTestHtml, /property="og:image:height" content="630"/, "Beta social card should declare its height");
+assert.match(betaTestHtml, /name="twitter:card" content="summary_large_image"/, "Beta application needs a large Twitter/X share card");
+assert.equal(fs.existsSync(new URL("../assets/share/hydropip-beta-share.jpg", import.meta.url)), true, "Beta social card asset is missing");
 
 const betaAdminHtml = fs.readFileSync(new URL("../beta-admin.html", import.meta.url), "utf8");
 assert.match(betaAdminHtml, /X-Pip-Admin-Key/, "Beta review data must require the private admin key");
