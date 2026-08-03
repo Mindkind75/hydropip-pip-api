@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dailyLimitForTier, dailyResetAt } from "./pipUsage.js";
 
@@ -369,62 +368,6 @@ export async function getPipCreditBalance({ userId } = {}) {
     return Number(result.rows[0]?.balance || 0);
   }
   return creditBalanceFromState(readState(), ownerId);
-}
-
-export async function getOrCreateCalendarSubscription({ userId, subscription = {} } = {}) {
-  const ownerId = requireUserId(userId);
-  if (!subscription?.active) return subscriptionRequired("The private HydroPip calendar requires Pip Pro.");
-  const token = await getOrCreateCalendarToken(ownerId);
-  const url = `${publicApiBase()}/api/pip/calendar/${token}.ics`;
-  return { status: "ready", url, webcalUrl: url.replace(/^https:/i, "webcal:"), calendarName: "HydroPip Planner" };
-}
-
-export async function revokeCalendarSubscription({ userId, subscription = {} } = {}) {
-  const ownerId = requireUserId(userId);
-  if (!subscription?.active) return subscriptionRequired("Managing the HydroPip calendar requires Pip Pro.");
-  if (usesPostgres()) {
-    const pool = await readyPool();
-    await pool.query("update pip_users set calendar_token = null, updated_at = now() where id = $1", [ownerId]);
-  } else {
-    const state = readState();
-    if (!state.users[ownerId]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
-    state.users[ownerId].calendarToken = null;
-    state.users[ownerId].updatedAt = nowIso();
-    writeState(state);
-  }
-  return { status: "revoked" };
-}
-
-export async function getCalendarByToken({ token } = {}) {
-  const calendarToken = String(token || "").trim();
-  if (!/^[A-Za-z0-9_-]{32,128}$/.test(calendarToken)) return null;
-  if (usesPostgres()) {
-    const pool = await readyPool();
-    const result = await pool.query(
-      `select r.id, r.title, r.note, r.category, r.due_date, r.due_at, r.repeat_rule, r.notify,
-              r.timezone, r.status, r.created_at, r.updated_at, p.title as project_title
-       from pip_users u
-       join pip_projects p on p.user_id = u.id and p.status = 'active'
-       join pip_reminders r on r.project_id = p.id and r.user_id = u.id and r.status = 'active'
-       where u.calendar_token = $1
-       order by coalesce(r.due_at, r.created_at) asc`,
-      [calendarToken]
-    );
-    const owner = await pool.query("select id from pip_users where calendar_token = $1", [calendarToken]);
-    if (!owner.rows[0]) return null;
-    return { reminders: result.rows
-      .map((row) => ({ ...rowToReminder(row), projectTitle: row.project_title }))
-      .filter((item) => item.note !== "hydropip_default") };
-  }
-  const state = readState();
-  const user = Object.values(state.users).find((item) => item.calendarToken === calendarToken);
-  if (!user) return null;
-  const projects = Object.values(state.projects).filter((item) => item.userId === user.id && item.status === "active");
-  const reminders = projects.flatMap((project) => (state.reminders[project.id] || [])
-    .filter((item) => item.status === "active")
-    .filter((item) => item.note !== "hydropip_default")
-    .map((item) => ({ ...item, projectTitle: project.title })));
-  return { reminders };
 }
 
 export async function upsertUser(user = {}) {
@@ -1454,8 +1397,6 @@ async function ensureSchema(pool) {
     alter table pip_users add column if not exists build_photo_checks_used integer not null default 0;
     alter table pip_users add column if not exists beta_welcome_seen_at timestamptz;
     alter table pip_users add column if not exists beta_activity jsonb not null default '{}'::jsonb;
-    alter table pip_users add column if not exists calendar_token text;
-    create unique index if not exists pip_users_calendar_token_idx on pip_users(calendar_token) where calendar_token is not null;
 
     create table if not exists pip_projects (
       id text primary key,
@@ -2184,29 +2125,6 @@ function cropSummary(crops) {
   if (!selected.length) return "this grow";
   if (selected.length === 1) return selected[0];
   return `${selected.slice(0, -1).join(", ")} and ${selected.at(-1)}`;
-}
-
-async function getOrCreateCalendarToken(userId) {
-  if (usesPostgres()) {
-    const pool = await readyPool();
-    const current = await pool.query("select calendar_token from pip_users where id = $1", [userId]);
-    if (!current.rows[0]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
-    if (current.rows[0].calendar_token) return current.rows[0].calendar_token;
-    const token = crypto.randomBytes(32).toString("base64url");
-    await pool.query("update pip_users set calendar_token = $1, updated_at = now() where id = $2", [token, userId]);
-    return token;
-  }
-  const state = readState();
-  const user = state.users[userId];
-  if (!user) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
-  user.calendarToken ||= crypto.randomBytes(32).toString("base64url");
-  user.updatedAt = nowIso();
-  writeState(state);
-  return user.calendarToken;
-}
-
-function publicApiBase() {
-  return String(process.env.PIP_PUBLIC_API_BASE || process.env.RENDER_EXTERNAL_URL || "https://hydropip-pip-api.onrender.com").replace(/\/$/, "");
 }
 
 function toIso(value) {

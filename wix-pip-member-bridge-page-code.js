@@ -5,7 +5,7 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=beta-20260803a";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=beta-20260803b";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -41,10 +41,6 @@ $w.onReady(() => {
       return;
     }
 
-    if (message.type === "HYDROPIP_APP_INSTALL_REQUEST") {
-      const tier = message.tier === "pro" ? "pro" : "build";
-      wixLocation.to(tier === "pro" ? "/pip?pro=1&app=pro&install=1" : "/pip?app=build&install=1");
-    }
   });
 
   pip.src = buildPipSource();
@@ -64,7 +60,7 @@ function collapseOuterHeader() {
 }
 
 function buildPipSource() {
-  const forwarded = ["pro", "project", "projectId", "app", "install"]
+  const forwarded = ["pro", "project", "projectId"]
     .map((key) => {
       const value = wixLocation.query?.[key];
       return value ? `${encodeURIComponent(key)}=${encodeURIComponent(value)}` : null;

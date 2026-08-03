@@ -61,14 +61,25 @@ const tools = [
   {
     type: "function",
     name: "create_reminder",
-    description: "Attempt to save a grow reminder. Requires active subscription.",
+    description: "Prepare a grow reminder for the user to review before it is saved. Requires active subscription.",
     parameters: {
       type: "object",
       properties: {
-        user: { type: "object", additionalProperties: true },
-        reminder: { type: "object", additionalProperties: true },
-        subscription: { type: "object", additionalProperties: true }
+        reminder: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            note: { type: "string" },
+            category: { type: "string", enum: ["grow", "maintenance", "nutrients", "harvest"] },
+            dueDate: { type: ["string", "null"], description: "Local date in YYYY-MM-DD format" },
+            dueAt: { type: ["string", "null"], description: "ISO date-time when the user supplied a time" },
+            repeat: { type: ["object", "null"], additionalProperties: true }
+          },
+          required: ["title"],
+          additionalProperties: false
+        }
       },
+      required: ["reminder"],
       additionalProperties: false
     }
   },
@@ -170,7 +181,7 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
   }
 
-  const directAnswer = imageInput ? null : highConfidenceAnswer(withRecentContext(trimmed, recentHistory), retrieval);
+  const directAnswer = imageInput || (subscription?.active && wantsCalendarChange(trimmed)) ? null : highConfidenceAnswer(withRecentContext(trimmed, recentHistory), retrieval);
   if (directAnswer) {
     const answer = compactAnswer(directAnswer, trimmed, retrieval);
     await rememberProjectMessage(projectContext, {
@@ -223,6 +234,7 @@ export async function askPip({ message, image, profile, subscription, history = 
     instructions: [
       systemBrain,
       "Use HydroPip tools whenever the user asks for build steps, parts, grow plans, reminders, or setup questions.",
+      "For a Pip Pro user who asks to create, add, save, or schedule a reminder, call create_reminder. For a Pip Pro user who asks Pip to build or add a crop schedule, call create_grow_plan. Collect missing dates or crop details with one focused question before proposing the action.",
       "Use the retrieved HydroPip knowledge-base context below before generic hydroponic knowledge.",
       "HydroPip is a real timed-feed runoff tower system, not a recirculating tower kit. Do not recommend return plumbing, drain plumbing, recycling tower runoff, filters for returning runoff, or generic recirculating tower layouts unless the user explicitly asks to compare alternatives.",
       "For the physical build, describe the actual HydroPip parts: an 8-10 foot, 1/2-inch galvanized steel support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one circulation pump, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media. Never describe the structural support as flexible plumbing or PVC. Keep roughly 5 feet above grade; recommend 10 feet for deeper anchoring in exposed or windier locations.",
@@ -234,14 +246,14 @@ export async function askPip({ message, image, profile, subscription, history = 
       "HydroPip scale, space, and variation questions are allowed in free mode when they are still based on the HydroPip timed-feed tower design. Answer practical questions such as shorter towers, fewer towers, tower spacing, footprint, partial builds, height limits, expansion, and whether a layout will fit. Do not punt these to a generic follow-up unless a key measurement is missing.",
       "For shorter towers: explain that the system can be scaled down, but shorter towers reduce pocket count and may change stability, support height, pump head pressure, feed timing, and runoff behavior. Keep the center support pipe driven securely, keep the top hose guide removable, and recalibrate feed duration by runoff. If the user says five-pot-high, clarify that HydroPip uses four-pot stackable sections; five stack sections equals 20 planting pockets per tower. Two five-section towers are a reasonable small test if they are stable and easy to service.",
       "When a user asks for a part link, include the matching HydroPip Amazon affiliate URL directly. Use these known links when relevant: stackable planters https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20; rigid 1/4-inch tower feed tubing https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20; pumps https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20; smart plug https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20; nutrients https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20; vermiculite https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20; perlite https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20; pH meter https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20; pH calibration solution https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20; EC/TDS meter https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20; EC/TDS calibration solution https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20; pH Up/Down https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20; seeds https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20; yellow sticky traps https://www.amazon.com/s?k=yellow+sticky+traps+for+plants&tag=hydrpip2002-20; food-safe pest controls https://www.amazon.com/s?k=food+safe+garden+pest+control+vegetables&tag=hydrpip2002-20; IBC cover https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20; IBC tote reference https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20; end-of-hose shutoff/flush valve https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20; hose connector adapters for extensions https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20. Include the disclosure 'As an Amazon Associate I earn from qualifying purchases.' when sharing direct Amazon links.",
-      "For recurring supply or nutrient subscription questions, recommend the light HydroPip reorder rhythm: nutrient refill kit, pH calibration solution, pH Up/Down, EC/TDS calibration or meter check, seeds, and media top-off. Explain that Track My Build can estimate the next supply check now, while Pip Pro will save refill dates to the account and send reminders later.",
+      "For recurring supply or nutrient subscription questions, recommend the light HydroPip reorder rhythm: nutrient refill kit, pH calibration solution, pH Up/Down, EC/TDS calibration or meter check, seeds, and media top-off. Explain that Track My Build can estimate the next supply check now, while Pip Pro saves refill dates in its Planner and Calendar. Do not promise push notifications until the native apps are available.",
       `Custom guidance for non-HydroPip systems, including DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip systems, or custom hydro setups, is Pip Pro. Use this wording style: "I can definitely help with that, but that is a Pip Pro subscription feature." Include this signup link when a subscription is required: ${proSignupUrl}`,
       "General hydroponics education is allowed in free mode when it helps the user understand HydroPip or decide to build. Custom plans, optimization, troubleshooting, schedules, logs, reminders, or saved memory for a different non-HydroPip system are Pip Pro.",
       "If the retrieved context is not enough for an exact recommendation, say what is missing and ask one focused follow-up question.",
       "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
       `Free-member photo checks are only for inspecting the HydroPip physical build, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
-      "Do not pretend reminders are saved unless create_reminder returns queued.",
+      "When create_reminder or create_grow_plan returns confirmation_required, say the task or schedule is ready to review and use the on-screen confirmation button. Never say it is saved until the user confirms it.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action. A grow zone describes seasonal hardiness, not today's weather; ask for current conditions when a weather-sensitive answer needs them.",
       "When a photo is attached, inspect it directly and use visible details in the answer. Use this compact order: one sentence naming the most useful visible evidence; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Clearly separate visible evidence from anything the photo cannot confirm.",
@@ -258,15 +270,32 @@ export async function askPip({ message, image, profile, subscription, history = 
   }
 
   const toolResults = [];
+  const actions = [];
   for (const item of response.output || []) {
     if (item.type !== "function_call") continue;
     const handler = toolMap[item.name];
     if (!handler) continue;
     const args = item.arguments ? JSON.parse(item.arguments) : {};
+    let result;
+    if (item.name === "create_reminder") {
+      result = createReminder({ user, reminder: args.reminder, subscription });
+      if (result.status === "queued" && projectContext) {
+        result = { status: "confirmation_required", message: "Review this reminder before adding it to the Pip Calendar.", reminder: result.reminder };
+        actions.push({ type: "create_reminders", label: "Add to Calendar", reminders: [result.reminder] });
+      } else if (result.status === "queued") {
+        result = { status: "project_required", message: "Open or create a grow before adding this reminder." };
+      }
+    } else {
+      result = handler(args);
+      if (item.name === "create_grow_plan" && subscription?.active && projectContext && Array.isArray(result.reminders) && result.reminders.length) {
+        result = { ...result, status: "confirmation_required", message: "Review this schedule before adding it to the Pip Calendar." };
+        actions.push({ type: "create_reminders", label: `Add ${result.reminders.length} tasks to Calendar`, reminders: result.reminders });
+      }
+    }
     toolResults.push({
       type: "function_call_output",
       call_id: item.call_id,
-      output: JSON.stringify(handler(args))
+      output: JSON.stringify(result)
     });
   }
 
@@ -302,6 +331,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "If the user asks for a shopping link, include the matching HydroPip Amazon affiliate URL directly when it appears in the tool result or known link list.",
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
+      "A confirmation_required reminder or schedule is not saved yet. Tell the user to review and press the confirmation button shown below your reply.",
       "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions.",
       "When the original user input includes a photo, use this compact order: one sentence naming the most useful concrete visible observation; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Do not imply that you saw a detail that is not visible."
     ].join("\n"),
@@ -328,6 +358,7 @@ export async function askPip({ message, image, profile, subscription, history = 
     mode: "ai_tools_rag",
     sources,
     projectMemory,
+    actions,
     aiUsage: { model, ...combineOpenAiUsage(response, final) }
   };
 }
@@ -371,6 +402,10 @@ async function fallbackResult({ trimmed, recentHistory, retrieval, subscription,
 
 function wantsTracking(message) {
   return /\b(remind|reminder|track|save|notify|schedule this|log|readings over|over the next month|every friday|every week)\b/i.test(message);
+}
+
+function wantsCalendarChange(message) {
+  return /\b(add|create|make|build|save|set|schedule|remind|plan)\b/i.test(message) && /\b(calendar|schedule|reminder|task|planting plan|crop plan)\b/i.test(message);
 }
 
 function wantsDetailedInfo(message) {

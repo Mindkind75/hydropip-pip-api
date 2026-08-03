@@ -62,21 +62,15 @@ export function recommendParts({ towerCount = 4 } = {}) {
 export function createGrowPlan(input = {}) {
   const profile = normalizeProfile(input);
   const start = new Date(`${profile.plantingDate}T12:00:00`);
-  const tasks = [];
-
-  for (const task of schedulingRules.baseTasks) {
-    if (Number.isFinite(task.offsetDays)) {
-      tasks.push(toReminder(start, task.offsetDays, task.title, task.note, task.category));
-    }
-    if (Number.isFinite(task.repeatEveryDays)) {
-      for (let offset = task.repeatEveryDays; offset <= 42; offset += task.repeatEveryDays) {
-        tasks.push(toReminder(start, offset, task.title, task.note, task.category));
-      }
-    }
-  }
+  const tasks = [
+    toReminder(start, 0, "Plant or transplant", "Confirm the feed line is flushed, towers are stable, and media is evenly moist.", "grow"),
+    toReminder(start, 1, "First flow check", "Confirm every tower receives water and note runoff after a feed cycle.", "nutrients"),
+    { ...toReminder(start, 7, "Weekly pH, EC/TDS, flow, and plant check", "Circulate first, then check pH, EC/TDS, IBC level, tower flow, pests, and plant stress together.", "nutrients"), repeat: { frequency: "weekly" } },
+    { ...toReminder(start, 30, "Monthly HydroPip service", "Flush the main feed line, clean pump intakes, inspect hoses, calibrate meters, and check nutrient supply.", "maintenance"), repeat: { frequency: "monthly" } }
+  ];
 
   for (const task of schedulingRules.cropTasks[profile.crop] || []) {
-    tasks.push(toReminder(start, task.offsetDays, task.title, task.note, "crop"));
+    tasks.push(toReminder(start, task.offsetDays, task.title, task.note, /harvest/i.test(task.title) ? "harvest" : "grow"));
   }
 
   tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -87,7 +81,7 @@ export function createGrowPlan(input = {}) {
     reminders: tasks,
     subscriptionGate: {
       free: "Pip can generate this plan for free.",
-      paid: "Saving this grow, sending reminders, and tracking future readings require Pip Pro."
+      paid: "Saving this grow, keeping in-app reminders, and tracking future readings require Pip Pro."
     }
   };
 }
@@ -97,7 +91,7 @@ export function createReminder({ user, reminder, subscription } = {}) {
     return {
       status: "subscription_required",
       message: "Pip can explain the reminder for free, but saving reminders requires Pip Pro.",
-      upgradeReason: "Pip Pro stores grow profiles, sends reminders, and tracks logs over time."
+      upgradeReason: "Pip Pro stores grow profiles, in-app reminders, and grow logs over time."
     };
   }
 

@@ -40,7 +40,7 @@ https://your-render-service.onrender.com/api/pip/health
 
 Free visitors can ask Pip build questions, get parts guidance, troubleshoot, and generate an initial grow plan.
 
-Pip Pro remains the paid boundary for saving grow profiles, sending reminders, storing logs, and future sensor-driven scheduling.
+Pip Pro remains the paid boundary for saving grow profiles, in-app Planner and Calendar tasks, storing logs, and future sensor-driven scheduling. Push notifications arrive with the native apps.
 
 ## Next Hardening Step
 

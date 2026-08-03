@@ -33,15 +33,17 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proConnectCalendar", "proCalendarOpen", "proCalendarCopy", "proCalendarDisconnect", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
-for (const page of ["profile", "planner", "log", "history"]) {
+for (const page of ["profile", "planner", "calendar", "log", "history"]) {
   assert.match(pipHtml, new RegExp(`data-pro-page=["']${page}["']`), `pip.html is missing the ${page} notebook tab`);
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }
 assert.match(pipHtml, /activateProPage/, "Pip Pro notebook tabs are not wired to page navigation");
-assert.match(pipHtml, /proCalendarOpen.*\.href=data\.webcalUrl/, "Pip Pro calendar link is not populated dynamically");
+for (const view of ["agenda", "day", "month", "year"]) assert.match(pipHtml, new RegExp(`data-calendar-view=["']${view}["']`), `Pip Calendar is missing its ${view} view`);
+assert.match(pipHtml, /function renderCalendar/, "Pip Calendar is not rendered from Planner tasks");
+assert.match(pipHtml, /plannerReminders/, "Pip Planner and Calendar should share one reminder collection");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
@@ -59,8 +61,9 @@ assert.match(pipHtml, /pipBetaWelcomeDialog/, "Pip should include the beta welco
 assert.match(pipHtml, /pipBetaChecklist/, "Pip Pro should include the beta test checklist");
 assert.match(pipHtml, /Was this useful\?/, "Fresh Pip answers should support beta ratings");
 assert.match(pipHtml, /Include this question and Pip's reply/, "Chat context sharing should be explicit");
-assert.match(pipHtml, /window\.open\(destination,"_top"\)/, "Home Screen install should have a direct top-level navigation fallback");
-assert.match(pipHtml, /Your Pip Pro workspace is ready/, "Pro activation should offer a Home Screen install CTA");
+assert.doesNotMatch(pipHtml, /Add to Home Screen|pipInstallNudge|requestInstall|webcal:|\/api\/pip\/users\/me\/calendar/, "Pip should stay in-app without legacy install or external-calendar flows");
+assert.match(pipHtml, /Ready for your Calendar/, "Pip chat should present reviewable calendar actions");
+assert.match(pipHtml, /\/reminders\/batch/, "Pip chat calendar actions should save through the authenticated batch endpoint");
 assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");
 
 const partsHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
@@ -101,8 +104,8 @@ assert.match(betaAdminHtml, /Download CSV/, "Beta review should support operatio
 assert.match(betaAdminHtml, /Tester progress/, "Beta review should show checklist progress");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
-assert.match(wixPipBridge, /\["pro", "project", "projectId", "app", "install"\]/, "Wix Pip bridge is not forwarding project and app-install context to the iframe");
-assert.match(wixPipBridge, /HYDROPIP_APP_INSTALL_REQUEST/, "Wix Pip bridge is not routing the tier-specific Home Screen flow");
+assert.match(wixPipBridge, /\["pro", "project", "projectId"\]/, "Wix Pip bridge is not forwarding project context to the iframe");
+assert.doesNotMatch(wixPipBridge, /HYDROPIP_APP_INSTALL_REQUEST|"app", "install"/, "Wix Pip bridge should not route the retired Home Screen flow");
 assert.match(wixPipBridge, /buildPipSource\(\)/, "Wix Pip bridge is not building a context-aware embed source");
 assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the current Pip embed source");
 
@@ -112,6 +115,8 @@ assert.equal((agentSource.match(/store:\s*false/g) || []).length >= 2, true, "Pi
 assert.match(agentSource, /input: \[\.\.\.responseInput, \.\.\.\(response\.output \|\| \[\]\), \.\.\.toolResults\]/, "Stored-disabled tool continuations must replay the original image, response output, and tool results");
 assert.doesNotMatch(agentSource, /previous_response_id:\s*response\.id/, "Pip cannot use previous_response_id when OpenAI response storage is disabled");
 assert.match(agentSource, /Never spend the whole reply describing the photo/, "Photo replies must reserve space for the user's next action");
+assert.match(agentSource, /confirmation_required/, "Pip should require confirmation before adding AI-created calendar tasks");
+assert.match(agentSource, /wantsCalendarChange/, "Pip Pro calendar requests should bypass static answers and reach AI tools");
 
 const indexSource = fs.readFileSync(new URL("./index.js", import.meta.url), "utf8");
 assert.match(indexSource, /claimBuildPhotoCheck/, "Build Check limits must be enforced by the server");
@@ -121,17 +126,11 @@ assert.match(indexSource, /reserveAiUsage/, "OpenAI calls must reserve server-si
 assert.match(indexSource, /completeAiUsage/, "Successful OpenAI calls must finalize usage records");
 assert.match(indexSource, /cancelAiUsageReservation/, "Failed OpenAI calls must release usage reservations");
 assert.match(indexSource, /pip_daily_limit_reached/, "Daily AI limit responses must use a stable error code");
+assert.match(indexSource, /reminders\/batch/, "Pip should expose a protected batch endpoint for confirmed AI schedules");
 
 const memorySource = fs.readFileSync(new URL("./pipMemory.js", import.meta.url), "utf8");
 assert.match(memorySource, /create table if not exists pip_usage_events/, "Postgres must persist Pip AI usage events");
 assert.match(memorySource, /create table if not exists pip_credit_ledger/, "Postgres must keep an auditable Pip Credit ledger");
 assert.doesNotMatch(memorySource, /pip_usage_events[\s\S]{0,800}\bprompt\b/i, "Usage events must not add a raw prompt column");
-
-for (const manifest of ["manifest-build.webmanifest", "manifest-pro.webmanifest"]) {
-  const value = JSON.parse(fs.readFileSync(new URL(`../${manifest}`, import.meta.url), "utf8"));
-  assert.equal(value.display, "standalone", `${manifest} should launch without browser chrome when supported`);
-  assert.ok(value.icons.some((icon) => icon.sizes === "192x192"), `${manifest} needs a 192px icon`);
-  assert.ok(value.icons.some((icon) => icon.sizes === "512x512"), `${manifest} needs a 512px icon`);
-}
 
 console.log("HydroPip site QA passed");

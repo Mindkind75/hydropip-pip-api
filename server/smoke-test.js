@@ -18,8 +18,6 @@ import {
   getBetaExperience,
   getBuildPhotoAllowance,
   getDailyAiUsageSummary,
-  getCalendarByToken,
-  getOrCreateCalendarSubscription,
   getPipCreditBalance,
   getProjectTemplates,
   listProjectMessages,
@@ -33,7 +31,6 @@ import {
   resetMemoryForTests,
   refundBuildPhotoCheck,
   reserveAiUsage,
-  revokeCalendarSubscription,
   grantPipCredits,
   seedProjectConversationDefaults,
   seedProjectDefaults,
@@ -49,7 +46,6 @@ import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./
 import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
-import { buildPipCalendar } from "./pipCalendar.js";
 import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
@@ -91,6 +87,9 @@ const plan = createGrowPlan({
 });
 assert.equal(plan.profile.reservoirGallons, 275);
 assert.equal(plan.reminders.some((item) => item.title.includes("pH")), true);
+assert.equal(plan.reminders.length <= 8, true);
+assert.equal(plan.reminders.some((item) => item.repeat?.frequency === "weekly"), true);
+assert.equal(plan.reminders.some((item) => item.repeat?.frequency === "monthly"), true);
 
 const reminder = createReminder({ reminder: { title: "Check pH" }, subscription: { active: false } });
 assert.equal(reminder.status, "subscription_required");
@@ -464,28 +463,6 @@ const updatedReminder = await updateProjectReminder({
 });
 assert.equal(updatedReminder.reminder.title, "Updated HydroPip task");
 assert.equal(updatedReminder.reminder.notify, true);
-
-const calendarSubscription = await getOrCreateCalendarSubscription({ userId: "test-user", subscription: { active: true } });
-assert.equal(calendarSubscription.status, "ready");
-assert.match(calendarSubscription.webcalUrl, /^webcal:/);
-const calendarToken = calendarSubscription.url.match(/\/calendar\/([^/.]+)\.ics$/)?.[1];
-const calendarData = await getCalendarByToken({ token: calendarToken });
-const calendarText = buildPipCalendar(calendarData);
-assert.match(calendarText, /BEGIN:VCALENDAR/);
-assert.match(calendarText, /X-WR-CALNAME:HydroPip Planner/);
-assert.match(calendarText, /RRULE:FREQ=WEEKLY/);
-const duplicateCalendarText = buildPipCalendar({ reminders: [savedSchedule[0], savedSchedule[0]] });
-assert.equal((duplicateCalendarText.match(/BEGIN:VEVENT/g) || []).length, 1);
-const activeStarter = savedSchedule.find((item) => item.note === "hydropip_weekly_v2");
-const completedDuplicateText = buildPipCalendar({ reminders: [{ ...activeStarter, status: "completed" }, activeStarter] });
-assert.equal((completedDuplicateText.match(/BEGIN:VEVENT/g) || []).length, 1);
-const legacyCalendarText = buildPipCalendar({ reminders: [{ ...savedSchedule[0], id: "legacy", note: "hydropip_default" }] });
-assert.equal((legacyCalendarText.match(/BEGIN:VEVENT/g) || []).length, 0);
-const timedLegacyDate = buildPipCalendar({ reminders: [{ ...savedSchedule[0], id: "date-only", dueAt: null, dueDate: "2026-08-15", note: "" }] });
-assert.match(timedLegacyDate, /DTSTART:20260815T090000/);
-assert.doesNotMatch(timedLegacyDate, /VALUE=DATE/);
-await revokeCalendarSubscription({ userId: "test-user", subscription: { active: true } });
-assert.equal(await getCalendarByToken({ token: calendarToken }), null);
 
 const savedSeed = await createProjectSeed({
   userId: "test-user",

@@ -34,8 +34,6 @@ import {
   getProject,
   getProjectTemplates,
   getDailyAiUsageSummary,
-  getCalendarByToken,
-  getOrCreateCalendarSubscription,
   grantPipCredits,
   listProjectMessages,
   listProjectConversations,
@@ -48,7 +46,6 @@ import {
   listBetaTesterProgress,
   refundBuildPhotoCheck,
   reserveAiUsage,
-  revokeCalendarSubscription,
   seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProject,
@@ -61,7 +58,6 @@ import {
   upsertUser
 } from "./pipMemory.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
-import { buildPipCalendar } from "./pipCalendar.js";
 import {
   aiUsageEventType,
   clientIpHash,
@@ -155,22 +151,6 @@ app.get("/api/pip/wizard", (_req, res) => {
 
 app.get("/api/pip/project-templates", (_req, res) => {
   res.json(getProjectTemplates());
-});
-
-app.get("/api/pip/calendar/:token.ics", async (req, res, next) => {
-  try {
-    const calendar = await getCalendarByToken({ token: req.params.token });
-    if (!calendar) return res.status(404).type("text/plain").send("HydroPip calendar not found.");
-    res.set({
-      "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'inline; filename="hydropip-planner.ics"',
-      "Cache-Control": "private, no-store",
-      "X-Robots-Tag": "noindex, nofollow"
-    });
-    res.send(buildPipCalendar(calendar));
-  } catch (error) {
-    next(error);
-  }
 });
 
 app.post("/api/pip/session/exchange", (req, res) => {
@@ -282,31 +262,6 @@ app.use("/api/pip/feedback", requirePipBeta);
 app.post("/api/pip/users", async (req, res, next) => {
   try {
     res.status(201).json({ user: await upsertUser(req.pipUser) });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.get("/api/pip/users/me/calendar", async (req, res, next) => {
-  try {
-    await upsertUser(req.pipUser);
-    const result = await getOrCreateCalendarSubscription({
-      userId: req.pipUser.id,
-      subscription: req.pipSubscription
-    });
-    res.status(result.status === "subscription_required" ? 402 : 200).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.delete("/api/pip/users/me/calendar", async (req, res, next) => {
-  try {
-    const result = await revokeCalendarSubscription({
-      userId: req.pipUser.id,
-      subscription: req.pipSubscription
-    });
-    res.status(result.status === "subscription_required" ? 402 : 200).json(result);
   } catch (error) {
     next(error);
   }
@@ -536,6 +491,64 @@ app.post("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
       return;
     }
     res.status(result.status === "queued" ? 201 : 402).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/projects/:projectId/reminders/batch", async (req, res, next) => {
+  try {
+    if (!req.pipSubscription?.active) {
+      res.status(402).json({ error: "subscription_required", message: "Saving a Pip Calendar schedule requires Pip Pro." });
+      return;
+    }
+    const requested = Array.isArray(req.body?.reminders) ? req.body.reminders.slice(0, 40) : [];
+    if (!requested.length) {
+      res.status(400).json({ error: "reminders_required", message: "No calendar tasks were provided." });
+      return;
+    }
+    const existing = await listProjectReminders({ userId: req.pipUser.id, projectId: req.params.projectId });
+    if (!existing) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    const signature = (reminder = {}) => [
+      String(reminder.title || "").trim().toLowerCase(),
+      String(reminder.dueAt || reminder.dueDate || reminder.date || "").slice(0, 16),
+      String(reminder.repeat?.frequency || "")
+    ].join("|");
+    const known = new Set(existing.map(signature));
+    const added = [];
+    let skipped = 0;
+    for (const reminder of requested) {
+      const categoryMap = { planting: "grow", crop: "grow", flow: "nutrients", testing: "nutrients" };
+      const normalized = {
+        title: String(reminder?.title || "HydroPip task").slice(0, 180),
+        note: String(reminder?.note || "").slice(0, 1200),
+        category: ["grow", "maintenance", "nutrients", "harvest"].includes(reminder?.category) ? reminder.category : categoryMap[reminder?.category] || "grow",
+        dueDate: reminder?.dueDate || reminder?.date || null,
+        dueAt: reminder?.dueAt || null,
+        repeat: reminder?.repeat?.frequency ? { frequency: reminder.repeat.frequency } : null,
+        notify: false,
+        timezone: String(reminder?.timezone || req.body?.timezone || "").slice(0, 80) || null
+      };
+      const key = signature(normalized);
+      if (known.has(key)) {
+        skipped += 1;
+        continue;
+      }
+      const result = await createProjectReminder({
+        userId: req.pipUser.id,
+        projectId: req.params.projectId,
+        reminder: normalized,
+        subscription: req.pipSubscription
+      });
+      if (result?.reminder) {
+        added.push(result.reminder);
+        known.add(key);
+      }
+    }
+    res.status(201).json({ status: "saved", added, addedCount: added.length, skippedCount: skipped });
   } catch (error) {
     next(error);
   }
