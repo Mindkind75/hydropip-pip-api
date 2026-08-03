@@ -78,7 +78,7 @@ assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");
 assert.equal((agentSource.match(/store:\s*false/g) || []).length >= 2, true, "Pip should disable OpenAI Responses application-state storage");
-assert.match(agentSource, /input: \[\.\.\.\(response\.output \|\| \[\]\), \.\.\.toolResults\]/, "Stored-disabled tool continuations must replay response output instead of referencing a missing response ID");
+assert.match(agentSource, /input: \[\.\.\.responseInput, \.\.\.\(response\.output \|\| \[\]\), \.\.\.toolResults\]/, "Stored-disabled tool continuations must replay the original image, response output, and tool results");
 assert.doesNotMatch(agentSource, /previous_response_id:\s*response\.id/, "Pip cannot use previous_response_id when OpenAI response storage is disabled");
 
 for (const manifest of ["manifest-build.webmanifest", "manifest-pro.webmanifest"]) {

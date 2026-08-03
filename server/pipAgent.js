@@ -194,6 +194,22 @@ export async function askPip({ message, image, profile, subscription, history = 
   }
 
   let response;
+  const currentUserContent = [
+    {
+      type: "input_text",
+      text: JSON.stringify({
+        message: trimmed,
+        currentProfile: profile || null,
+        subscription: subscription || { active: false, plan: "free" },
+        projectContext: compactProjectContext(projectContext)
+      })
+    },
+    ...(imageInput ? [{ type: "input_image", image_url: imageInput.dataUrl, detail: "auto" }] : [])
+  ];
+  const responseInput = [
+    ...recentHistory,
+    { role: "user", content: currentUserContent }
+  ];
   try {
     response = await client.responses.create({
     model: process.env.PIP_MODEL || "gpt-5-mini",
@@ -221,27 +237,11 @@ export async function askPip({ message, image, profile, subscription, history = 
       "Do not pretend reminders are saved unless create_reminder returns queued.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action. A grow zone describes seasonal hardiness, not today's weather; ask for current conditions when a weather-sensitive answer needs them.",
+      "When a photo is attached, inspect it directly and use visible details in the answer. State what you can actually see before recommending the next action, and clearly separate visible evidence from anything the photo cannot confirm.",
       "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
     ].join("\n\n"),
-    input: [
-      ...recentHistory,
-      {
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: JSON.stringify({
-              message: trimmed,
-              currentProfile: profile || null,
-              subscription: subscription || { active: false, plan: "free" },
-              projectContext: compactProjectContext(projectContext)
-            })
-          },
-          ...(imageInput ? [{ type: "input_image", image_url: imageInput.dataUrl, detail: "auto" }] : [])
-        ]
-      }
-    ],
+    input: responseInput,
     tools,
     tool_choice: "auto"
     });
@@ -294,9 +294,10 @@ export async function askPip({ message, image, profile, subscription, history = 
       "If the user asks for a shopping link, include the matching HydroPip Amazon affiliate URL directly when it appears in the tool result or known link list.",
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
-      "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions."
+      "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions.",
+      "When the original user input includes a photo, lead with one concrete visible observation before applying the tool result. Do not imply that you saw a detail that is not visible."
     ].join("\n"),
-    input: [...(response.output || []), ...toolResults]
+    input: [...responseInput, ...(response.output || []), ...toolResults]
     });
   } catch (error) {
     console.warn(`OpenAI tool follow-up failed, using HydroPip fallback: ${error.message}`);
