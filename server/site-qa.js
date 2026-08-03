@@ -36,6 +36,11 @@ const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8")
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
+for (const page of ["profile", "schedule", "log", "history"]) {
+  assert.match(pipHtml, new RegExp(`data-pro-page=["']${page}["']`), `pip.html is missing the ${page} notebook tab`);
+  assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
+}
+assert.match(pipHtml, /activateProPage/, "Pip Pro notebook tabs are not wired to page navigation");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
