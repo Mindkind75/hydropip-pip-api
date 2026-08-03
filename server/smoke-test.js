@@ -156,6 +156,28 @@ const defaultSchedule = await seedProjectDefaults({
 });
 assert.equal(defaultSchedule.reminders.length, 6);
 const savedSchedule = await listProjectReminders({ userId: "test-user", projectId: paidProject.project.id });
+const readySchedule = await seedProjectDefaults({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  subscription: { active: true }
+});
+assert.equal(readySchedule.status, "already_ready");
+assert.equal(readySchedule.addedCount, 0);
+const completedStarter = savedSchedule.find((item) => item.note === "hydropip_default");
+await updateProjectReminder({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  reminderId: completedStarter.id,
+  patch: { status: "completed" },
+  subscription: { active: true }
+});
+const restoredSchedule = await seedProjectDefaults({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  subscription: { active: true }
+});
+assert.equal(restoredSchedule.status, "created");
+assert.equal(restoredSchedule.addedCount, 1);
 const updatedReminder = await updateProjectReminder({
   userId: "test-user",
   projectId: paidProject.project.id,

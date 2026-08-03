@@ -395,14 +395,20 @@ export async function seedProjectDefaults({ userId, projectId, subscription = {}
   const current = await listProjectReminders({ userId, projectId });
   if (!current) return null;
   if (!subscription?.active) return subscriptionRequired("Saved maintenance schedules require Pip Pro.");
-  if (current.some((item) => item.note === "hydropip_default")) return { status: "already_ready", reminders: current };
   const defaults = standardReminderDefaults();
+  const activeDefaults = current.filter((item) => item.note === "hydropip_default" && item.status === "active");
+  const activeTitles = new Set(activeDefaults.map((item) => String(item.title || "").trim().toLowerCase()));
+  const missingCount = Math.max(0, defaults.length - activeDefaults.length);
+  const missing = defaults
+    .filter((item) => !activeTitles.has(item.title.trim().toLowerCase()))
+    .slice(0, missingCount);
+  if (!missing.length) return { status: "already_ready", reminders: current, addedCount: 0 };
   const saved = [];
-  for (const reminder of defaults) {
+  for (const reminder of missing) {
     const result = await createProjectReminder({ userId, projectId, reminder, subscription });
     if (result?.reminder) saved.push(result.reminder);
   }
-  return { status: "created", reminders: saved };
+  return { status: "created", reminders: saved, addedCount: saved.length };
 }
 
 export async function listProjectSeeds({ userId, projectId } = {}) {
