@@ -152,6 +152,7 @@ function memberPhoto(member) {
   const value = member?.profile?.photo?.url || member?.profile?.photo || member?.profilePhoto?.url || member?.profilePhoto || null;
   const source = typeof value === "string" ? value : value?.url;
   if (!source) return null;
+  if (source.startsWith("//")) return `https:${source}`;
   if (source.startsWith("wix:image://v1/")) {
     return `https://static.wixstatic.com/media/${source.slice(15).split("/")[0]}`;
   }
