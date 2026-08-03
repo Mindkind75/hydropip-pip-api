@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dailyLimitForTier, dailyResetAt } from "./pipUsage.js";
 
@@ -368,6 +369,59 @@ export async function getPipCreditBalance({ userId } = {}) {
     return Number(result.rows[0]?.balance || 0);
   }
   return creditBalanceFromState(readState(), ownerId);
+}
+
+export async function getOrCreateCalendarSubscription({ userId, subscription = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  if (!subscription?.active) return subscriptionRequired("The private HydroPip calendar requires Pip Pro.");
+  const token = await getOrCreateCalendarToken(ownerId);
+  const url = `${publicApiBase()}/api/pip/calendar/${token}.ics`;
+  return { status: "ready", url, webcalUrl: url.replace(/^https:/i, "webcal:"), calendarName: "HydroPip Planner" };
+}
+
+export async function revokeCalendarSubscription({ userId, subscription = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  if (!subscription?.active) return subscriptionRequired("Managing the HydroPip calendar requires Pip Pro.");
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query("update pip_users set calendar_token = null, updated_at = now() where id = $1", [ownerId]);
+  } else {
+    const state = readState();
+    if (!state.users[ownerId]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+    state.users[ownerId].calendarToken = null;
+    state.users[ownerId].updatedAt = nowIso();
+    writeState(state);
+  }
+  return { status: "revoked" };
+}
+
+export async function getCalendarByToken({ token } = {}) {
+  const calendarToken = String(token || "").trim();
+  if (!/^[A-Za-z0-9_-]{32,128}$/.test(calendarToken)) return null;
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select r.id, r.title, r.note, r.category, r.due_date, r.due_at, r.repeat_rule, r.notify,
+              r.timezone, r.status, r.created_at, r.updated_at, p.title as project_title
+       from pip_users u
+       join pip_projects p on p.user_id = u.id and p.status = 'active'
+       join pip_reminders r on r.project_id = p.id and r.user_id = u.id and r.status = 'active'
+       where u.calendar_token = $1
+       order by coalesce(r.due_at, r.created_at) asc`,
+      [calendarToken]
+    );
+    const owner = await pool.query("select id from pip_users where calendar_token = $1", [calendarToken]);
+    if (!owner.rows[0]) return null;
+    return { reminders: result.rows.map((row) => ({ ...rowToReminder(row), projectTitle: row.project_title })) };
+  }
+  const state = readState();
+  const user = Object.values(state.users).find((item) => item.calendarToken === calendarToken);
+  if (!user) return null;
+  const projects = Object.values(state.projects).filter((item) => item.userId === user.id && item.status === "active");
+  const reminders = projects.flatMap((project) => (state.reminders[project.id] || [])
+    .filter((item) => item.status === "active")
+    .map((item) => ({ ...item, projectTitle: project.title })));
+  return { reminders };
 }
 
 export async function upsertUser(user = {}) {
@@ -1047,7 +1101,8 @@ export async function listProjectReminders({ userId, projectId } = {}) {
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
-      `select id, title, note, category, due_date, due_at, repeat_rule, notify, timezone, status, created_at, updated_at
+      `select id, title, note, category, due_date, due_at, repeat_rule, notify, timezone, status,
+              last_completed_at, completion_count, created_at, updated_at
        from pip_reminders
        where project_id = $1 and user_id = $2
        order by created_at asc`,
@@ -1082,6 +1137,8 @@ export async function createProjectReminder({ userId, projectId, reminder = {}, 
     notify: Boolean(reminder.notify),
     timezone: cleanOptionalText(reminder.timezone, 80),
     status: "active",
+    lastCompletedAt: null,
+    completionCount: 0,
     createdAt: nowIso()
   };
 
@@ -1089,8 +1146,9 @@ export async function createProjectReminder({ userId, projectId, reminder = {}, 
     const pool = await readyPool();
     await pool.query(
       `insert into pip_reminders
-       (id, project_id, user_id, title, note, category, due_date, due_at, repeat_rule, notify, timezone, status, created_at, updated_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $13)`,
+       (id, project_id, user_id, title, note, category, due_date, due_at, repeat_rule, notify, timezone, status,
+        last_completed_at, completion_count, created_at, updated_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, null, 0, $13, $13)`,
       [
         saved.id,
         projectId,
@@ -1138,13 +1196,24 @@ export async function updateProjectReminder({ userId, projectId, reminderId, pat
     status: patch.status === undefined ? existing.status : String(patch.status || "active"),
     updatedAt: nowIso()
   };
+  if (patch.status === "completed") {
+    saved.lastCompletedAt = saved.updatedAt;
+    saved.completionCount = Number(existing.completionCount || 0) + 1;
+    if (saved.repeat?.frequency) {
+      saved.dueAt = nextRecurringDate(existing.dueAt || existing.dueDate, saved.repeat.frequency, saved.updatedAt);
+      saved.dueDate = saved.dueAt ? saved.dueAt.slice(0, 10) : existing.dueDate;
+      saved.status = "active";
+    }
+  }
   if (usesPostgres()) {
     const pool = await readyPool();
     await pool.query(
       `update pip_reminders set title=$1, note=$2, category=$3, due_date=$4, due_at=$5,
-       repeat_rule=$6::jsonb, notify=$7, timezone=$8, status=$9, updated_at=$10
-       where id=$11 and project_id=$12 and user_id=$13`,
-      [saved.title, saved.note, saved.category, saved.dueDate, saved.dueAt, JSON.stringify(saved.repeat), saved.notify, saved.timezone, saved.status, saved.updatedAt, reminderId, projectId, userId]
+       repeat_rule=$6::jsonb, notify=$7, timezone=$8, status=$9, last_completed_at=$10,
+       completion_count=$11, updated_at=$12
+       where id=$13 and project_id=$14 and user_id=$15`,
+      [saved.title, saved.note, saved.category, saved.dueDate, saved.dueAt, JSON.stringify(saved.repeat), saved.notify,
+        saved.timezone, saved.status, saved.lastCompletedAt, saved.completionCount, saved.updatedAt, reminderId, projectId, userId]
     );
     return { status: "updated", reminder: saved };
   }
@@ -1171,16 +1240,13 @@ export async function deleteProjectReminder({ userId, projectId, reminderId, sub
 }
 
 export async function seedProjectDefaults({ userId, projectId, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
   const current = await listProjectReminders({ userId, projectId });
-  if (!current) return null;
   if (!subscription?.active) return subscriptionRequired("Saved maintenance schedules require Pip Pro.");
-  const defaults = standardReminderDefaults();
-  const activeDefaults = current.filter((item) => item.note === "hydropip_default" && item.status === "active");
-  const activeTitles = new Set(activeDefaults.map((item) => String(item.title || "").trim().toLowerCase()));
-  const missingCount = Math.max(0, defaults.length - activeDefaults.length);
-  const missing = defaults
-    .filter((item) => !activeTitles.has(item.title.trim().toLowerCase()))
-    .slice(0, missingCount);
+  const defaults = standardReminderDefaults(project.systemProfile);
+  const existingTitles = new Set(current.map((item) => String(item.title || "").trim().toLowerCase()));
+  const missing = defaults.filter((item) => !existingTitles.has(item.title.trim().toLowerCase()));
   if (!missing.length) return { status: "already_ready", reminders: current, addedCount: 0 };
   const saved = [];
   for (const reminder of missing) {
@@ -1379,6 +1445,8 @@ async function ensureSchema(pool) {
     alter table pip_users add column if not exists build_photo_checks_used integer not null default 0;
     alter table pip_users add column if not exists beta_welcome_seen_at timestamptz;
     alter table pip_users add column if not exists beta_activity jsonb not null default '{}'::jsonb;
+    alter table pip_users add column if not exists calendar_token text;
+    create unique index if not exists pip_users_calendar_token_idx on pip_users(calendar_token) where calendar_token is not null;
 
     create table if not exists pip_projects (
       id text primary key,
@@ -1432,12 +1500,16 @@ async function ensureSchema(pool) {
       notify boolean not null default false,
       timezone text,
       status text not null default 'active',
+      last_completed_at timestamptz,
+      completion_count integer not null default 0,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     );
     alter table pip_reminders add column if not exists due_at timestamptz;
     alter table pip_reminders add column if not exists notify boolean not null default false;
     alter table pip_reminders add column if not exists timezone text;
+    alter table pip_reminders add column if not exists last_completed_at timestamptz;
+    alter table pip_reminders add column if not exists completion_count integer not null default 0;
     alter table pip_reminders add column if not exists updated_at timestamptz not null default now();
     create index if not exists pip_reminders_project_created_idx on pip_reminders(project_id, created_at asc);
 
@@ -2004,6 +2076,8 @@ function rowToReminder(row) {
     notify: Boolean(row.notify),
     timezone: row.timezone || null,
     status: row.status,
+    lastCompletedAt: toIso(row.last_completed_at),
+    completionCount: Number(row.completion_count || 0),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
   };
@@ -2032,6 +2106,20 @@ function normalizeOptionalDate(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function nextRecurringDate(value, frequency, completedAt) {
+  const completed = new Date(completedAt || Date.now());
+  let date = value ? new Date(value) : new Date(completed);
+  if (Number.isNaN(date.getTime())) date = new Date(completed);
+  date.setSeconds(0, 0);
+  const step = () => {
+    if (frequency === "daily") date.setDate(date.getDate() + 1);
+    else if (frequency === "weekly") date.setDate(date.getDate() + 7);
+    else if (frequency === "monthly") date.setMonth(date.getMonth() + 1);
+  };
+  do step(); while (date <= completed);
+  return date.toISOString();
+}
+
 function subscriptionRequired(message) {
   return { status: "subscription_required", message, upgradeReason: "Pip Pro saves grow plans, reminders, logs, seeds, and project history." };
 }
@@ -2051,21 +2139,71 @@ function normalizeSeed(seed = {}) {
   };
 }
 
-function standardReminderDefaults() {
-  const dueAt = (days, hour = 9) => {
-    const date = new Date();
+function standardReminderDefaults(profile = {}) {
+  const dueAt = (days, hour = 9, anchor = null) => {
+    const date = anchor ? new Date(`${anchor}T09:00:00`) : new Date();
+    if (Number.isNaN(date.getTime())) return dueAt(days, hour);
     date.setDate(date.getDate() + days);
     date.setHours(hour, 0, 0, 0);
     return date.toISOString();
   };
-  return [
+  const systemCare = [
     { title: "Check IBC level and leaks", note: "hydropip_default", category: "maintenance", dueAt: dueAt(1), repeat: { frequency: "weekly" }, notify: true },
     { title: "Check pH and EC/TDS after circulation", note: "hydropip_default", category: "nutrients", dueAt: dueAt(2), repeat: { frequency: "weekly" }, notify: true },
     { title: "Inspect flow at every tower", note: "hydropip_default", category: "maintenance", dueAt: dueAt(3), repeat: { frequency: "weekly" }, notify: true },
+    { title: "Inspect plants for pests or stress", note: "hydropip_default", category: "grow", dueAt: dueAt(4), repeat: { frequency: "weekly" }, notify: true },
     { title: "Flush the main feed line", note: "hydropip_default", category: "maintenance", dueAt: dueAt(14), repeat: { frequency: "monthly" }, notify: true },
     { title: "Clean pump intakes and inspect hoses", note: "hydropip_default", category: "maintenance", dueAt: dueAt(21), repeat: { frequency: "monthly" }, notify: true },
-    { title: "Calibrate pH and EC/TDS meters", note: "hydropip_default", category: "nutrients", dueAt: dueAt(28), repeat: { frequency: "monthly" }, notify: true }
+    { title: "Calibrate pH and EC/TDS meters", note: "hydropip_default", category: "nutrients", dueAt: dueAt(28), repeat: { frequency: "monthly" }, notify: true },
+    { title: "Check nutrient supply before the next refill", note: "hydropip_default", category: "nutrients", dueAt: dueAt(24), repeat: { frequency: "monthly" }, notify: false }
   ];
+  if (!profile.plantingDate) return systemCare;
+  const crops = cropSummary(profile.crops);
+  const cropTasks = [
+    { title: `Plant or transplant ${crops}`, note: "hydropip_grow_default", category: "grow", dueAt: dueAt(0, 9, profile.plantingDate), repeat: null, notify: true },
+    { title: "Check establishment and replace weak starts", note: "hydropip_grow_default", category: "grow", dueAt: dueAt(7, 9, profile.plantingDate), repeat: null, notify: true },
+    { title: "Review pruning, support, or first harvest timing with Pip", note: "hydropip_grow_default", category: "grow", dueAt: dueAt(21, 9, profile.plantingDate), repeat: null, notify: true },
+    { title: "Plan harvest, transplant, or tower reset", note: "hydropip_grow_default", category: "harvest", dueAt: dueAt(35, 9, profile.plantingDate), repeat: null, notify: true }
+  ];
+  return [...systemCare, ...cropTasks];
+}
+
+function cropSummary(crops) {
+  const labels = {
+    leafy_greens: "leafy greens",
+    herbs: "herbs",
+    strawberries: "strawberries",
+    tomatoes: "tomatoes",
+    peppers: "peppers",
+    other: "this crop"
+  };
+  const selected = Array.isArray(crops) ? crops.map((crop) => labels[crop]).filter(Boolean) : [];
+  if (!selected.length) return "this grow";
+  if (selected.length === 1) return selected[0];
+  return `${selected.slice(0, -1).join(", ")} and ${selected.at(-1)}`;
+}
+
+async function getOrCreateCalendarToken(userId) {
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const current = await pool.query("select calendar_token from pip_users where id = $1", [userId]);
+    if (!current.rows[0]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+    if (current.rows[0].calendar_token) return current.rows[0].calendar_token;
+    const token = crypto.randomBytes(32).toString("base64url");
+    await pool.query("update pip_users set calendar_token = $1, updated_at = now() where id = $2", [token, userId]);
+    return token;
+  }
+  const state = readState();
+  const user = state.users[userId];
+  if (!user) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  user.calendarToken ||= crypto.randomBytes(32).toString("base64url");
+  user.updatedAt = nowIso();
+  writeState(state);
+  return user.calendarToken;
+}
+
+function publicApiBase() {
+  return String(process.env.PIP_PUBLIC_API_BASE || process.env.RENDER_EXTERNAL_URL || "https://hydropip-pip-api.onrender.com").replace(/\/$/, "");
 }
 
 function toIso(value) {

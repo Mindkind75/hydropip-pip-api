@@ -34,6 +34,8 @@ import {
   getProject,
   getProjectTemplates,
   getDailyAiUsageSummary,
+  getCalendarByToken,
+  getOrCreateCalendarSubscription,
   grantPipCredits,
   listProjectMessages,
   listProjectConversations,
@@ -46,6 +48,7 @@ import {
   listBetaTesterProgress,
   refundBuildPhotoCheck,
   reserveAiUsage,
+  revokeCalendarSubscription,
   seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProject,
@@ -58,6 +61,7 @@ import {
   upsertUser
 } from "./pipMemory.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
+import { buildPipCalendar } from "./pipCalendar.js";
 import {
   aiUsageEventType,
   clientIpHash,
@@ -151,6 +155,22 @@ app.get("/api/pip/wizard", (_req, res) => {
 
 app.get("/api/pip/project-templates", (_req, res) => {
   res.json(getProjectTemplates());
+});
+
+app.get("/api/pip/calendar/:token.ics", async (req, res, next) => {
+  try {
+    const calendar = await getCalendarByToken({ token: req.params.token });
+    if (!calendar) return res.status(404).type("text/plain").send("HydroPip calendar not found.");
+    res.set({
+      "Content-Type": "text/calendar; charset=utf-8",
+      "Content-Disposition": 'inline; filename="hydropip-planner.ics"',
+      "Cache-Control": "private, no-store",
+      "X-Robots-Tag": "noindex, nofollow"
+    });
+    res.send(buildPipCalendar(calendar));
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post("/api/pip/session/exchange", (req, res) => {
@@ -262,6 +282,31 @@ app.use("/api/pip/feedback", requirePipBeta);
 app.post("/api/pip/users", async (req, res, next) => {
   try {
     res.status(201).json({ user: await upsertUser(req.pipUser) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/users/me/calendar", async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    const result = await getOrCreateCalendarSubscription({
+      userId: req.pipUser.id,
+      subscription: req.pipSubscription
+    });
+    res.status(result.status === "subscription_required" ? 402 : 200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/pip/users/me/calendar", async (req, res, next) => {
+  try {
+    const result = await revokeCalendarSubscription({
+      userId: req.pipUser.id,
+      subscription: req.pipSubscription
+    });
+    res.status(result.status === "subscription_required" ? 402 : 200).json(result);
   } catch (error) {
     next(error);
   }

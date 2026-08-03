@@ -13,7 +13,7 @@ for (const file of files) {
   assert.equal(hrefs.some((href) => !href.trim()), false, `${file} contains an empty link`);
 
   for (const href of hrefs) {
-    if (href.startsWith("#")) assert.ok(ids.has(href.slice(1)), `${file} points to missing anchor ${href}`);
+    if (href.startsWith("#") && href !== "#") assert.ok(ids.has(href.slice(1)), `${file} points to missing anchor ${href}`);
     if (/amazon\.com/i.test(href)) {
       assert.ok(href.includes("tag=hydrpip2002-20"), `${file} has an Amazon link without the HydroPip affiliate tag: ${href}`);
     }
@@ -33,14 +33,15 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proConnectCalendar", "proCalendarOpen", "proCalendarCopy", "proCalendarDisconnect", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
-for (const page of ["profile", "schedule", "log", "history"]) {
+for (const page of ["profile", "planner", "log", "history"]) {
   assert.match(pipHtml, new RegExp(`data-pro-page=["']${page}["']`), `pip.html is missing the ${page} notebook tab`);
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }
 assert.match(pipHtml, /activateProPage/, "Pip Pro notebook tabs are not wired to page navigation");
+assert.match(pipHtml, /proCalendarOpen.*\.href=data\.webcalUrl/, "Pip Pro calendar link is not populated dynamically");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");

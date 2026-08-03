@@ -18,6 +18,8 @@ import {
   getBetaExperience,
   getBuildPhotoAllowance,
   getDailyAiUsageSummary,
+  getCalendarByToken,
+  getOrCreateCalendarSubscription,
   getPipCreditBalance,
   getProjectTemplates,
   listProjectMessages,
@@ -31,6 +33,7 @@ import {
   resetMemoryForTests,
   refundBuildPhotoCheck,
   reserveAiUsage,
+  revokeCalendarSubscription,
   grantPipCredits,
   seedProjectConversationDefaults,
   seedProjectDefaults,
@@ -46,6 +49,7 @@ import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./
 import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
+import { buildPipCalendar } from "./pipCalendar.js";
 import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
@@ -388,6 +392,7 @@ assert.equal(paidBlocked.status, "subscription_required");
 const paidProject = await createProject({
   user: { id: "test-user" },
   type: "crop_schedule",
+  systemProfile: { plantingDate: "2026-08-10", crops: ["leafy_greens"] },
   subscription: { active: true, plan: "pip_pro" }
 });
 assert.equal(paidProject.status, "created");
@@ -405,7 +410,8 @@ const defaultSchedule = await seedProjectDefaults({
   projectId: paidProject.project.id,
   subscription: { active: true }
 });
-assert.equal(defaultSchedule.reminders.length, 6);
+assert.equal(defaultSchedule.reminders.length, 12);
+assert.equal(defaultSchedule.reminders.some((item) => item.title.includes("Plant or transplant leafy greens")), true);
 const savedSchedule = await listProjectReminders({ userId: "test-user", projectId: paidProject.project.id });
 const readySchedule = await seedProjectDefaults({
   userId: "test-user",
@@ -415,20 +421,23 @@ const readySchedule = await seedProjectDefaults({
 assert.equal(readySchedule.status, "already_ready");
 assert.equal(readySchedule.addedCount, 0);
 const completedStarter = savedSchedule.find((item) => item.note === "hydropip_default");
-await updateProjectReminder({
+const completedRecurring = await updateProjectReminder({
   userId: "test-user",
   projectId: paidProject.project.id,
   reminderId: completedStarter.id,
   patch: { status: "completed" },
   subscription: { active: true }
 });
+assert.equal(completedRecurring.reminder.status, "active");
+assert.equal(completedRecurring.reminder.completionCount, 1);
+assert.equal(new Date(completedRecurring.reminder.dueAt) > new Date(completedRecurring.reminder.lastCompletedAt), true);
 const restoredSchedule = await seedProjectDefaults({
   userId: "test-user",
   projectId: paidProject.project.id,
   subscription: { active: true }
 });
-assert.equal(restoredSchedule.status, "created");
-assert.equal(restoredSchedule.addedCount, 1);
+assert.equal(restoredSchedule.status, "already_ready");
+assert.equal(restoredSchedule.addedCount, 0);
 const updatedReminder = await updateProjectReminder({
   userId: "test-user",
   projectId: paidProject.project.id,
@@ -438,6 +447,18 @@ const updatedReminder = await updateProjectReminder({
 });
 assert.equal(updatedReminder.reminder.title, "Updated HydroPip task");
 assert.equal(updatedReminder.reminder.notify, true);
+
+const calendarSubscription = await getOrCreateCalendarSubscription({ userId: "test-user", subscription: { active: true } });
+assert.equal(calendarSubscription.status, "ready");
+assert.match(calendarSubscription.webcalUrl, /^webcal:/);
+const calendarToken = calendarSubscription.url.match(/\/calendar\/([^/.]+)\.ics$/)?.[1];
+const calendarData = await getCalendarByToken({ token: calendarToken });
+const calendarText = buildPipCalendar(calendarData);
+assert.match(calendarText, /BEGIN:VCALENDAR/);
+assert.match(calendarText, /X-WR-CALNAME:HydroPip Planner/);
+assert.match(calendarText, /RRULE:FREQ=WEEKLY/);
+await revokeCalendarSubscription({ userId: "test-user", subscription: { active: true } });
+assert.equal(await getCalendarByToken({ token: calendarToken }), null);
 
 const savedSeed = await createProjectSeed({
   userId: "test-user",
