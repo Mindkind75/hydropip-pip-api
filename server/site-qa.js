@@ -59,6 +59,12 @@ assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-servi
 const partsHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
 assert.match(partsHtml, /Supply plan saved/, "The supply planner should visibly confirm a save");
 assert.match(partsHtml, /Saved on this device/, "The supply planner should show persistent saved-state copy");
+assert.match(partsHtml, /\.top\{position:static;top:auto/, "Track My Build navigation should scroll with the page on touch devices");
+
+const wixTrackBridge = fs.readFileSync(new URL("../wix-track-my-build-page-code.js", import.meta.url), "utf8");
+assert.match(wixTrackBridge, /embed\.onMessage/, "The Wix Track My Build page must listen for live iframe height updates");
+assert.match(wixTrackBridge, /HYDROPIP_EMBED_HEIGHT/, "The Wix Track My Build page must recognize iframe height messages");
+assert.doesNotMatch(wixTrackBridge, /14950|25700/, "The Wix Track My Build page must not restore fixed legacy iframe heights");
 
 const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");
 assert.match(homeHtml, /class=["']featureSplit["']/, "Home hero should compare the new tower with mature growth");

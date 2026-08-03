@@ -1,14 +1,16 @@
 import wixWindowFrontend from "wix-window-frontend";
 
-const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260802d";
+const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260803a";
 const TRACK_EMBED_IDS = ["#trackHtml", "#partsHtml", "#html1", "#html2", "#iFrame1"];
+let lastEmbedHeight = 0;
 
 $w.onReady(() => {
   const embed = getEmbed();
   if (!embed) return;
 
-  embed.src = HYDROPIP_TRACK_SRC;
   setFallbackHeight(embed);
+  embed.onMessage((event) => syncEmbedHeight(embed, event.data));
+  embed.src = HYDROPIP_TRACK_SRC;
 });
 
 function getEmbed() {
@@ -24,14 +26,21 @@ function getEmbed() {
 }
 
 function setFallbackHeight(embed) {
-  embed.height = wixWindowFrontend.formFactor === "Mobile" ? 14950 : 25700;
-  wixWindowFrontend.getBoundingRect().then((size) => {
-    if (size?.window?.width) embed.height = heightForWidth(size.window.width);
-  }).catch(() => {});
+  lastEmbedHeight = wixWindowFrontend.formFactor === "Mobile" ? 1800 : 1400;
+  embed.height = lastEmbedHeight;
 }
 
-function heightForWidth(width) {
-  if (width <= 750) return 14950;
-  if (width <= 1024) return 25000;
-  return 25700;
+function syncEmbedHeight(embed, message) {
+  if (!message || message.type !== "HYDROPIP_EMBED_HEIGHT") return;
+
+  const measuredHeight = Math.ceil(Number(message.height));
+  if (!Number.isFinite(measuredHeight) || measuredHeight < 1) return;
+
+  const minimum = wixWindowFrontend.formFactor === "Mobile" ? 900 : 1000;
+  const maximum = wixWindowFrontend.formFactor === "Mobile" ? 24000 : 36000;
+  const nextHeight = Math.max(minimum, Math.min(maximum, measuredHeight + 12));
+  if (Math.abs(nextHeight - lastEmbedHeight) < 8) return;
+
+  lastEmbedHeight = nextHeight;
+  embed.height = nextHeight;
 }
