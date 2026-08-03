@@ -17,14 +17,21 @@ import {
   createProject,
   createProjectReading,
   createProjectReminder,
+  createProjectSeed,
+  deleteProjectReminder,
+  deleteProjectSeed,
   getMemoryHealth,
   getProject,
   getProjectTemplates,
   listProjectMessages,
   listProjectReadings,
   listProjectReminders,
+  listProjectSeeds,
   listProjects,
+  seedProjectDefaults,
   updateProject,
+  updateProjectReminder,
+  updateProjectSeed,
   upsertUser
 } from "./pipMemory.js";
 
@@ -230,6 +237,30 @@ app.post("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
   }
 });
 
+app.post("/api/pip/projects/:projectId/reminders/defaults", async (req, res, next) => {
+  try {
+    const result = await seedProjectDefaults({ userId: req.pipUser.id, projectId: req.params.projectId, subscription: req.pipSubscription });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "subscription_required" ? 402 : 200).json(result);
+  } catch (error) { next(error); }
+});
+
+app.patch("/api/pip/projects/:projectId/reminders/:reminderId", async (req, res, next) => {
+  try {
+    const result = await updateProjectReminder({ userId: req.pipUser.id, projectId: req.params.projectId, reminderId: req.params.reminderId, patch: req.body?.patch || req.body || {}, subscription: req.pipSubscription });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "subscription_required" ? 402 : result.status === "not_found" ? 404 : 200).json(result);
+  } catch (error) { next(error); }
+});
+
+app.delete("/api/pip/projects/:projectId/reminders/:reminderId", async (req, res, next) => {
+  try {
+    const result = await deleteProjectReminder({ userId: req.pipUser.id, projectId: req.params.projectId, reminderId: req.params.reminderId, subscription: req.pipSubscription });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "subscription_required" ? 402 : result.status === "not_found" ? 404 : 200).json(result);
+  } catch (error) { next(error); }
+});
+
 app.get("/api/pip/projects/:projectId/readings", async (req, res, next) => {
   try {
     const readings = await listProjectReadings({ userId: req.pipUser.id, projectId: req.params.projectId });
@@ -259,6 +290,38 @@ app.post("/api/pip/projects/:projectId/readings", async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+app.get("/api/pip/projects/:projectId/seeds", async (req, res, next) => {
+  try {
+    const seeds = await listProjectSeeds({ userId: req.pipUser.id, projectId: req.params.projectId });
+    if (!seeds) return res.status(404).json({ error: "project_not_found" });
+    res.json({ seeds });
+  } catch (error) { next(error); }
+});
+
+app.post("/api/pip/projects/:projectId/seeds", async (req, res, next) => {
+  try {
+    const result = await createProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seed: req.body?.seed || req.body || {}, subscription: req.pipSubscription });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "saved" ? 201 : 402).json(result);
+  } catch (error) { next(error); }
+});
+
+app.patch("/api/pip/projects/:projectId/seeds/:seedId", async (req, res, next) => {
+  try {
+    const result = await updateProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seedId: req.params.seedId, patch: req.body?.patch || req.body || {}, subscription: req.pipSubscription });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "not_found" ? 404 : result.status === "subscription_required" ? 402 : 200).json(result);
+  } catch (error) { next(error); }
+});
+
+app.delete("/api/pip/projects/:projectId/seeds/:seedId", async (req, res, next) => {
+  try {
+    const result = await deleteProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seedId: req.params.seedId, subscription: req.pipSubscription });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "not_found" ? 404 : result.status === "subscription_required" ? 402 : 200).json(result);
+  } catch (error) { next(error); }
 });
 
 app.get("/api/pip/build-steps", (req, res) => {

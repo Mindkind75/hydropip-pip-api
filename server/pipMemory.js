@@ -51,7 +51,9 @@ const defaultState = {
   projects: {},
   conversations: {},
   reminders: {},
-  readings: {}
+  readings: {},
+  seeds: {},
+  pushSubscriptions: {}
 };
 
 let stateCache;
@@ -266,7 +268,7 @@ export async function listProjectReminders({ userId, projectId } = {}) {
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
-      `select id, title, note, category, due_date, repeat_rule, status, created_at
+      `select id, title, note, category, due_date, due_at, repeat_rule, notify, timezone, status, created_at, updated_at
        from pip_reminders
        where project_id = $1 and user_id = $2
        order by created_at asc`,
@@ -296,7 +298,10 @@ export async function createProjectReminder({ userId, projectId, reminder = {}, 
     note: String(reminder.note || ""),
     category: String(reminder.category || "general"),
     dueDate: reminder.dueDate || reminder.date || null,
+    dueAt: normalizeOptionalDate(reminder.dueAt),
     repeat: reminder.repeat || null,
+    notify: Boolean(reminder.notify),
+    timezone: cleanOptionalText(reminder.timezone, 80),
     status: "active",
     createdAt: nowIso()
   };
@@ -305,8 +310,8 @@ export async function createProjectReminder({ userId, projectId, reminder = {}, 
     const pool = await readyPool();
     await pool.query(
       `insert into pip_reminders
-       (id, project_id, user_id, title, note, category, due_date, repeat_rule, status, created_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)`,
+       (id, project_id, user_id, title, note, category, due_date, due_at, repeat_rule, notify, timezone, status, created_at, updated_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $13)`,
       [
         saved.id,
         projectId,
@@ -315,7 +320,10 @@ export async function createProjectReminder({ userId, projectId, reminder = {}, 
         saved.note,
         saved.category,
         saved.dueDate,
+        saved.dueAt,
         JSON.stringify(saved.repeat),
+        saved.notify,
+        saved.timezone,
         saved.status,
         saved.createdAt
       ]
@@ -329,6 +337,136 @@ export async function createProjectReminder({ userId, projectId, reminder = {}, 
   state.projects[projectId].updatedAt = saved.createdAt;
   writeState(state);
   return { status: "queued", reminder: saved };
+}
+
+export async function updateProjectReminder({ userId, projectId, reminderId, patch = {}, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  if (!subscription?.active) return subscriptionRequired("Editing reminders requires Pip Pro.");
+  const reminders = await listProjectReminders({ userId, projectId });
+  const existing = reminders.find((item) => item.id === reminderId);
+  if (!existing) return { status: "not_found" };
+  const saved = {
+    ...existing,
+    title: patch.title === undefined ? existing.title : String(patch.title || "HydroPip reminder"),
+    note: patch.note === undefined ? existing.note : String(patch.note || ""),
+    category: patch.category === undefined ? existing.category : String(patch.category || "general"),
+    dueDate: patch.dueDate === undefined ? existing.dueDate : patch.dueDate || null,
+    dueAt: patch.dueAt === undefined ? existing.dueAt : normalizeOptionalDate(patch.dueAt),
+    repeat: patch.repeat === undefined ? existing.repeat : patch.repeat || null,
+    notify: patch.notify === undefined ? existing.notify : Boolean(patch.notify),
+    timezone: patch.timezone === undefined ? existing.timezone : cleanOptionalText(patch.timezone, 80),
+    status: patch.status === undefined ? existing.status : String(patch.status || "active"),
+    updatedAt: nowIso()
+  };
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(
+      `update pip_reminders set title=$1, note=$2, category=$3, due_date=$4, due_at=$5,
+       repeat_rule=$6::jsonb, notify=$7, timezone=$8, status=$9, updated_at=$10
+       where id=$11 and project_id=$12 and user_id=$13`,
+      [saved.title, saved.note, saved.category, saved.dueDate, saved.dueAt, JSON.stringify(saved.repeat), saved.notify, saved.timezone, saved.status, saved.updatedAt, reminderId, projectId, userId]
+    );
+    return { status: "updated", reminder: saved };
+  }
+  const state = readState();
+  state.reminders[projectId] = (state.reminders[projectId] || []).map((item) => item.id === reminderId ? saved : item);
+  writeState(state);
+  return { status: "updated", reminder: saved };
+}
+
+export async function deleteProjectReminder({ userId, projectId, reminderId, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  if (!subscription?.active) return subscriptionRequired("Deleting reminders requires Pip Pro.");
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query("delete from pip_reminders where id=$1 and project_id=$2 and user_id=$3", [reminderId, projectId, userId]);
+    return { status: result.rowCount ? "deleted" : "not_found" };
+  }
+  const state = readState();
+  const before = (state.reminders[projectId] || []).length;
+  state.reminders[projectId] = (state.reminders[projectId] || []).filter((item) => item.id !== reminderId);
+  writeState(state);
+  return { status: state.reminders[projectId].length < before ? "deleted" : "not_found" };
+}
+
+export async function seedProjectDefaults({ userId, projectId, subscription = {} } = {}) {
+  const current = await listProjectReminders({ userId, projectId });
+  if (!current) return null;
+  if (!subscription?.active) return subscriptionRequired("Saved maintenance schedules require Pip Pro.");
+  if (current.some((item) => item.note === "hydropip_default")) return { status: "already_ready", reminders: current };
+  const defaults = standardReminderDefaults();
+  const saved = [];
+  for (const reminder of defaults) {
+    const result = await createProjectReminder({ userId, projectId, reminder, subscription });
+    if (result?.reminder) saved.push(result.reminder);
+  }
+  return { status: "created", reminders: saved };
+}
+
+export async function listProjectSeeds({ userId, projectId } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(`select id, seed, created_at, updated_at from pip_seeds where project_id=$1 and user_id=$2 order by created_at desc`, [projectId, userId]);
+    return result.rows.map((row) => ({ ...(row.seed || {}), id: row.id, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at) }));
+  }
+  return readState().seeds?.[projectId] || [];
+}
+
+export async function createProjectSeed({ userId, projectId, seed = {}, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  if (!subscription?.active) return subscriptionRequired("Seed tracking requires Pip Pro.");
+  const now = nowIso();
+  const saved = normalizeSeed({ ...seed, id: makeId("seed"), createdAt: now, updatedAt: now });
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(`insert into pip_seeds (id, project_id, user_id, seed, created_at, updated_at) values ($1,$2,$3,$4::jsonb,$5,$5)`, [saved.id, projectId, userId, JSON.stringify(saved), now]);
+  } else {
+    const state = readState();
+    state.seeds ||= {};
+    state.seeds[projectId] = [saved, ...(state.seeds[projectId] || [])];
+    writeState(state);
+  }
+  return { status: "saved", seed: saved };
+}
+
+export async function updateProjectSeed({ userId, projectId, seedId, patch = {}, subscription = {} } = {}) {
+  const seeds = await listProjectSeeds({ userId, projectId });
+  if (!seeds) return null;
+  if (!subscription?.active) return subscriptionRequired("Editing seed records requires Pip Pro.");
+  const existing = seeds.find((item) => item.id === seedId);
+  if (!existing) return { status: "not_found" };
+  const saved = normalizeSeed({ ...existing, ...patch, id: seedId, createdAt: existing.createdAt, updatedAt: nowIso() });
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(`update pip_seeds set seed=$1::jsonb, updated_at=$2 where id=$3 and project_id=$4 and user_id=$5`, [JSON.stringify(saved), saved.updatedAt, seedId, projectId, userId]);
+  } else {
+    const state = readState();
+    state.seeds ||= {};
+    state.seeds[projectId] = (state.seeds[projectId] || []).map((item) => item.id === seedId ? saved : item);
+    writeState(state);
+  }
+  return { status: "updated", seed: saved };
+}
+
+export async function deleteProjectSeed({ userId, projectId, seedId, subscription = {} } = {}) {
+  const seeds = await listProjectSeeds({ userId, projectId });
+  if (!seeds) return null;
+  if (!subscription?.active) return subscriptionRequired("Deleting seed records requires Pip Pro.");
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(`delete from pip_seeds where id=$1 and project_id=$2 and user_id=$3`, [seedId, projectId, userId]);
+    return { status: result.rowCount ? "deleted" : "not_found" };
+  }
+  const state = readState();
+  state.seeds ||= {};
+  state.seeds[projectId] = seeds.filter((item) => item.id !== seedId);
+  writeState(state);
+  return { status: state.seeds[projectId].length < seeds.length ? "deleted" : "not_found" };
 }
 
 export async function listProjectReadings({ userId, projectId } = {}) {
@@ -483,10 +621,18 @@ async function ensureSchema(pool) {
       note text not null default '',
       category text not null default 'general',
       due_date text,
+      due_at timestamptz,
       repeat_rule jsonb,
+      notify boolean not null default false,
+      timezone text,
       status text not null default 'active',
-      created_at timestamptz not null default now()
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
     );
+    alter table pip_reminders add column if not exists due_at timestamptz;
+    alter table pip_reminders add column if not exists notify boolean not null default false;
+    alter table pip_reminders add column if not exists timezone text;
+    alter table pip_reminders add column if not exists updated_at timestamptz not null default now();
     create index if not exists pip_reminders_project_created_idx on pip_reminders(project_id, created_at asc);
 
     create table if not exists pip_readings (
@@ -498,6 +644,16 @@ async function ensureSchema(pool) {
       created_at timestamptz not null default now()
     );
     create index if not exists pip_readings_project_taken_idx on pip_readings(project_id, taken_at asc);
+
+    create table if not exists pip_seeds (
+      id text primary key,
+      project_id text not null references pip_projects(id) on delete cascade,
+      user_id text not null references pip_users(id) on delete cascade,
+      seed jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create index if not exists pip_seeds_project_created_idx on pip_seeds(project_id, created_at desc);
   `);
   return schemaPromise;
 }
@@ -647,9 +803,13 @@ function rowToReminder(row) {
     note: row.note,
     category: row.category,
     dueDate: row.due_date,
+    dueAt: toIso(row.due_at),
     repeat: row.repeat_rule,
+    notify: Boolean(row.notify),
+    timezone: row.timezone || null,
     status: row.status,
-    createdAt: toIso(row.created_at)
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
   };
 }
 
@@ -668,6 +828,48 @@ function makeId(prefix) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function normalizeOptionalDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function subscriptionRequired(message) {
+  return { status: "subscription_required", message, upgradeReason: "Pip Pro saves grow plans, reminders, logs, seeds, and project history." };
+}
+
+function normalizeSeed(seed = {}) {
+  return {
+    id: seed.id,
+    crop: cleanOptionalText(seed.crop, 80) || "Seed batch",
+    variety: cleanOptionalText(seed.variety, 120),
+    source: cleanOptionalText(seed.source, 160),
+    quantity: normalizeOptionalNumber(seed.quantity),
+    sowDate: cleanOptionalText(seed.sowDate, 20),
+    status: cleanOptionalText(seed.status, 40) || "on_hand",
+    notes: String(seed.notes || "").slice(0, 1000),
+    createdAt: seed.createdAt || nowIso(),
+    updatedAt: seed.updatedAt || nowIso()
+  };
+}
+
+function standardReminderDefaults() {
+  const dueAt = (days, hour = 9) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    date.setHours(hour, 0, 0, 0);
+    return date.toISOString();
+  };
+  return [
+    { title: "Check IBC level and leaks", note: "hydropip_default", category: "maintenance", dueAt: dueAt(1), repeat: { frequency: "weekly" }, notify: true },
+    { title: "Check pH and EC/TDS after circulation", note: "hydropip_default", category: "nutrients", dueAt: dueAt(2), repeat: { frequency: "weekly" }, notify: true },
+    { title: "Inspect flow at every tower", note: "hydropip_default", category: "maintenance", dueAt: dueAt(3), repeat: { frequency: "weekly" }, notify: true },
+    { title: "Flush the main feed line", note: "hydropip_default", category: "maintenance", dueAt: dueAt(14), repeat: { frequency: "monthly" }, notify: true },
+    { title: "Clean pump intakes and inspect hoses", note: "hydropip_default", category: "maintenance", dueAt: dueAt(21), repeat: { frequency: "monthly" }, notify: true },
+    { title: "Calibrate pH and EC/TDS meters", note: "hydropip_default", category: "nutrients", dueAt: dueAt(28), repeat: { frequency: "monthly" }, notify: true }
+  ];
 }
 
 function toIso(value) {

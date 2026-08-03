@@ -4,10 +4,16 @@ import {
   createProject,
   createProjectReading,
   createProjectReminder,
+  createProjectSeed,
+  deleteProjectSeed,
   getMemoryHealth,
   getProjectTemplates,
   listProjectMessages,
+  listProjectReminders,
+  listProjectSeeds,
   resetMemoryForTests,
+  seedProjectDefaults,
+  updateProjectReminder,
   updateProject
 } from "./pipMemory.js";
 import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
@@ -142,6 +148,39 @@ const savedReminder = await createProjectReminder({
   subscription: { active: true }
 });
 assert.equal(savedReminder.status, "queued");
+
+const defaultSchedule = await seedProjectDefaults({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  subscription: { active: true }
+});
+assert.equal(defaultSchedule.reminders.length, 6);
+const savedSchedule = await listProjectReminders({ userId: "test-user", projectId: paidProject.project.id });
+const updatedReminder = await updateProjectReminder({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  reminderId: savedSchedule[0].id,
+  patch: { title: "Updated HydroPip task", notify: true },
+  subscription: { active: true }
+});
+assert.equal(updatedReminder.reminder.title, "Updated HydroPip task");
+assert.equal(updatedReminder.reminder.notify, true);
+
+const savedSeed = await createProjectSeed({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  seed: { crop: "Lettuce", variety: "Buttercrunch", quantity: 100 },
+  subscription: { active: true }
+});
+assert.equal(savedSeed.status, "saved");
+assert.equal((await listProjectSeeds({ userId: "test-user", projectId: paidProject.project.id })).length, 1);
+await deleteProjectSeed({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  seedId: savedSeed.seed.id,
+  subscription: { active: true }
+});
+assert.equal((await listProjectSeeds({ userId: "test-user", projectId: paidProject.project.id })).length, 0);
 
 const blockedReading = await createProjectReading({
   userId: "test-user",
