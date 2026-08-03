@@ -12,7 +12,7 @@ HydroPip is a real working timed-feed tower system. It is not a stock recirculat
 - The current parts list assumes two orders of stackable planter sections per tower.
 - A 3/4-inch PVC tee sits at the top of each support pipe as a hose guide.
 - The feed hose passes through the tower top eye holes.
-- Small feed tubes are inserted into punched holes in the main hose at each tower.
+- More rigid 1/4-inch drip feed tubes are inserted into punched holes in the main hose at each tower. Avoid overly soft microtubing that kinks or moves out of position easily.
 - A short diffuser tube spreads water into the tower instead of shooting one hard stream.
 
 ## Reservoir And Pumps

@@ -5,7 +5,7 @@ const affiliateLinks = {
   hoseEndValve: "https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20",
   hoseAdapters: "https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20",
   mainHose: "https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20",
-  dripIrrigation: "https://www.amazon.com/dp/B0BNG66HGP?tag=hydrpip2002-20",
+  dripIrrigation: "https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20",
   diffuserTubing: "https://www.amazon.com/s?k=1%2F2+inch+vinyl+tubing+flexible+hose&tag=hydrpip2002-20",
   tubingPunch: "https://www.amazon.com/s?k=drip+irrigation+tubing+punch+tool&tag=hydrpip2002-20",
   pumps: "https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20",
@@ -323,7 +323,7 @@ function hasShoppingIntent(q) {
 }
 
 function tubingSupplyAnswer(contextLead = "") {
-  return `${contextLead}You want the small tower feed tubing that branches off the main hose.\n- Drip irrigation kit: ${affiliateLinks.dripIrrigation}\n- Diffuser tubing pieces: ${affiliateLinks.diffuserTubing}\n- Tubing punch/awl for clean holes: ${affiliateLinks.tubingPunch}\n\nHydroPip may earn from qualifying Amazon purchases.`;
+  return `${contextLead}Use the more rigid 1/4-inch drip tubing for the small tower feed lines that branch off the main hose. It holds its shape better than soft microtubing.\n- Rigid 1/4-inch tower feed tubing: ${affiliateLinks.dripIrrigation}\n- Diffuser tubing pieces: ${affiliateLinks.diffuserTubing}\n- Tubing punch/awl for clean holes: ${affiliateLinks.tubingPunch}\n\nHydroPip may earn from qualifying Amazon purchases.`;
 }
 
 function hoseEndSupplyAnswer(contextLead = "") {

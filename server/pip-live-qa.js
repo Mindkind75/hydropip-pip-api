@@ -12,7 +12,7 @@ const cases = [
     ],
     must: ["3/4-inch", "GHT", "B013646334", "hydrpip2002-20"]
   },
-  { question: "I just need to purchase the little tubing from the main hose to each tower.", must: ["B0BNG66HGP", "hydrpip2002-20"] },
+  { question: "I just need to purchase the little tubing from the main hose to each tower.", must: ["B0GQQP8M83", "hydrpip2002-20"] },
   { question: "The leaves have tiny holes and I found little chewing bugs underneath.", must: ["pest", "hydrpip2002-20"] },
   { question: "Can I place the IBC 25 feet uphill from the towers?", mustAny: ["head", "vertical", "pressure"] },
   { question: "My lettuce is pale but the media is wet. What are the first three checks?", must: ["pH"], mustAny: ["EC", "TDS"] },

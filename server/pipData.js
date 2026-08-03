@@ -39,11 +39,11 @@ export const buildSteps = [
     id: "plumb",
     title: "Plumb the feed hose and tower feed tubes",
     summary:
-      "Use a 3/4-inch PVC tee as a top hose guide, run the main hose through tower tops, then pierce tower feed points for smaller irrigation tubing.",
+      "Use a 3/4-inch PVC tee as a top hose guide, run the main hose through tower tops, then pierce tower feed points for more rigid 1/4-inch drip tubing.",
     checklist: [
       "Set a PVC tee on top of each support pipe to guide the hose loop.",
       "Punch a clean hole in the main hose at each tower.",
-      "Insert small irrigation tubing into each feed point.",
+      "Insert the more rigid 1/4-inch tower feed tubing into each feed point.",
       "Add a short diffuser piece so water spreads instead of shooting straight down."
     ]
   },
