@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { askPip, compactAnswer, stripSummaryLabel } from "./pipAgent.js";
+import { askPip, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
 import {
   appendProjectMessage,
   createProject,
@@ -28,6 +28,9 @@ import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
+
+assert.equal(normalizeImageInput({ dataUrl: "data:image/jpeg;base64,/9j/2Q==" }).mimeType, "image/jpeg");
+assert.throws(() => normalizeImageInput({ dataUrl: "data:image/svg+xml;base64,PHN2Zz4=" }), /JPEG, PNG, or WebP/);
 
 const signedSession = issuePipSession({
   member: { id: "test-user", email: "test@hydropip.com" },

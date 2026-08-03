@@ -70,7 +70,7 @@ app.use(
     }
   })
 );
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "4mb" }));
 app.use(express.static(rootDir));
 
 app.use("/api/pip/chat", (req, res, next) => {

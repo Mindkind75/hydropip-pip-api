@@ -33,7 +33,7 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction", "pipPhoto", "pipPhotoPreview", "pipPhotoRemove"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
 for (const page of ["profile", "schedule", "log", "history"]) {
@@ -48,6 +48,8 @@ assert.match(pipHtml, /How it works/, "Pip Pro should explain the subscription f
 assert.match(pipHtml, /\/conversations/, "Pip chat is not connected to the saved-conversation API");
 assert.match(pipHtml, /conversationId:activeConversationId/, "Pip chat requests are not scoped to the selected conversation");
 assert.match(pipHtml, /New conversation/, "Pip should offer focused topic conversations");
+assert.match(pipHtml, /input_image|image:imageAttachment/, "Pip photo uploads are not connected to chat requests");
+assert.match(pipHtml, /thinking-dots/, "Pip should show an animated thinking state while requests are running");
 assert.match(pipHtml, /window\.open\(destination,"_top"\)/, "Home Screen install should have a direct top-level navigation fallback");
 assert.match(pipHtml, /Your Pip Pro workspace is ready/, "Pro activation should offer a Home Screen install CTA");
 assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");

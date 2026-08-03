@@ -79,8 +79,9 @@ const tools = [
   }
 ];
 
-export async function askPip({ message, profile, subscription, history = [], user, projectId, conversationId }) {
-  const trimmed = String(message || "").trim();
+export async function askPip({ message, image, profile, subscription, history = [], user, projectId, conversationId }) {
+  const imageInput = normalizeImageInput(image);
+  const trimmed = String(message || "").trim() || (imageInput ? "Inspect this photo and identify the most likely HydroPip plant-health, pest, plumbing, or equipment issue." : "");
   if (!trimmed) return { answer: "Ask me where you are in the HydroPip build and I will guide the next step.", mode: "empty" };
   const recentHistory = normalizeHistory(history);
   const retrieval = retrieveHydroPipContext(trimmed, { limit: 7 });
@@ -101,7 +102,7 @@ export async function askPip({ message, profile, subscription, history = [], use
     userId,
     projectId,
     role: "user",
-    content: trimmed
+    content: imageInput ? `${trimmed}\n[Photo attached for visual diagnosis]` : trimmed
   });
 
   if (isClearlyOffTopic(trimmed)) {
@@ -168,7 +169,7 @@ export async function askPip({ message, profile, subscription, history = [], use
     };
   }
 
-  const directAnswer = highConfidenceAnswer(withRecentContext(trimmed, recentHistory), retrieval);
+  const directAnswer = imageInput ? null : highConfidenceAnswer(withRecentContext(trimmed, recentHistory), retrieval);
   if (directAnswer) {
     const answer = compactAnswer(directAnswer, trimmed, retrieval);
     await rememberProjectMessage(projectContext, {
@@ -236,7 +237,8 @@ export async function askPip({ message, profile, subscription, history = [], use
               subscription: subscription || { active: false, plan: "free" },
               projectContext: compactProjectContext(projectContext)
             })
-          }
+          },
+          ...(imageInput ? [{ type: "input_image", image_url: imageInput.dataUrl, detail: "auto" }] : [])
         ]
       }
     ],
@@ -319,6 +321,23 @@ export async function askPip({ message, profile, subscription, history = [], use
     sources,
     projectMemory
   };
+}
+
+export function normalizeImageInput(image) {
+  if (!image) return null;
+  const dataUrl = String(image.dataUrl || "").trim();
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([a-z0-9+/=]+)$/i.exec(dataUrl);
+  if (!match) {
+    const error = new Error("Photo must be a JPEG, PNG, or WebP image.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (dataUrl.length > 3_000_000) {
+    const error = new Error("Photo is too large. Choose a smaller image and try again.");
+    error.statusCode = 413;
+    throw error;
+  }
+  return { dataUrl, mimeType: match[1].toLowerCase() };
 }
 
 async function fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, mode = "rules_fallback" }) {
