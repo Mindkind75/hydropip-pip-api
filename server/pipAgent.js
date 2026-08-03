@@ -296,8 +296,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
       "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions."
     ].join("\n"),
-    previous_response_id: response.id,
-    input: toolResults
+    input: [...(response.output || []), ...toolResults]
     });
   } catch (error) {
     console.warn(`OpenAI tool follow-up failed, using HydroPip fallback: ${error.message}`);
