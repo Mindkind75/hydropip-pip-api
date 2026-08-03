@@ -17,6 +17,7 @@ import {
   listProjectSeeds,
   listProjects,
   resetMemoryForTests,
+  seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProjectConversation,
   updateProjectReminder,
@@ -133,6 +134,25 @@ const archivedConversation = await updateProjectConversation({ userId: "test-use
 assert.equal(archivedConversation.conversation.status, "archived");
 const lastConversationBlocked = await updateProjectConversation({ userId: "test-user", projectId: freeProject.project.id, conversationId: defaultConversations[0].id, patch: { status: "archived" }, subscription: { active: true } });
 assert.equal(lastConversationBlocked.status, "last_conversation");
+
+const starterSeedBlocked = await seedProjectConversationDefaults({
+  userId: "test-user",
+  projectId: freeProject.project.id,
+  subscription: { active: false }
+});
+assert.equal(starterSeedBlocked.status, "subscription_required");
+
+const starterSeeded = await seedProjectConversationDefaults({
+  userId: "test-user",
+  projectId: freeProject.project.id,
+  subscription: { active: true }
+});
+assert.equal(starterSeeded.created, 7);
+const starterConversations = await listProjectConversations({ userId: "test-user", projectId: freeProject.project.id });
+assert.equal(starterConversations.length, 8);
+assert.equal(starterConversations.some((item) => item.title === "Crop Planning & Rotation"), true);
+assert.equal(starterConversations.some((item) => item.title === "Bugs & Plant Health"), true);
+assert.equal((await seedProjectConversationDefaults({ userId: "test-user", projectId: freeProject.project.id, subscription: { active: true } })).created, 0);
 
 const updatedGrow = await updateProject({
   userId: "test-user",

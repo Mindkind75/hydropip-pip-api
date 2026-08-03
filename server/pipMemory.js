@@ -45,6 +45,16 @@ export const projectTemplates = [
   }
 ];
 
+export const proConversationStarters = [
+  { id: "crop_rotation", title: "Crop Planning & Rotation" },
+  { id: "seeds_germination", title: "Seeds & Germination" },
+  { id: "feeding_nutrients", title: "Feeding & Nutrients" },
+  { id: "plant_health", title: "Bugs & Plant Health" },
+  { id: "maintenance", title: "Maintenance & Cleaning" },
+  { id: "troubleshooting", title: "Troubleshooting" },
+  { id: "harvest_reset", title: "Harvest & Reset" }
+];
+
 const defaultState = {
   version: 1,
   users: {},
@@ -292,6 +302,53 @@ export async function createProjectConversation({ userId, projectId, title, subs
   state.conversations[conversation.id] = [];
   writeState(state);
   return { status: "created", conversation };
+}
+
+export async function seedProjectConversationDefaults({ userId, projectId, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  if (!subscription?.active) return subscriptionRequired("Starter topic conversations require Pip Pro.");
+
+  await ensureDefaultConversation({ userId, projectId });
+  const existing = await listProjectConversations({ userId, projectId, includeArchived: true });
+  const existingTitles = new Set(existing.map((item) => String(item.title || "").trim().toLowerCase()));
+  const existingMarkers = new Set(existing.map((item) => String(item.summary || "").trim()));
+  const missing = proConversationStarters.filter((starter) => {
+    return !existingTitles.has(starter.title.toLowerCase()) && !existingMarkers.has(`starter:${starter.id}`);
+  });
+
+  if (!missing.length) return { status: "ready", created: 0 };
+  const now = nowIso();
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    for (const starter of missing) {
+      await pool.query(
+        `insert into pip_conversations (id, project_id, user_id, title, status, summary, created_at, updated_at)
+         values ($1, $2, $3, $4, 'active', $5, $6, $6)`,
+        [makeId("chat"), projectId, userId, starter.title, `starter:${starter.id}`, now]
+      );
+    }
+  } else {
+    const state = readState();
+    for (const starter of missing) {
+      const id = makeId("chat");
+      state.chatThreads[id] = {
+        id,
+        projectId,
+        userId,
+        title: starter.title,
+        status: "active",
+        summary: `starter:${starter.id}`,
+        createdAt: now,
+        updatedAt: now
+      };
+      state.conversations[id] = [];
+    }
+    writeState(state);
+  }
+
+  return { status: "seeded", created: missing.length };
 }
 
 export async function updateProjectConversation({ userId, projectId, conversationId, patch = {}, subscription = {} } = {}) {

@@ -31,6 +31,7 @@ import {
   listProjectReminders,
   listProjectSeeds,
   listProjects,
+  seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProject,
   updateProjectConversation,
@@ -209,6 +210,13 @@ app.patch("/api/pip/projects/:projectId", async (req, res, next) => {
 
 app.get("/api/pip/projects/:projectId/conversations", async (req, res, next) => {
   try {
+    if (req.pipSubscription?.active) {
+      await seedProjectConversationDefaults({
+        userId: req.pipUser.id,
+        projectId: req.params.projectId,
+        subscription: req.pipSubscription
+      });
+    }
     const conversations = await listProjectConversations({
       userId: req.pipUser.id,
       projectId: req.params.projectId,
