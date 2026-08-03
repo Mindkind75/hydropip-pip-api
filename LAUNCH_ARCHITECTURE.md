@@ -74,3 +74,14 @@ The bridge also checks common fallback IDs like `html1`, `html2`, and `iFrame1`.
 - Seeds affiliate/partner program or curated seed packs.
 - HydroPip preassembled flow kits: tubing, pumps, connectors, and smart outlet setup.
 - Merch store using Wix Stores plus a print-on-demand provider.
+
+## Future Engagement And Rewards
+
+Do not implement until the core subscription, notifications, analytics, and merch fulfillment are stable.
+
+- Give each member a referral code and share link; generate the invite QR code from that member-specific link.
+- Award modest points for verified referrals and meaningful grow milestones, not raw clicks or repetitive button presses.
+- Use capped monthly rewards such as a HydroPip shirt, hat, seed pack, nutrient credit, or one month of Pip Pro.
+- Show progress privately in the member notebook; avoid a public leaderboard until fraud controls and clear rules exist.
+- Require the referred member to verify an account or complete a qualifying action before points become final.
+- Publish simple eligibility, tie-breaking, privacy, and prize terms before running monthly promotions.
