@@ -47,10 +47,12 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .photoFeature img{position:absolute;inset:0}
 .photoFeature:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,33,25,.04),rgba(15,33,25,.8))}
 .photoCaption{position:absolute;left:18px;right:18px;bottom:18px;z-index:1;display:grid;gap:12px;padding:18px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(15,33,25,.74);color:#fff;backdrop-filter:blur(10px)}
+.photoCaption>strong{font-size:1.45rem;line-height:1.08}
 .photoCaption span{color:rgba(255,255,255,.8);line-height:1.45}
 .statGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden}
 .statGrid div{padding:12px;background:rgba(255,255,255,.1)}
 .statGrid small{display:block;color:rgba(255,255,255,.72);font-weight:850}
+.statGrid b{display:block;margin-top:2px;line-height:1.15}
 .band{padding:clamp(64px,8vw,112px) clamp(18px,4vw,54px);border-top:1px solid var(--line)}
 .band.white{background:#fff}.band.mint{background:var(--mint)}.band.water{background:var(--water)}.band.deep{background:#123b2c;color:#fff}.band.cream{background:var(--cream)}
 .band.deep p,.band.deep li{color:rgba(255,255,255,.8)}
@@ -90,8 +92,8 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .finalCta{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
 .footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding:28px clamp(18px,4vw,54px);border-top:1px solid var(--line);background:#17221c;color:rgba(255,255,255,.78);font-weight:900}
 @media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}}
-@media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.statGrid,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
-@media(max-width:430px){.nav.open{grid-template-columns:1fr}.brand{font-size:.95rem}.brand img{width:50px;height:50px}.photoCaption{left:12px;right:12px;bottom:12px;padding:14px}.photoFeature{min-height:470px}.card,.step,.part,.pipPanel,.signupPanel{padding:18px}}
+@media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
+@media(max-width:430px){.nav.open{grid-template-columns:1fr}.brand{font-size:.95rem}.brand img{width:50px;height:50px}.photoCaption{left:12px;right:12px;bottom:12px;gap:9px;padding:13px}.photoCaption>strong{font-size:1.25rem}.photoCaption span{font-size:.92rem;line-height:1.38}.statGrid div{padding:8px 6px}.statGrid small{font-size:.65rem}.statGrid b{font-size:.82rem}.photoFeature{min-height:500px}.card,.step,.part,.pipPanel,.signupPanel{padding:18px}}
 .deviceMobile .topbar{position:relative;top:auto;align-items:flex-start}
 .deviceMobile .menuBtn{display:grid;place-items:center;flex:0 0 auto}
 .deviceMobile .nav{display:none;position:absolute;left:14px;right:14px;top:70px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}
@@ -100,14 +102,19 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .deviceMobile .hero{min-height:auto;padding:30px 18px 44px}
 .deviceMobile .photoFeature{min-height:500px}
 .deviceMobile .band{padding:58px 18px}
-.deviceMobile .hero,.deviceMobile .split,.deviceMobile .grid3,.deviceMobile .grid4,.deviceMobile .storyLine,.deviceMobile .partsGrid,.deviceMobile .finalCta,.deviceMobile .photoGrid,.deviceMobile .photoCard.big,.deviceMobile .statGrid,.deviceMobile .pipLockup{grid-template-columns:1fr}
+.deviceMobile .hero,.deviceMobile .split,.deviceMobile .grid3,.deviceMobile .grid4,.deviceMobile .storyLine,.deviceMobile .partsGrid,.deviceMobile .finalCta,.deviceMobile .photoGrid,.deviceMobile .photoCard.big,.deviceMobile .pipLockup{grid-template-columns:1fr}
 .deviceMobile .photoCard.big{grid-column:auto}
 .deviceMobile .actions .btn,.deviceMobile .miniActions .btn,.deviceMobile .part a{width:100%}
 .deviceMobile h1{font-size:clamp(2.55rem,14vw,4rem)}
 .deviceMobile .brand{font-size:.95rem}
 .deviceMobile .brand img{width:50px;height:50px}
-.deviceMobile .photoCaption{left:12px;right:12px;bottom:12px;padding:14px}
-.deviceMobile .photoFeature{min-height:470px}
+.deviceMobile .photoCaption{left:12px;right:12px;bottom:12px;gap:9px;padding:13px}
+.deviceMobile .photoCaption>strong{font-size:1.25rem}
+.deviceMobile .photoCaption span{font-size:.92rem;line-height:1.38}
+.deviceMobile .statGrid div{padding:8px 6px}
+.deviceMobile .statGrid small{font-size:.65rem}
+.deviceMobile .statGrid b{font-size:.82rem}
+.deviceMobile .photoFeature{min-height:500px}
 .deviceMobile .card,.deviceMobile .step,.deviceMobile .part,.deviceMobile .pipPanel,.deviceMobile .signupPanel{padding:18px}
 </style>
 </head>
@@ -149,12 +156,12 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     <figure class="photoFeature" aria-label="Real HydroPip tower system">
       <img src="https://static.wixstatic.com/media/5fe7cb_8829592151b24d90aa5a8a88ba1a85a7~mv2.jpg" alt="Real HydroPip tower system in the backyard" loading="eager">
       <figcaption class="photoCaption">
-        <strong>Real backyard system. Real food plan.</strong>
-        <span>Follow the same backyard-tested tower method step by step, with Pip ready to help when a part, feed cycle, or plant question comes up.</span>
+        <strong>This is what you can build.</strong>
+        <span>A backyard-tested HydroPip system built from common parts, with Pip guiding each step from the first post to the next harvest.</span>
         <div class="statGrid">
-          <div><small>Support</small><b>8-10 ft galvanized steel</b></div>
-          <div><small>Reservoir</small><b>275 gal IBC</b></div>
-          <div><small>Method</small><b>Timed runoff</b></div>
+          <div><small>Towers</small><b>4</b></div>
+          <div><small>Capacity</small><b>Up to 160 pockets</b></div>
+          <div><small>Flow</small><b>Timed feed</b></div>
         </div>
       </figcaption>
     </figure>
