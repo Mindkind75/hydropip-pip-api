@@ -5,12 +5,13 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=pro-20260802i";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=pro-20260802j";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
 
 $w.onReady(() => {
+  collapseOuterHeader();
   const pip = getPipComponent();
   if (!pip) {
     console.warn("Pip iframe bridge could not find the HTML component. Rename the iframe element to pipHtml or add its ID to PIP_HTML_COMPONENT_IDS.");
@@ -47,6 +48,15 @@ $w.onReady(() => {
 
 });
 
+function collapseOuterHeader() {
+  try {
+    const header = $w("#section3");
+    if (header && typeof header.collapse === "function") header.collapse();
+  } catch (error) {
+    // The embedded header still works if this page uses a different Wix section ID.
+  }
+}
+
 function buildPipSource() {
   const forwarded = ["pro", "project", "projectId"]
     .map((key) => {
@@ -81,6 +91,12 @@ function getPipComponent() {
 }
 
 async function handlePipLoginRequest(mode) {
+  if (mode === "logout") {
+    await authentication.logout();
+    wixLocation.to("/");
+    return;
+  }
+
   if (mode === "account") {
     wixLocation.to("/account-settings");
     return;
@@ -123,7 +139,8 @@ async function sendPipSession(pip, force = false) {
       ? {
           id: member._id,
           email: member.loginEmail || member.contactDetails?.emails?.[0] || null,
-          name: member.profile?.nickname || member.contactDetails?.firstName || null
+          name: member.profile?.nickname || member.contactDetails?.firstName || null,
+          photo: member.profile?.photo?.url || member.profilePhoto?.url || null
         }
       : null,
     subscription: publicSubscription,
