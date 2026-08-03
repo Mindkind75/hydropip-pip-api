@@ -22,6 +22,7 @@ const affiliateLinks = {
   foodSafePestControl: "https://www.amazon.com/s?k=food+safe+garden+pest+control+vegetables&tag=hydrpip2002-20",
   mediaTopOff: "https://www.amazon.com/s?k=perlite+vermiculite+hydroponic+growing+medium&tag=hydrpip2002-20"
 };
+const supportPipeUrl = "https://www.homedepot.com/p/100537138";
 const configuredProSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "";
 const proSignupUrl = configuredProSignupUrl.includes("pricing-plans") ? "https://www.hydropip.com/pip?pro=1" : configuredProSignupUrl || "https://www.hydropip.com/pip?pro=1";
 
@@ -52,7 +53,7 @@ export function recommendParts({ towerCount = 4 } = {}) {
       ...part,
       suggestedQuantity:
         part.name.includes("Four-pot") ? `${count * 2} orders total` :
-        part.name.includes("Schedule 40") || part.name.includes("PVC tee") || part.name.includes("cinder") ? `${count} total` :
+        part.name.includes("galvanized steel") || part.name.includes("PVC tee") || part.name.includes("cinder") ? `${count} total` :
         part.quantity
     }))
   };
@@ -121,6 +122,9 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   if (wantsHoseEndSize(q)) return hoseEndSizeAnswer(contextLead);
   if (wantsTowerFeedTubing(q) || wantsTubingPurchase(q)) return tubingSupplyAnswer(contextLead);
   if (wantsHoseEnd(q)) return hoseEndSupplyAnswer(contextLead);
+  if ((/\b(pipe|post)\b/.test(q) && /\b(support|supports|tower|center|galvanized|metal)\b/.test(q)) || wantsPart(q, ["support pipe", "center pipe", "tower pipe", "galvanized pipe", "galvanized steel", "metal post", "support post"])) {
+    return `${contextLead}Use an 8-10 foot, 1/2-inch galvanized steel pipe for each tower support. It must be rigid metal, not flexible plumbing or PVC.\n- Home Depot 10-foot reference: ${supportPipeUrl}\n- Keep roughly 5 feet above grade; choose 10 feet for deeper anchoring in exposed or windier locations.`;
+  }
   if (wantsPart(q, ["main hose", "main feed hose", "garden hose", "feed hose", "hose from pump", "hose to towers"])) {
     return `${contextLead}For the main feed line, use a garden hose long enough to run from the feed pump past each tower.\n- Main hose search: ${affiliateLinks.mainHose}\n- Leave extra length for flushing and future expansion.\n\nHydroPip may earn from qualifying Amazon purchases.`;
   }
@@ -173,7 +177,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Yes, you can scale HydroPip down to fit a smaller space.\n- HydroPip uses four-pot stack sections, so five sections equals 20 pockets per tower.\n- Keep each center pipe securely driven and the 3/4 inch tee loose/removable.\n- Recalibrate feed time by runoff because shorter towers wet faster.\n\nSend width, depth, height, and wind exposure and I will sanity-check it.`;
   }
   if (/\b(full|complete|entire|4 tower|four tower|shopping list|parts list|materials list)\b/.test(q) && /\b(link|links|buy|shopping|parts|materials|tower|system)\b/.test(q)) {
-    return `${contextLead}Core 4-tower shopping links:\n- Planter sections: https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20\n- Two pumps: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20\n- Smart plug: https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20\n- Nutrients: ${affiliateLinks.nutrients}\n- Perlite/vermiculite: https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20 and https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20\n\nLocal: 1/2 inch Schedule 40 pipe, 3/4 inch tees, cinder blocks.`;
+    return `${contextLead}Core 4-tower shopping links:\n- Planter sections: https://www.amazon.com/dp/B007TFTW3U?tag=hydrpip2002-20\n- Two pumps: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20\n- Smart plug: https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20\n- Nutrients: ${affiliateLinks.nutrients}\n- Perlite/vermiculite: https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20 and https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20\n\nLocal: four 8-10 foot, 1/2-inch galvanized steel support pipes (${supportPipeUrl}), four loose 3/4-inch PVC tees, and four cinder blocks.`;
   }
   if (/\b(yellow|chlorosis|pale)\b/.test(q) && /\b(leaf|leaves|lettuce|plant|plants)\b/.test(q)) {
     return `${contextLead}Check pH first, then nutrient strength.\n- If pH is out of range, plants can look hungry even with nutrients present.\n- Check EC/TDS before adding more feed.\n- Inspect roots and media moisture if yellowing is sudden.\n\nUseful tools: ${affiliateLinks.ecTdsMeter} and ${affiliateLinks.phCalibration}`;
@@ -254,13 +258,13 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}You can add towers to the existing HydroPip feed line if flow stays even.\n- Confirm the pump can maintain pressure at the farthest tower.\n- Keep small feed tubes consistent and retune duration by runoff.\n- Use extension adapters if the main hose needs more length: ${affiliateLinks.hoseAdapters}`;
   }
   if (q.includes("part") || q.includes("buy") || q.includes("amazon")) {
-    return `${contextLead}Core HydroPip parts: stackable four-pot sections, 1/2 inch Schedule 40 support pipe, loose 3/4 inch tee, cinder block, 275-gallon IBC, two pumps, smart plug, hose/tubing, 50/50 perlite-vermiculite, nutrients, and pH/EC tools.\n\nAsk for any item by name and I will give the matching link.`;
+    return `${contextLead}Core HydroPip parts: stackable four-pot sections, an 8-10 foot 1/2-inch galvanized steel support pipe, loose 3/4-inch PVC tee, cinder block, 275-gallon IBC, two pumps, smart plug, hose/tubing, 50/50 perlite-vermiculite, nutrients, and pH/EC tools.\n\nAsk for any item by name and I will give the matching link.`;
   }
   if (q.includes("feed") || q.includes("schedule") || q.includes("runoff")) {
     return `${contextLead}Start with timed feeds and tune from runoff.\n- Mild: about 2 feed windows/day.\n- Warm: about 3/day.\n- Hot or mature plants: 4-6 shorter windows.\n\nTell me crop, feed minutes, runoff, pH, and EC/TDS and I will tune it.`;
   }
   if (q.includes("build") || q.includes("step") || q.includes("setup")) {
-    return `${contextLead}Build order: anchor the 10-foot 1/2 inch Schedule 40 pipe, level the cinder block, stack the four-pot planters, use the 3/4 inch PVC tee as a loose top hose guide, add feed tubes and diffusers, install two IBC pumps, then calibrate timed feeds by runoff.`;
+    return `${contextLead}Build order: anchor an 8-10 foot, 1/2-inch galvanized steel support pipe, level the cinder block, stack the four-pot planters, use the 3/4-inch PVC tee as a loose top hose guide, add feed tubes and diffusers, install two IBC pumps, then calibrate timed feeds by runoff. Use the 10-foot support in exposed or windier locations for deeper anchoring.`;
   }
   if (q.includes("remind") || q.includes("track") || q.includes("save")) {
     return `${contextLead}I can definitely help plan it, but saving reminders/tracking is Pip Pro: ${proSignupUrl}\n\nFree Pip can still tell you what to do next for the HydroPip build and current grow.`;

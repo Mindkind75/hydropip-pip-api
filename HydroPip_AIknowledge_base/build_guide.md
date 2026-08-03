@@ -4,9 +4,10 @@ HydroPip is a real working timed-feed tower system. It is not a stock recirculat
 
 ## Core System
 
-- Each tower starts with a 10-foot Schedule 40 pipe.
-- The pipe is driven about 5 feet into the ground with a post driver.
-- About 5 feet of pipe remains above grade as the tower support.
+- Each tower starts with an 8-10 foot, 1/2-inch galvanized steel pipe. This is a rigid structural support, not flexible plumbing or PVC.
+- Keep roughly 5 feet of pipe above grade as the tower support.
+- In sheltered, lower-wind locations, an 8-foot pipe can leave roughly 3 feet embedded. Use a 10-foot pipe in exposed or windier locations so roughly 5 feet can be embedded while retaining the tower height.
+- Drive the galvanized steel pipe with a suitable post driver and confirm it is plumb and secure before stacking pots.
 - A single-cell cinder block sits at the bottom to lift and stabilize the stack.
 - The tower uses 10 four-pot stackable planter sections with center holes.
 - The current parts list assumes two orders of stackable planter sections per tower.

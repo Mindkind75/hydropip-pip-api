@@ -22,6 +22,7 @@ const cases = [
   { q: "What do I buy for the small line that feeds each tower?", type: "product", must: ["B0GQQP8M83", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
   { q: "I need the tool to poke holes in the hose.", type: "product", must: ["tubing+punch", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
   { q: "Where do I get the main hose from the pump to the towers?", type: "product", must: ["garden+hose", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
+  { q: "What pipe supports each tower and where do I buy it?", type: "free", must: ["galvanized steel", "rigid metal", "8-10", "100537138"], avoid: ["garden+hose", "PVC pipe"] },
   { q: "I need the smart timer plug.", type: "product", must: ["B091FXH2FR", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
   { q: "I need the grow medium.", type: "product", must: ["B0FYTT7D6F", "B08WF8C5CL", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
   { q: "What link do I need for the end of the hose so I can add more towers later?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip2002-20"] },

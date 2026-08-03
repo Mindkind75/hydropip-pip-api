@@ -24,7 +24,7 @@ const SYNONYMS = {
   schedule: ["feed", "timer", "reminder"],
   media: ["perlite", "vermiculite", "substrate"],
   reuse: ["reset", "recover", "recycle media"],
-  pipe: ["post", "schedule 40", "support"],
+  pipe: ["post", "galvanized steel", "metal support", "support"],
   tower: ["stack", "planter", "four-pot"],
   parts: ["amazon", "materials", "shopping", "buy"],
   safety: ["ibc", "chemical", "food-safe", "cleaning"],

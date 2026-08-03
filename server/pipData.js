@@ -13,13 +13,14 @@ export const setupWizardSchema = JSON.parse(fs.readFileSync(path.join(kbDir, "se
 export const buildSteps = [
   {
     id: "anchor",
-    title: "Anchor the 10-foot Schedule 40 support pipe",
+    title: "Anchor the galvanized steel support pipe",
     summary:
-      "Drive the pipe about 5 feet into the ground with a post driver and level a single-cell cinder block at the base.",
+      "Use an 8-10 foot, 1/2-inch galvanized steel pipe, keeping roughly 5 feet above grade, then level a single-cell cinder block at the base.",
     checklist: [
       "Mark tower spacing before driving pipe.",
       "Keep the pipe straight while driving it into the ground.",
-      "Confirm roughly 5 feet is buried and 5 feet remains above grade.",
+      "Use 8 feet in sheltered, lower-wind locations or 10 feet when deeper anchoring is needed for exposed or windier sites.",
+      "Confirm roughly 5 feet remains above grade and the steel pipe is secure.",
       "Seat the single-cell cinder block level at the base."
     ]
   },
@@ -80,7 +81,7 @@ export const parts = [
   { name: "Outdoor smart plug", quantity: "1 two-outlet outdoor unit", source: "Amazon", asin: "B091FXH2FR" },
   { name: "MasterBlend-style nutrient kit", quantity: "as needed", source: "Amazon", asin: "B0727VTWH5" },
   { name: "Perlite and vermiculite", quantity: "50/50 reusable media blend", source: "Amazon or garden supplier" },
-  { name: "10-foot Schedule 40 pipe", quantity: "1 per tower", source: "Home Depot/local hardware" },
+  { name: "8-10 foot 1/2-inch galvanized steel pipe", quantity: "1 per tower", source: "Home Depot/local hardware", url: "https://www.homedepot.com/p/100537138" },
   { name: "3/4-inch PVC tee", quantity: "1 per tower", source: "Home Depot/local hardware" },
   { name: "Single-cell cinder block", quantity: "1 per tower", source: "Home Depot/local hardware" }
 ];

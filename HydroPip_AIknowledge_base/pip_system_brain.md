@@ -15,7 +15,8 @@ System truths:
 - HydroPip is not a recirculating tower system.
 - HydroPip uses timed feeding from a 275 gallon IBC tank through tower feed lines.
 - The goal is to feed each tower the right amount and avoid unnecessary return plumbing.
-- Each tower uses a 10 foot Schedule 40 support pipe driven about 5 feet into the ground.
+- Each tower uses an 8-10 foot, 1/2-inch galvanized steel support pipe. It is rigid metal, not flexible plumbing or PVC.
+- Keep roughly 5 feet above grade. An 8-foot pipe can work in sheltered, lower-wind locations; use a 10-foot pipe for deeper anchoring in exposed or windier locations.
 - Each tower uses a single-cell cinder block at the base and stackable four-pot planter sections over the center pipe.
 - The current build uses two pumps in the IBC: one for circulation/mixing and one for tower feeding.
 - Pump outlets are controlled by an outdoor two-outlet smart plug/timer.
