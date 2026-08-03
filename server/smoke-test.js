@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { askPip, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
 import {
   appendProjectMessage,
+  claimBuildPhotoCheck,
   createProject,
   createProjectConversation,
   createProjectReading,
@@ -10,6 +11,7 @@ import {
   deleteUserData,
   deleteProjectSeed,
   getMemoryHealth,
+  getBuildPhotoAllowance,
   getProjectTemplates,
   listProjectMessages,
   listProjectConversations,
@@ -17,6 +19,7 @@ import {
   listProjectSeeds,
   listProjects,
   resetMemoryForTests,
+  refundBuildPhotoCheck,
   seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProjectConversation,
@@ -26,6 +29,7 @@ import {
 import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
+import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 
@@ -104,6 +108,23 @@ assert.equal(freeProject.status, "created");
 assert.equal(freeProject.project.systemProfile.growZone, "9");
 assert.equal(freeProject.project.systemProfile.areaType, "outdoor_open");
 assert.deepEqual(freeProject.project.systemProfile.goals, ["steady_harvests"]);
+
+assert.equal(classifyPhotoRequest({ message: "Is this tower section seated correctly?", projectType: "hydropip_build" }).access, "free_build");
+assert.equal(classifyPhotoRequest({ message: "What bug is eating these leaves?", projectType: "hydropip_build" }).access, "pip_pro_required");
+assert.equal(classifyPhotoRequest({ message: "", projectType: "hydropip_build" }).access, "question_required");
+assert.equal(classifyPhotoRequest({ message: "Diagnose this root photo", subscription: { active: true } }).access, "pip_pro");
+assert.equal(photoAnalysisSucceeded({ mode: "ai_rag" }), true);
+assert.equal(photoAnalysisSucceeded({ mode: "ai_error_fallback" }), false);
+assert.equal((await getBuildPhotoAllowance({ userId: "test-user" })).remaining, 5);
+for (let index = 0; index < 5; index += 1) {
+  const claimed = await claimBuildPhotoCheck({ userId: "test-user" });
+  assert.equal(claimed.allowed, true);
+  assert.equal(claimed.remaining, 4 - index);
+}
+assert.equal((await claimBuildPhotoCheck({ userId: "test-user" })).allowed, false);
+assert.equal((await refundBuildPhotoCheck({ userId: "test-user" })).remaining, 1);
+assert.equal((await claimBuildPhotoCheck({ userId: "test-user" })).remaining, 0);
+assert.equal((await getBuildPhotoAllowance({ userId: "test-user", subscription: { active: true } })).tier, "pip_pro");
 
 const defaultConversations = await listProjectConversations({ userId: "test-user", projectId: freeProject.project.id });
 assert.equal(defaultConversations.length, 1);

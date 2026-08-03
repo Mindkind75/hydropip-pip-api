@@ -183,7 +183,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Check pH first, then nutrient strength.\n- If pH is out of range, plants can look hungry even with nutrients present.\n- Check EC/TDS before adding more feed.\n- Inspect roots and media moisture if yellowing is sudden.\n\nUseful tools: ${affiliateLinks.ecTdsMeter} and ${affiliateLinks.phCalibration}`;
   }
   if (/\b(root|roots)\b/.test(q) && /\b(brown|slimy|smell|stink|rot|bad|foul)\b/.test(q)) {
-    return `${contextLead}That sounds like possible root stress or root rot.\n- Check water temperature, smell, and oxygen/circulation.\n- Remove badly affected plants so it does not spread.\n- Clean light leaks/debris and restart with healthy roots if needed.\n\nSend a root photo plus pH/EC and I will triage it.`;
+    return `${contextLead}That sounds like possible root stress or root rot.\n- Check water temperature, smell, and oxygen/circulation.\n- Remove badly affected plants so it does not spread.\n- Clean light leaks/debris and restart with healthy roots if needed.\n\nDescribe the roots plus pH/EC for free text help; Pip Pro can diagnose the root photo.`;
   }
   if (/\b(green slime|slime|algae|green film)\b/.test(q)) {
     return `${contextLead}Green slime usually means light is reaching nutrient water.\n- Cover the IBC and any exposed wet spots.\n- Scrub/flush the affected area.\n- Retest pH/EC after cleanup.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;

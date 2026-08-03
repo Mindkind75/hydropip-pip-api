@@ -19,10 +19,12 @@ import {
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
+  claimBuildPhotoCheck,
   deleteUserData,
   deleteProjectReminder,
   deleteProjectSeed,
   getMemoryHealth,
+  getBuildPhotoAllowance,
   getProject,
   getProjectTemplates,
   listProjectMessages,
@@ -31,6 +33,7 @@ import {
   listProjectReminders,
   listProjectSeeds,
   listProjects,
+  refundBuildPhotoCheck,
   seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProject,
@@ -39,6 +42,7 @@ import {
   updateProjectSeed,
   upsertUser
 } from "./pipMemory.js";
+import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -140,6 +144,20 @@ app.use("/api/pip/projects", requirePipMember);
 app.post("/api/pip/users", async (req, res, next) => {
   try {
     res.status(201).json({ user: await upsertUser(req.pipUser) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/users/me/photo-allowance", async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    res.json({
+      photoAllowance: await getBuildPhotoAllowance({
+        userId: req.pipUser.id,
+        subscription: req.pipSubscription
+      })
+    });
   } catch (error) {
     next(error);
   }
@@ -424,14 +442,82 @@ app.post("/api/pip/reminders", requirePipMember, (req, res) => {
 });
 
 app.post("/api/pip/chat", async (req, res, next) => {
+  let claimedPhotoCheck = false;
+  let access;
   try {
-    const access = optionalPipSession(req);
-    res.json(await askPip({
+    access = optionalPipSession(req);
+    let photoAllowance = null;
+    const hasPhoto = Boolean(req.body?.image?.dataUrl);
+
+    if (hasPhoto) {
+      if (!access.user?.id || !access.subscription?.verified) {
+        res.status(401).json({
+          error: "photo_account_required",
+          message: "Create a free HydroPip account to get five complimentary Build Checks. Pip will save the advice with your build conversation."
+        });
+        return;
+      }
+
+      await upsertUser(access.user);
+      const project = req.body?.projectId
+        ? await getProject({ userId: access.user.id, projectId: req.body.projectId })
+        : null;
+      const classification = classifyPhotoRequest({
+        message: req.body?.message,
+        projectType: project?.type,
+        subscription: access.subscription
+      });
+
+      if (classification.access === "question_required") {
+        res.status(400).json({ error: "photo_question_required", message: classification.message });
+        return;
+      }
+      if (classification.access === "pip_pro_required") {
+        photoAllowance = await getBuildPhotoAllowance({ userId: access.user.id, subscription: access.subscription });
+        res.status(402).json({
+          error: "photo_pro_required",
+          message: classification.message,
+          subscriptionRequired: true,
+          photoAllowance
+        });
+        return;
+      }
+
+      photoAllowance = await claimBuildPhotoCheck({ userId: access.user.id, subscription: access.subscription });
+      if (!photoAllowance.allowed) {
+        res.status(402).json({
+          error: "photo_limit_reached",
+          message: "You have used your five complimentary HydroPip Build Checks. Text build help stays available, or unlock ongoing photo guidance with Pip Pro: https://www.hydropip.com/pip?pro=1",
+          subscriptionRequired: true,
+          photoAllowance
+        });
+        return;
+      }
+      claimedPhotoCheck = !access.subscription?.active;
+    }
+
+    const result = await askPip({
       ...(req.body || {}),
       user: access.user,
       subscription: access.subscription
-    }));
+    });
+
+    if (hasPhoto && claimedPhotoCheck && !photoAnalysisSucceeded(result)) {
+      photoAllowance = await refundBuildPhotoCheck({ userId: access.user.id, subscription: access.subscription });
+      claimedPhotoCheck = false;
+    }
+    if (hasPhoto) {
+      result.photoAllowance = photoAllowance || await getBuildPhotoAllowance({ userId: access.user.id, subscription: access.subscription });
+    }
+    res.json(result);
   } catch (error) {
+    if (claimedPhotoCheck && access?.user?.id) {
+      try {
+        await refundBuildPhotoCheck({ userId: access.user.id, subscription: access.subscription });
+      } catch (refundError) {
+        console.warn(`Could not refund failed Build Check: ${refundError.message}`);
+      }
+    }
     next(error);
   }
 });

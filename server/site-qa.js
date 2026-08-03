@@ -33,7 +33,7 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction", "pipPhoto", "pipPhotoPreview", "pipPhotoRemove"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon", "pipInstallNudge", "pipInstallNudgeAction", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
 for (const page of ["profile", "schedule", "log", "history"]) {
@@ -50,6 +50,8 @@ assert.match(pipHtml, /conversationId:activeConversationId/, "Pip chat requests 
 assert.match(pipHtml, /New conversation/, "Pip should offer focused topic conversations");
 assert.match(pipHtml, /input_image|image:imageAttachment/, "Pip photo uploads are not connected to chat requests");
 assert.match(pipHtml, /thinking-dots/, "Pip should show an animated thinking state while requests are running");
+assert.match(pipHtml, /photo-allowance/, "Pip should show the member's remaining Build Checks");
+assert.match(pipHtml, /photo_limit_reached|data\.photoAllowance/, "Pip should handle the server-enforced photo allowance");
 assert.match(pipHtml, /window\.open\(destination,"_top"\)/, "Home Screen install should have a direct top-level navigation fallback");
 assert.match(pipHtml, /Your Pip Pro workspace is ready/, "Pro activation should offer a Home Screen install CTA");
 assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");
@@ -81,6 +83,11 @@ assert.equal((agentSource.match(/store:\s*false/g) || []).length >= 2, true, "Pi
 assert.match(agentSource, /input: \[\.\.\.responseInput, \.\.\.\(response\.output \|\| \[\]\), \.\.\.toolResults\]/, "Stored-disabled tool continuations must replay the original image, response output, and tool results");
 assert.doesNotMatch(agentSource, /previous_response_id:\s*response\.id/, "Pip cannot use previous_response_id when OpenAI response storage is disabled");
 assert.match(agentSource, /Never spend the whole reply describing the photo/, "Photo replies must reserve space for the user's next action");
+
+const indexSource = fs.readFileSync(new URL("./index.js", import.meta.url), "utf8");
+assert.match(indexSource, /claimBuildPhotoCheck/, "Build Check limits must be enforced by the server");
+assert.match(indexSource, /refundBuildPhotoCheck/, "Failed photo analyses must refund the Build Check");
+assert.match(indexSource, /photo_account_required/, "Photo uploads must require a member account");
 
 for (const manifest of ["manifest-build.webmanifest", "manifest-pro.webmanifest"]) {
   const value = JSON.parse(fs.readFileSync(new URL(`../${manifest}`, import.meta.url), "utf8"));

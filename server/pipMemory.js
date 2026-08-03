@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultDataFile = path.join(__dirname, ".data", "pip-memory.json");
 const dataFile = process.env.PIP_MEMORY_FILE || defaultDataFile;
+export const FREE_BUILD_PHOTO_LIMIT = 5;
 
 export const projectTemplates = [
   {
@@ -99,6 +100,66 @@ export async function upsertUser(user = {}) {
   };
   writeState(state);
   return state.users[normalized.id];
+}
+
+export async function getBuildPhotoAllowance({ userId, subscription = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  const used = await getBuildPhotoChecksUsed(ownerId);
+  return photoAllowance(used, subscription);
+}
+
+export async function claimBuildPhotoCheck({ userId, subscription = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  if (subscription?.active) return getBuildPhotoAllowance({ userId: ownerId, subscription });
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_users
+       set build_photo_checks_used = build_photo_checks_used + 1, updated_at = now()
+       where id = $1 and build_photo_checks_used < $2
+       returning build_photo_checks_used`,
+      [ownerId, FREE_BUILD_PHOTO_LIMIT]
+    );
+    if (!result.rows[0]) return { ...(await getBuildPhotoAllowance({ userId: ownerId, subscription })), allowed: false };
+    return { ...photoAllowance(Number(result.rows[0].build_photo_checks_used || 0), subscription), allowed: true };
+  }
+
+  const state = readState();
+  const user = state.users[ownerId];
+  if (!user) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  const used = Number(user.buildPhotoChecksUsed || 0);
+  if (used >= FREE_BUILD_PHOTO_LIMIT) return { ...photoAllowance(used, subscription), allowed: false };
+  user.buildPhotoChecksUsed = used + 1;
+  user.updatedAt = nowIso();
+  writeState(state);
+  return { ...photoAllowance(user.buildPhotoChecksUsed, subscription), allowed: true };
+}
+
+export async function refundBuildPhotoCheck({ userId, subscription = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  if (subscription?.active) return getBuildPhotoAllowance({ userId: ownerId, subscription });
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_users
+       set build_photo_checks_used = greatest(build_photo_checks_used - 1, 0), updated_at = now()
+       where id = $1
+       returning build_photo_checks_used`,
+      [ownerId]
+    );
+    return photoAllowance(Number(result.rows[0]?.build_photo_checks_used || 0), subscription);
+  }
+
+  const state = readState();
+  const user = state.users[ownerId];
+  if (user) {
+    user.buildPhotoChecksUsed = Math.max(0, Number(user.buildPhotoChecksUsed || 0) - 1);
+    user.updatedAt = nowIso();
+    writeState(state);
+  }
+  return photoAllowance(Number(user?.buildPhotoChecksUsed || 0), subscription);
 }
 
 export async function deleteUserData({ userId } = {}) {
@@ -777,9 +838,11 @@ async function ensureSchema(pool) {
       email text,
       name text,
       wix_member_id text,
+      build_photo_checks_used integer not null default 0,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     );
+    alter table pip_users add column if not exists build_photo_checks_used integer not null default 0;
 
     create table if not exists pip_projects (
       id text primary key,
@@ -875,7 +938,7 @@ async function upsertUserPg(normalized) {
        name = excluded.name,
        wix_member_id = excluded.wix_member_id,
        updated_at = now()
-     returning id, email, name, wix_member_id, created_at, updated_at`,
+     returning id, email, name, wix_member_id, build_photo_checks_used, created_at, updated_at`,
     [normalized.id, normalized.email, normalized.name, normalized.wixMemberId]
   );
   return rowToUser(result.rows[0]);
@@ -981,8 +1044,32 @@ function rowToUser(row) {
     email: row.email,
     name: row.name,
     wixMemberId: row.wix_member_id,
+    buildPhotoChecksUsed: Number(row.build_photo_checks_used || 0),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
+  };
+}
+
+async function getBuildPhotoChecksUsed(userId) {
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query("select build_photo_checks_used from pip_users where id = $1", [userId]);
+    return Number(result.rows[0]?.build_photo_checks_used || 0);
+  }
+  return Number(readState().users[userId]?.buildPhotoChecksUsed || 0);
+}
+
+function photoAllowance(used, subscription = {}) {
+  const normalizedUsed = Math.max(0, Number(used || 0));
+  if (subscription?.active) {
+    return { tier: "pip_pro", allowed: true, used: normalizedUsed, limit: null, remaining: null };
+  }
+  return {
+    tier: "free_build",
+    allowed: normalizedUsed < FREE_BUILD_PHOTO_LIMIT,
+    used: normalizedUsed,
+    limit: FREE_BUILD_PHOTO_LIMIT,
+    remaining: Math.max(0, FREE_BUILD_PHOTO_LIMIT - normalizedUsed)
   };
 }
 

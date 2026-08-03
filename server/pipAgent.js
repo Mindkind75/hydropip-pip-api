@@ -233,6 +233,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "General hydroponics education is allowed in free mode when it helps the user understand HydroPip or decide to build. Custom plans, optimization, troubleshooting, schedules, logs, reminders, or saved memory for a different non-HydroPip system are Pip Pro.",
       "If the retrieved context is not enough for an exact recommendation, say what is missing and ask one focused follow-up question.",
       "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
+      `Free-member photo checks are only for inspecting the HydroPip physical build, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "Do not pretend reminders are saved unless create_reminder returns queued.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
