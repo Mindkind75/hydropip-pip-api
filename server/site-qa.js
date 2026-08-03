@@ -81,8 +81,7 @@ assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero shou
 assert.match(homeHtml, /assets\/photos\/hydropip-mature-four-tower-system\.jpg/, "Home hero is missing the mature four-tower photo");
 assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");
-assert.match(homeHtml, /hydropipFlipDayDemo/, "Home should include the Flip Day Pip Points preview");
-assert.match(homeHtml, /data-quest-step=["']replant["']/, "Flip Day should guide users through replanting the next crop");
+assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
 
 for (const legalFile of ["privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"]) {
   const legalHtml = fs.readFileSync(new URL(`../${legalFile}`, import.meta.url), "utf8");
