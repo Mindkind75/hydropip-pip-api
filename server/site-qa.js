@@ -52,6 +52,8 @@ assert.match(pipHtml, /input_image|image:imageAttachment/, "Pip photo uploads ar
 assert.match(pipHtml, /thinking-dots/, "Pip should show an animated thinking state while requests are running");
 assert.match(pipHtml, /photo-allowance/, "Pip should show the member's remaining Build Checks");
 assert.match(pipHtml, /photo_limit_reached|data\.photoAllowance/, "Pip should handle the server-enforced photo allowance");
+assert.match(pipHtml, /pip_daily_limit_reached/, "Pip should explain daily AI limits without breaking local guidance");
+assert.match(pipHtml, /Pip Credits are coming soon/, "Pip should set a friendly expectation while top-up checkout is pending");
 assert.match(pipHtml, /pipBetaWelcomeDialog/, "Pip should include the beta welcome experience");
 assert.match(pipHtml, /pipBetaChecklist/, "Pip Pro should include the beta test checklist");
 assert.match(pipHtml, /Was this useful\?/, "Fresh Pip answers should support beta ratings");
@@ -98,6 +100,15 @@ const indexSource = fs.readFileSync(new URL("./index.js", import.meta.url), "utf
 assert.match(indexSource, /claimBuildPhotoCheck/, "Build Check limits must be enforced by the server");
 assert.match(indexSource, /refundBuildPhotoCheck/, "Failed photo analyses must refund the Build Check");
 assert.match(indexSource, /photo_account_required/, "Photo uploads must require a member account");
+assert.match(indexSource, /reserveAiUsage/, "OpenAI calls must reserve server-side usage before running");
+assert.match(indexSource, /completeAiUsage/, "Successful OpenAI calls must finalize usage records");
+assert.match(indexSource, /cancelAiUsageReservation/, "Failed OpenAI calls must release usage reservations");
+assert.match(indexSource, /pip_daily_limit_reached/, "Daily AI limit responses must use a stable error code");
+
+const memorySource = fs.readFileSync(new URL("./pipMemory.js", import.meta.url), "utf8");
+assert.match(memorySource, /create table if not exists pip_usage_events/, "Postgres must persist Pip AI usage events");
+assert.match(memorySource, /create table if not exists pip_credit_ledger/, "Postgres must keep an auditable Pip Credit ledger");
+assert.doesNotMatch(memorySource, /pip_usage_events[\s\S]{0,800}\bprompt\b/i, "Usage events must not add a raw prompt column");
 
 for (const manifest of ["manifest-build.webmanifest", "manifest-pro.webmanifest"]) {
   const value = JSON.parse(fs.readFileSync(new URL(`../${manifest}`, import.meta.url), "utf8"));

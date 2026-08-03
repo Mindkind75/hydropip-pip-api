@@ -13,6 +13,13 @@ Production web service for Pip, the HydroPip AI Buddy.
 ## Required Environment Variables
 
 - `OPENAI_API_KEY`: enables real OpenAI-backed answers.
+- `PIP_VISITOR_DAILY_AI_CREDITS`: anonymous daily AI allowance (default `5`).
+- `PIP_FREE_MEMBER_DAILY_AI_CREDITS`: signed free-member daily AI allowance (default `20`).
+- `PIP_PRO_DAILY_AI_CREDITS`: verified Pip Pro daily AI allowance (default `150`).
+- `PIP_TEXT_CREDIT_COST`, `PIP_DETAILED_CREDIT_COST`, `PIP_PHOTO_CREDIT_COST`: per-answer credit costs (defaults `1`, `3`, and `10`).
+- `PIP_AI_DISABLED`: set to `true` to skip OpenAI and keep deterministic/rules guidance available.
+- `PIP_MODEL_INPUT_COST_PER_MILLION`, `PIP_MODEL_OUTPUT_COST_PER_MILLION`: model cost estimates (defaults `0.25` and `2.00`).
+- `PIP_USAGE_HASH_SECRET`: optional salt for anonymous IP hashes; falls back to `PIP_BRIDGE_SECRET`.
 - `PIP_ALLOWED_ORIGINS`: comma-separated allowed website origins.
 - `PIP_MODEL`: defaults to `gpt-5-mini` for a strong cost/performance launch balance.
 - `PORT`: set automatically by Render.

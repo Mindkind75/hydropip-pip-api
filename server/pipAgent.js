@@ -2,6 +2,7 @@ import { systemBrain } from "./pipData.js";
 import { createGrowPlan, createReminder, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
 import { appendProjectMessage, buildProjectContext } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
+import { combineOpenAiUsage, pipAiDisabled } from "./pipUsage.js";
 
 let clientPromise;
 
@@ -79,7 +80,7 @@ const tools = [
   }
 ];
 
-export async function askPip({ message, image, profile, subscription, history = [], user, projectId, conversationId }) {
+export async function askPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, beforeAiCall }) {
   const imageInput = normalizeImageInput(image);
   const trimmed = String(message || "").trim() || (imageInput ? "Inspect this photo and identify the most likely HydroPip plant-health, pest, plumbing, or equipment issue." : "");
   if (!trimmed) return { answer: "Ask me where you are in the HydroPip build and I will guide the next step.", mode: "empty" };
@@ -193,6 +194,11 @@ export async function askPip({ message, image, profile, subscription, history = 
     return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory });
   }
 
+  const model = process.env.PIP_MODEL || "gpt-5-mini";
+  if (typeof beforeAiCall === "function") {
+    await beforeAiCall({ model, hasPhoto: Boolean(imageInput), detailed: wantsDetailedInfo(trimmed) });
+  }
+
   let response;
   const currentUserContent = [
     {
@@ -212,7 +218,7 @@ export async function askPip({ message, image, profile, subscription, history = 
   ];
   try {
     response = await client.responses.create({
-    model: process.env.PIP_MODEL || "gpt-5-mini",
+    model,
     store: false,
     instructions: [
       systemBrain,
@@ -279,14 +285,15 @@ export async function askPip({ message, image, profile, subscription, history = 
       answer,
       mode: "ai_rag",
       sources,
-      projectMemory
+      projectMemory,
+      aiUsage: { model, ...combineOpenAiUsage(response) }
     };
   }
 
   let final;
   try {
     final = await client.responses.create({
-    model: process.env.PIP_MODEL || "gpt-5-mini",
+    model,
     store: false,
     instructions: [
       "Answer as Pip using the tool results.",
@@ -320,7 +327,8 @@ export async function askPip({ message, image, profile, subscription, history = 
     answer,
     mode: "ai_tools_rag",
     sources,
-    projectMemory
+    projectMemory,
+    aiUsage: { model, ...combineOpenAiUsage(response, final) }
   };
 }
 
@@ -479,7 +487,7 @@ function isClearlyOffTopic(message) {
 }
 
 async function getOpenAiClient() {
-  if (!process.env.OPENAI_API_KEY) return null;
+  if (pipAiDisabled() || !process.env.OPENAI_API_KEY) return null;
   clientPromise ||= import("openai")
     .then(({ default: OpenAI }) => new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
     .catch((error) => {

@@ -9,11 +9,15 @@ import {
   createProjectReminder,
   createProjectSeed,
   createBetaFeedback,
+  cancelAiUsageReservation,
+  completeAiUsage,
   deleteUserData,
   deleteProjectSeed,
   getMemoryHealth,
   getBetaExperience,
   getBuildPhotoAllowance,
+  getDailyAiUsageSummary,
+  getPipCreditBalance,
   getProjectTemplates,
   listProjectMessages,
   listProjectConversations,
@@ -22,17 +26,21 @@ import {
   listProjects,
   resetMemoryForTests,
   refundBuildPhotoCheck,
+  reserveAiUsage,
+  grantPipCredits,
   seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProjectConversation,
   updateProjectReminder,
   updateBetaExperience,
-  updateProject
+  updateProject,
+  upsertUser
 } from "./pipMemory.js";
 import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
+import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 
@@ -89,6 +97,101 @@ assert.equal(Array.isArray(answer.sources), true);
 resetMemoryForTests();
 const memoryHealth = await getMemoryHealth();
 assert.equal(memoryHealth.mode, "file");
+
+const originalUsageEnv = {
+  visitor: process.env.PIP_VISITOR_DAILY_AI_CREDITS,
+  member: process.env.PIP_FREE_MEMBER_DAILY_AI_CREDITS,
+  pro: process.env.PIP_PRO_DAILY_AI_CREDITS
+};
+process.env.PIP_VISITOR_DAILY_AI_CREDITS = "2";
+process.env.PIP_FREE_MEMBER_DAILY_AI_CREDITS = "3";
+process.env.PIP_PRO_DAILY_AI_CREDITS = "4";
+
+async function consumeUsage({ userId, ipHash, tier, credits = 1, eventType = "text_answer" }) {
+  const reservation = await reserveAiUsage({ userId, ipHash, tier, creditsRequired: credits, eventType });
+  if (reservation.allowed) {
+    await completeAiUsage({ reservationId: reservation.reservationId, model: "gpt-5-mini", inputTokens: 100, outputTokens: 50, estimatedCostUsd: estimateModelCost({ inputTokens: 100, outputTokens: 50 }) });
+  }
+  return reservation;
+}
+
+assert.equal((await consumeUsage({ ipHash: "visitor-ip", tier: "visitor" })).allowed, true);
+assert.equal((await consumeUsage({ ipHash: "visitor-ip", tier: "visitor" })).allowed, true);
+const visitorBlocked = await consumeUsage({ ipHash: "visitor-ip", tier: "visitor" });
+assert.equal(visitorBlocked.allowed, false);
+assert.equal(visitorBlocked.dailyLimit, 2);
+assert.equal(visitorBlocked.usedToday, 2);
+
+await upsertUser({ id: "usage-free" });
+for (let index = 0; index < 3; index += 1) assert.equal((await consumeUsage({ userId: "usage-free", ipHash: "free-ip", tier: "free_member" })).allowed, true);
+assert.equal((await consumeUsage({ userId: "usage-free", ipHash: "free-ip", tier: "free_member" })).allowed, false);
+
+await upsertUser({ id: "usage-pro" });
+for (let index = 0; index < 4; index += 1) assert.equal((await consumeUsage({ userId: "usage-pro", ipHash: "pro-ip", tier: "pip_pro" })).allowed, true);
+assert.equal((await consumeUsage({ userId: "usage-pro", ipHash: "pro-ip", tier: "pip_pro" })).allowed, false);
+
+await upsertUser({ id: "usage-topup" });
+for (let index = 0; index < 3; index += 1) await consumeUsage({ userId: "usage-topup", ipHash: "topup-ip", tier: "free_member" });
+await grantPipCredits({ userId: "usage-topup", amount: 5, reason: "Smoke test grant" });
+const topUpSpend = await consumeUsage({ userId: "usage-topup", ipHash: "topup-ip", tier: "free_member", credits: 3, eventType: "detailed_answer" });
+assert.equal(topUpSpend.allowed, true);
+assert.equal(topUpSpend.funding, "top_up");
+assert.equal(await getPipCreditBalance({ userId: "usage-topup" }), 2);
+
+process.env.PIP_FREE_MEMBER_DAILY_AI_CREDITS = "0";
+await upsertUser({ id: "usage-refund" });
+await grantPipCredits({ userId: "usage-refund", amount: 2, reason: "Refund test grant" });
+const failedReservation = await reserveAiUsage({ userId: "usage-refund", ipHash: "refund-ip", tier: "free_member", creditsRequired: 1, eventType: "text_answer" });
+assert.equal(await getPipCreditBalance({ userId: "usage-refund" }), 1);
+assert.equal((await cancelAiUsageReservation({ reservationId: failedReservation.reservationId })).refunded, 1);
+assert.equal(await getPipCreditBalance({ userId: "usage-refund" }), 2);
+assert.equal((await getDailyAiUsageSummary({ userId: "usage-refund", ipHash: "refund-ip", tier: "free_member" })).eventCountToday, 0);
+
+assert.equal(estimateAiCreditCost({ message: "Quick question", hasPhoto: true }), 10);
+assert.equal(estimateAiCreditCost({ message: "Give me a detailed walkthrough" }), 3);
+assert.equal(estimateAiCreditCost({ message: "Quick question" }), 1);
+assert.equal(estimateModelCost({ inputTokens: 100, outputTokens: 50 }), 0.000125);
+assert.deepEqual(combineOpenAiUsage({ usage: { input_tokens: 100, output_tokens: 50 } }), { inputTokens: 100, outputTokens: 50 });
+assert.deepEqual(combineOpenAiUsage({}), { inputTokens: null, outputTokens: null });
+assert.equal(makeDailyLimitPayload({ dailyLimit: 5, usedToday: 5, creditsRequired: 1 }).error, "pip_daily_limit_reached");
+const privacyReservation = await reserveAiUsage({ ipHash: "privacy-ip", tier: "visitor", creditsRequired: 1, eventType: "text_answer", metadata: { prompt: "do not store", safeFlag: true } });
+const privacyEvent = await completeAiUsage({ reservationId: privacyReservation.reservationId, model: "gpt-5-mini", inputTokens: 10, outputTokens: 5, estimatedCostUsd: 0.0000125 });
+assert.equal(Object.hasOwn(privacyEvent.metadata, "prompt"), false);
+assert.equal(privacyEvent.metadata.safeFlag, true);
+assert.equal(resolvePipUsageTier({ user: { id: "member" }, subscription: { active: true, verified: false } }), "free_member");
+assert.equal(resolvePipUsageTier({ user: { id: "member" }, subscription: { active: true, verified: true } }), "pip_pro");
+const priorOpenAiKey = process.env.OPENAI_API_KEY;
+process.env.OPENAI_API_KEY = "unused-smoke-key";
+let deterministicGateCalls = 0;
+const deterministicAnswer = await askPip({
+  message: "What piece goes on the end of the main hose?",
+  subscription: { active: false },
+  beforeAiCall: async () => { deterministicGateCalls += 1; }
+});
+assert.equal(deterministicAnswer.mode, "rules_direct");
+assert.equal(deterministicGateCalls, 0);
+assert.equal((await getDailyAiUsageSummary({ ipHash: "rules-only-ip", tier: "visitor" })).usedToday, 0);
+const priorAiDisabled = process.env.PIP_AI_DISABLED;
+process.env.PIP_AI_DISABLED = "true";
+let disabledGateCalls = 0;
+const disabledAnswer = await askPip({
+  message: "How does nutrient chelation affect uptake in warm water?",
+  subscription: { active: false },
+  beforeAiCall: async () => { disabledGateCalls += 1; }
+});
+assert.equal(disabledAnswer.mode, "rules_fallback");
+assert.equal(disabledGateCalls, 0);
+if (priorAiDisabled === undefined) delete process.env.PIP_AI_DISABLED;
+else process.env.PIP_AI_DISABLED = priorAiDisabled;
+if (priorOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
+else process.env.OPENAI_API_KEY = priorOpenAiKey;
+
+for (const [key, value] of Object.entries(originalUsageEnv)) {
+  const name = key === "visitor" ? "PIP_VISITOR_DAILY_AI_CREDITS" : key === "member" ? "PIP_FREE_MEMBER_DAILY_AI_CREDITS" : "PIP_PRO_DAILY_AI_CREDITS";
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}
+resetMemoryForTests();
 
 const templates = getProjectTemplates();
 assert.equal(templates.templates.some((template) => template.id === "existing_system_setup"), true);

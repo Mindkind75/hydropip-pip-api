@@ -165,7 +165,6 @@
   var requestedProjectId = pipQuery.get("projectId");
   if(proMode)document.body.classList.add("pro-mode");
   var mascot = "https://static.wixstatic.com/media/5fe7cb_cdb3b09ac4864f5491fc6324cafb7182~mv2.png/v1/fill/w_71,h_71,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/2c7aedcc-5630-465d-b27c-c60a878d613e.png";
-  var freeQuestionLimit = 3;
   var leadKey = "hydropipPipLeadEmail";
   var countKey = "hydropipPipFreeQuestionCount";
   var userKey = "hydropipPipUserId";
@@ -316,7 +315,7 @@
   function saveProjectId(type,id){var projects=savedProjects();projects[type]=id;localStorage.setItem(projectStorageKey(),JSON.stringify(projects))}
   function renderProjects(){var item=projectTypes[activeProjectType]||projectTypes.hydropip_build;var active=pipConversations.find(function(entry){return entry.id===activeConversationId});var note=hasLead()?(active?active.title:"Conversation saved to your account"):"Create an account to save and continue this chat";projectRow.innerHTML='<button class="project-btn active" type="button" data-pip-project="'+activeProjectType+'"><strong>'+escapeHtml(item.label)+'</strong><small>'+escapeHtml(note)+'</small></button>';updateMemoryCard()}
   function updateMemoryCard(){if(!memoryTitle||!memoryText)return;if(hasLead()){memoryTitle.textContent="Your conversation is saved.";memoryText.textContent=isPro()?"Pip keeps this chat connected to the selected grow in your Pro workspace.":"Pip keeps this chat connected to your HydroPip build so you can continue later."}else{memoryTitle.textContent="Your build, remembered.";memoryText.textContent="Create an account and Pip will keep this conversation tied to your HydroPip build."}}
-  function shouldGate(){return !hasLead()&&count()>=freeQuestionLimit}
+  function shouldGate(){return false}
   function setGate(open,mode){gate.classList.toggle("open",open);form.style.display=open?"none":"grid";var quick=document.querySelector(".quick");if(quick)quick.style.display=open?"none":"";if(projectRow)projectRow.style.display=open?"none":"";if(open){var pro=mode==="pro";gateText.textContent=pro?"I can definitely help with that, but this is Pip Pro subscription behavior. Pip Pro unlocks saved reminders, crop schedules, grow logs, and support for other hydro systems.":"Create a free HydroPip account to keep asking Pip and save your HydroPip build project.";gateButton.textContent=pro?"View Pip Pro":"Create free account"}}
   function requestAccount(mode){try{window.parent.postMessage({type:"HYDROPIP_PIP_LOGIN_REQUEST",mode:mode||"signup"},"*")}catch(error){}}
   var previewCopy={profile:{label:"Grow profile",title:"Pip remembers the system you are actually growing in.",text:"Save your zone, location, crops, tower count, reservoir, grow area, medium, and goals once so Pip can give advice that fits your setup.",color:"#79bd8b"},schedule:{label:"Schedule",title:"Turn the grow plan into clear next steps.",text:"Save feeding, pruning, harvest, refill, planting, and reset tasks. Edit the dates and repeat rhythm as the crop changes.",color:"#e6b547"},maintenance:{label:"Maintenance",title:"Start with a proven upkeep rhythm.",text:"Pip preloads practical IBC, pump, line-flush, flow-check, nutrient, and meter-calibration tasks, then lets you adjust each reminder.",color:"#a89c4c"},seeds:{label:"Seeds",title:"Keep the next planting ready.",text:"Track crop varieties, quantities, sources, sow dates, and reorder needs alongside the grow they belong to.",color:"#86a852"},log:{label:"Grow log",title:"Record what the crop is telling you.",text:"Save pH, EC/TDS, water temperature, symptoms, pruning, harvests, fixes, and observations so Pip has useful history next time.",color:"#68a8bb"},history:{label:"History",title:"Pick up where you left off.",text:"Keep recent Pip conversations, reminders, readings, and grow records connected to the correct project instead of starting over.",color:"#d98972"},build:{label:"Track My Build",title:"Keep the parts list connected to the grow.",text:"Open the full member checklist for quantities, affiliate links, local-pickup notes, and device-saved checkmarks, then return to your Pro notebook for schedules and maintenance.",color:"#d88f58"},account:{label:"Account",title:"Keep membership and billing under your control.",text:"View renewal details, change the payment card, manage your member profile, or cancel Pip Pro from your HydroPip account.",color:"#758999"}};
@@ -422,6 +421,12 @@
       var data=await response.json().catch(function(){return{}});
       if(data.photoAllowance)setPhotoAllowance(data.photoAllowance);
       if(!response.ok){
+        if(data.error==="pip_daily_limit_reached"){
+          var resetText=data.resetAt?" Your included AI time resets "+new Date(data.resetAt).toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"})+".":"";
+          var accountText=!hasLead()?" Create a free account for a larger daily allowance: https://www.hydropip.com/pip":"";
+          var limitText="You\u2019ve used today\u2019s included Pip AI time. You can continue tomorrow, or add Pip Credits to keep going today."+resetText+"\n\nPip Credits are coming soon."+accountText+(!isPro()&&hasLead()?" See Pip Pro at https://www.hydropip.com/pip?pro=1":"");
+          setBubbleText(pending,limitText);remember("pip",limitText);pending.parentElement.removeAttribute("data-pending");return;
+        }
         if(imageAttachment&&/^photo_/.test(data.error||"")){var accessText=data.message||"That photo feature needs Pip Pro.";setBubbleText(pending,accessText);remember("pip",accessText);pending.parentElement.removeAttribute("data-pending");return}
         throw new Error(data.message||"Pip could not examine that photo.");
       }
@@ -449,7 +454,7 @@
   conversationForm.addEventListener("submit",saveConversation);
   document.querySelector("#pipConversationCancel").addEventListener("click",function(){conversationDialog.close()});
   document.addEventListener("click",function(event){if(!event.target.closest(".conversation-bar"))conversationPopover.hidden=true});
-  async function acknowledgeBetaWelcome(openChecklist){try{var data=await proRequest("/api/pip/users/me/beta",{method:"PATCH",body:JSON.stringify({welcomeSeen:true})});betaExperience=data.beta||betaExperience;renderBetaExperience()}catch(error){}betaWelcomeDialog.close();if(openChecklist&&!proMode){window.open("https://www.hydropip.com/pip?pro=1","_top");return}if(openChecklist){activateProPage("beta");document.querySelector('[data-pro-panel="beta"]').scrollIntoView({behavior:"smooth",block:"start")}}
+  async function acknowledgeBetaWelcome(openChecklist){try{var data=await proRequest("/api/pip/users/me/beta",{method:"PATCH",body:JSON.stringify({welcomeSeen:true})});betaExperience=data.beta||betaExperience;renderBetaExperience()}catch(error){}betaWelcomeDialog.close();if(openChecklist&&!proMode){window.open("https://www.hydropip.com/pip?pro=1","_top");return}if(openChecklist){activateProPage("beta");document.querySelector('[data-pro-panel="beta"]').scrollIntoView({behavior:"smooth",block:"start"})}}
   document.querySelector("#pipBetaStart").addEventListener("click",function(){acknowledgeBetaWelcome(false)});
   document.querySelector("#pipBetaOpenChecklist").addEventListener("click",function(){acknowledgeBetaWelcome(true)});
   document.querySelector("#pipOpenFeedback").addEventListener("click",function(){openFeedback()});

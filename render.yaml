@@ -25,3 +25,21 @@ services:
         value: false
       - key: PIP_MODEL
         value: gpt-5-mini
+      - key: PIP_VISITOR_DAILY_AI_CREDITS
+        value: 5
+      - key: PIP_FREE_MEMBER_DAILY_AI_CREDITS
+        value: 20
+      - key: PIP_PRO_DAILY_AI_CREDITS
+        value: 150
+      - key: PIP_TEXT_CREDIT_COST
+        value: 1
+      - key: PIP_DETAILED_CREDIT_COST
+        value: 3
+      - key: PIP_PHOTO_CREDIT_COST
+        value: 10
+      - key: PIP_AI_DISABLED
+        value: false
+      - key: PIP_MODEL_INPUT_COST_PER_MILLION
+        value: 0.25
+      - key: PIP_MODEL_OUTPUT_COST_PER_MILLION
+        value: 2.00

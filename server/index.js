@@ -20,7 +20,9 @@ import {
   createProjectReminder,
   createProjectSeed,
   createBetaFeedback,
+  cancelAiUsageReservation,
   claimBuildPhotoCheck,
+  completeAiUsage,
   deleteUserData,
   deleteProjectReminder,
   deleteProjectSeed,
@@ -29,6 +31,8 @@ import {
   getBetaExperience,
   getProject,
   getProjectTemplates,
+  getDailyAiUsageSummary,
+  grantPipCredits,
   listProjectMessages,
   listProjectConversations,
   listProjectReadings,
@@ -36,6 +40,7 @@ import {
   listProjectSeeds,
   listProjects,
   refundBuildPhotoCheck,
+  reserveAiUsage,
   seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProject,
@@ -46,6 +51,15 @@ import {
   upsertUser
 } from "./pipMemory.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
+import {
+  aiUsageEventType,
+  clientIpHash,
+  estimateAiCreditCost,
+  estimateModelCost,
+  makeDailyLimitPayload,
+  pipAiDisabled,
+  resolvePipUsageTier
+} from "./pipUsage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -105,8 +119,8 @@ app.get("/api/pip/health", async (_req, res, next) => {
     const memory = await getMemoryHealth();
     res.json({
       ok: true,
-      ai: Boolean(process.env.OPENAI_API_KEY),
-      mode: process.env.OPENAI_API_KEY ? "openai" : "rules_fallback",
+      ai: Boolean(process.env.OPENAI_API_KEY) && !pipAiDisabled(),
+      mode: process.env.OPENAI_API_KEY && !pipAiDisabled() ? "openai" : "rules_fallback",
       sessions: {
         configured: signedSessionsConfigured(),
         required: signedSessionsRequired()
@@ -141,6 +155,26 @@ app.post("/api/pip/session/exchange", (req, res) => {
   res.json({ token, expiresIn: 6 * 60 * 60 });
 });
 
+app.post("/api/pip/admin/credits/grant", async (req, res, next) => {
+  if (!bridgeRequestAllowed(req)) {
+    res.status(401).json({ error: "invalid_bridge_credentials" });
+    return;
+  }
+  try {
+    const userId = String(req.body?.userId || "").trim();
+    const entry = await grantPipCredits({
+      userId,
+      amount: req.body?.amount,
+      reason: req.body?.reason,
+      source: req.body?.source || "manual_admin",
+      metadata: req.body?.metadata
+    });
+    res.status(201).json({ entry, balance: (await getDailyAiUsageSummary({ userId, tier: "free_member" })).topUpBalance });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use("/api/pip/users", requirePipMember);
 app.use("/api/pip/projects", requirePipMember);
 app.use("/api/pip/feedback", requirePipBeta);
@@ -160,6 +194,21 @@ app.get("/api/pip/users/me/photo-allowance", async (req, res, next) => {
       photoAllowance: await getBuildPhotoAllowance({
         userId: req.pipUser.id,
         subscription: req.pipSubscription
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/users/me/usage", async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    res.json({
+      usage: await getDailyAiUsageSummary({
+        userId: req.pipUser.id,
+        ipHash: clientIpHash(req),
+        tier: resolvePipUsageTier({ user: req.pipUser, subscription: req.pipSubscription })
       })
     });
   } catch (error) {
@@ -481,6 +530,7 @@ app.post("/api/pip/reminders", requirePipMember, (req, res) => {
 
 app.post("/api/pip/chat", async (req, res, next) => {
   let claimedPhotoCheck = false;
+  let aiReservation = null;
   let access;
   try {
     access = optionalPipSession(req);
@@ -537,8 +587,58 @@ app.post("/api/pip/chat", async (req, res, next) => {
     const result = await askPip({
       ...(req.body || {}),
       user: access.user,
-      subscription: access.subscription
+      subscription: access.subscription,
+      beforeAiCall: async () => {
+        if (access.user?.id) await upsertUser(access.user);
+        const tier = resolvePipUsageTier({ user: access.user, subscription: access.subscription });
+        const creditsRequired = estimateAiCreditCost({ message: req.body?.message, hasPhoto });
+        aiReservation = await reserveAiUsage({
+          userId: access.user?.id || null,
+          ipHash: clientIpHash(req),
+          tier,
+          creditsRequired,
+          eventType: aiUsageEventType({ message: req.body?.message, hasPhoto }),
+          metadata: {
+            projectId: req.body?.projectId || null,
+            conversationId: req.body?.conversationId || null,
+            hasPhoto
+          }
+        });
+        if (!aiReservation.allowed) {
+          const error = new Error("Pip daily AI limit reached");
+          error.statusCode = 402;
+          error.code = "pip_daily_limit_reached";
+          error.payload = makeDailyLimitPayload(aiReservation);
+          throw error;
+        }
+      }
     });
+
+    if (aiReservation?.allowed) {
+      if (result.aiUsage) {
+        const estimatedCostUsd = estimateModelCost(result.aiUsage);
+        await completeAiUsage({
+          reservationId: aiReservation.reservationId,
+          model: result.aiUsage.model,
+          inputTokens: result.aiUsage.inputTokens,
+          outputTokens: result.aiUsage.outputTokens,
+          estimatedCostUsd,
+          metadata: { mode: result.mode }
+        });
+        result.usage = {
+          creditsUsed: aiReservation.creditsRequired,
+          funding: aiReservation.funding,
+          dailyLimit: aiReservation.dailyLimit,
+          usedToday: aiReservation.usedToday + (aiReservation.funding === "included" ? aiReservation.creditsRequired : 0),
+          topUpBalance: aiReservation.topUpBalance,
+          resetAt: aiReservation.resetAt
+        };
+        aiReservation = null;
+      } else {
+        await cancelAiUsageReservation({ reservationId: aiReservation.reservationId, reason: "Pip used a local fallback" });
+        aiReservation = null;
+      }
+    }
 
     if (hasPhoto && claimedPhotoCheck && !photoAnalysisSucceeded(result)) {
       photoAllowance = await refundBuildPhotoCheck({ userId: access.user.id, subscription: access.subscription });
@@ -549,12 +649,24 @@ app.post("/api/pip/chat", async (req, res, next) => {
     }
     res.json(result);
   } catch (error) {
+    if (aiReservation?.allowed) {
+      try {
+        await cancelAiUsageReservation({ reservationId: aiReservation.reservationId, reason: "OpenAI call failed" });
+      } catch (refundError) {
+        console.warn(`Could not refund failed Pip AI usage: ${refundError.message}`);
+      }
+      aiReservation = null;
+    }
     if (claimedPhotoCheck && access?.user?.id) {
       try {
         await refundBuildPhotoCheck({ userId: access.user.id, subscription: access.subscription });
       } catch (refundError) {
         console.warn(`Could not refund failed Build Check: ${refundError.message}`);
       }
+    }
+    if (error.code === "pip_daily_limit_reached") {
+      res.status(error.statusCode || 402).json(error.payload || makeDailyLimitPayload({}));
+      return;
     }
     next(error);
   }

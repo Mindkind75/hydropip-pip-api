@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { dailyLimitForTier, dailyResetAt } from "./pipUsage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultDataFile = path.join(__dirname, ".data", "pip-memory.json");
@@ -66,7 +67,9 @@ const defaultState = {
   reminders: {},
   readings: {},
   seeds: {},
-  pushSubscriptions: {}
+  pushSubscriptions: {},
+  usageEvents: {},
+  creditLedger: {}
 };
 
 let stateCache;
@@ -84,6 +87,286 @@ export async function getMemoryHealth() {
   await ensureSchema(pool);
   await pool.query("select 1");
   return { mode: "postgres", persistent: true };
+}
+
+export async function getDailyAiUsageSummary({ userId, ipHash, tier } = {}) {
+  const identity = normalizeUsageIdentity({ userId, ipHash });
+  const normalizedTier = normalizeUsageTier(tier);
+  const dailyLimit = dailyLimitForTier(normalizedTier);
+  const resetAt = dailyResetAt();
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const usedResult = await pool.query(
+      `select coalesce(sum(credits_used), 0)::integer as used,
+              count(*)::integer as event_count
+       from pip_usage_events
+       where ${identity.userId ? "user_id = $1" : "user_id is null and ip_hash = $1"}
+         and created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
+         and coalesce(metadata->>'funding', 'included') = 'included'`,
+      [identity.userId || identity.ipHash]
+    );
+    return {
+      tier: normalizedTier,
+      dailyLimit,
+      usedToday: Number(usedResult.rows[0]?.used || 0),
+      eventCountToday: Number(usedResult.rows[0]?.event_count || 0),
+      topUpBalance: identity.userId ? await getPipCreditBalance({ userId: identity.userId }) : 0,
+      resetAt
+    };
+  }
+
+  const state = readState();
+  const start = utcDayStart();
+  const events = Object.values(state.usageEvents).filter((event) => usageEventMatches(event, identity, start));
+  return {
+    tier: normalizedTier,
+    dailyLimit,
+    usedToday: events.filter((event) => event.metadata?.funding !== "top_up").reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0),
+    eventCountToday: events.length,
+    topUpBalance: identity.userId ? creditBalanceFromState(state, identity.userId) : 0,
+    resetAt
+  };
+}
+
+export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, eventType, metadata = {} } = {}) {
+  const identity = normalizeUsageIdentity({ userId, ipHash });
+  const normalizedTier = normalizeUsageTier(tier);
+  const required = normalizeCreditAmount(creditsRequired, "creditsRequired");
+  const dailyLimit = dailyLimitForTier(normalizedTier);
+  const reservationId = makeId("usage");
+  const safeMetadata = normalizeUsageMetadata(metadata);
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtext($1))", [usageLockKey(identity)]);
+      const usedResult = await client.query(
+        `select coalesce(sum(credits_used), 0)::integer as used
+         from pip_usage_events
+         where ${identity.userId ? "user_id = $1" : "user_id is null and ip_hash = $1"}
+           and created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
+           and coalesce(metadata->>'funding', 'included') = 'included'`,
+        [identity.userId || identity.ipHash]
+      );
+      const usedToday = Number(usedResult.rows[0]?.used || 0);
+      let funding = "included";
+      let topUpBalance = 0;
+
+      if (usedToday + required > dailyLimit) {
+        funding = "top_up";
+        if (identity.userId) {
+          const balanceResult = await client.query(
+            "select coalesce(sum(amount), 0)::integer as balance from pip_credit_ledger where user_id = $1",
+            [identity.userId]
+          );
+          topUpBalance = Number(balanceResult.rows[0]?.balance || 0);
+        }
+        if (!identity.userId || topUpBalance < required) {
+          await client.query("rollback");
+          return { allowed: false, dailyLimit, usedToday, creditsRequired: required, topUpBalance, resetAt: dailyResetAt() };
+        }
+      }
+
+      const eventMetadata = { ...safeMetadata, status: "pending", funding };
+      await client.query(
+        `insert into pip_usage_events
+           (id, user_id, ip_hash, session_tier, event_type, credits_used, metadata, created_at)
+         values ($1, $2, $3, $4, $5, $6, $7::jsonb, now())`,
+        [reservationId, identity.userId, identity.ipHash, normalizedTier, cleanUsageText(eventType, 80) || "text_answer", required, JSON.stringify(eventMetadata)]
+      );
+      if (funding === "top_up") {
+        await client.query(
+          `insert into pip_credit_ledger (id, user_id, amount, reason, source, usage_event_id, metadata, created_at)
+           values ($1, $2, $3, $4, $5, $6, $7::jsonb, now())`,
+          [makeId("credit"), identity.userId, -required, "Pip AI usage", "usage_spend", reservationId, JSON.stringify({ eventType: cleanUsageText(eventType, 80) })]
+        );
+      }
+      await client.query("commit");
+      return { allowed: true, reservationId, funding, dailyLimit, usedToday, creditsRequired: required, topUpBalance: funding === "top_up" ? topUpBalance - required : topUpBalance, resetAt: dailyResetAt() };
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  const state = readState();
+  const start = utcDayStart();
+  const events = Object.values(state.usageEvents).filter((event) => usageEventMatches(event, identity, start));
+  const usedToday = events.filter((event) => event.metadata?.funding !== "top_up").reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0);
+  let funding = "included";
+  let topUpBalance = identity.userId ? creditBalanceFromState(state, identity.userId) : 0;
+  if (usedToday + required > dailyLimit) {
+    funding = "top_up";
+    if (!identity.userId || topUpBalance < required) {
+      return { allowed: false, dailyLimit, usedToday, creditsRequired: required, topUpBalance, resetAt: dailyResetAt() };
+    }
+  }
+  const createdAt = nowIso();
+  state.usageEvents[reservationId] = {
+    id: reservationId,
+    userId: identity.userId,
+    ipHash: identity.ipHash,
+    sessionTier: normalizedTier,
+    eventType: cleanUsageText(eventType, 80) || "text_answer",
+    creditsUsed: required,
+    model: null,
+    inputTokens: null,
+    outputTokens: null,
+    estimatedCostUsd: null,
+    metadata: { ...safeMetadata, status: "pending", funding },
+    createdAt
+  };
+  if (funding === "top_up") {
+    const ledgerId = makeId("credit");
+    state.creditLedger[ledgerId] = {
+      id: ledgerId,
+      userId: identity.userId,
+      amount: -required,
+      reason: "Pip AI usage",
+      source: "usage_spend",
+      usageEventId: reservationId,
+      metadata: { eventType: cleanUsageText(eventType, 80) },
+      createdAt
+    };
+    topUpBalance -= required;
+  }
+  writeState(state);
+  return { allowed: true, reservationId, funding, dailyLimit, usedToday, creditsRequired: required, topUpBalance, resetAt: dailyResetAt() };
+}
+
+export async function completeAiUsage({ reservationId, model, inputTokens, outputTokens, estimatedCostUsd, metadata = {} } = {}) {
+  const id = requireUsageId(reservationId);
+  const usagePatch = {
+    ...normalizeUsageMetadata(metadata),
+    status: "completed"
+  };
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_usage_events set
+         model = $2,
+         input_tokens = $3,
+         output_tokens = $4,
+         estimated_cost_usd = $5,
+         metadata = coalesce(metadata, '{}'::jsonb) || $6::jsonb
+       where id = $1
+       returning *`,
+      [id, cleanUsageText(model, 120), optionalNonnegativeInteger(inputTokens), optionalNonnegativeInteger(outputTokens), optionalNonnegativeNumber(estimatedCostUsd), JSON.stringify(usagePatch)]
+    );
+    return result.rows[0] ? rowToUsageEvent(result.rows[0]) : null;
+  }
+  const state = readState();
+  const event = state.usageEvents[id];
+  if (!event) return null;
+  Object.assign(event, {
+    model: cleanUsageText(model, 120),
+    inputTokens: optionalNonnegativeInteger(inputTokens),
+    outputTokens: optionalNonnegativeInteger(outputTokens),
+    estimatedCostUsd: optionalNonnegativeNumber(estimatedCostUsd),
+    metadata: { ...(event.metadata || {}), ...usagePatch }
+  });
+  writeState(state);
+  return event;
+}
+
+export async function cancelAiUsageReservation({ reservationId, reason = "OpenAI call failed" } = {}) {
+  const id = requireUsageId(reservationId);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      const result = await client.query("select * from pip_usage_events where id = $1 for update", [id]);
+      const event = result.rows[0];
+      if (!event) {
+        await client.query("rollback");
+        return { canceled: false, refunded: 0 };
+      }
+      await client.query("delete from pip_usage_events where id = $1", [id]);
+      const refunded = event.metadata?.funding === "top_up" ? Number(event.credits_used || 0) : 0;
+      if (refunded > 0 && event.user_id) {
+        await client.query(
+          `insert into pip_credit_ledger (id, user_id, amount, reason, source, usage_event_id, metadata, created_at)
+           values ($1, $2, $3, $4, 'usage_refund', $5, '{}'::jsonb, now())`,
+          [makeId("credit"), event.user_id, refunded, cleanUsageText(reason, 240) || "AI usage refund", id]
+        );
+      }
+      await client.query("commit");
+      return { canceled: true, refunded };
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  const state = readState();
+  const event = state.usageEvents[id];
+  if (!event) return { canceled: false, refunded: 0 };
+  delete state.usageEvents[id];
+  const refunded = event.metadata?.funding === "top_up" ? Number(event.creditsUsed || 0) : 0;
+  if (refunded > 0 && event.userId) {
+    const ledgerId = makeId("credit");
+    state.creditLedger[ledgerId] = {
+      id: ledgerId,
+      userId: event.userId,
+      amount: refunded,
+      reason: cleanUsageText(reason, 240) || "AI usage refund",
+      source: "usage_refund",
+      usageEventId: id,
+      metadata: {},
+      createdAt: nowIso()
+    };
+  }
+  writeState(state);
+  return { canceled: true, refunded };
+}
+
+export async function grantPipCredits({ userId, amount, reason = "Manual Pip Credit grant", source = "manual", metadata = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  const normalizedAmount = normalizeCreditAmount(amount, "amount");
+  const entry = {
+    id: makeId("credit"),
+    userId: ownerId,
+    amount: normalizedAmount,
+    reason: cleanUsageText(reason, 240) || "Manual Pip Credit grant",
+    source: cleanUsageText(source, 80) || "manual",
+    usageEventId: null,
+    metadata: normalizeUsageMetadata(metadata),
+    createdAt: nowIso()
+  };
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const userResult = await pool.query("select 1 from pip_users where id = $1", [ownerId]);
+    if (!userResult.rows[0]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+    const result = await pool.query(
+      `insert into pip_credit_ledger (id, user_id, amount, reason, source, usage_event_id, metadata, created_at)
+       values ($1, $2, $3, $4, $5, null, $6::jsonb, $7)
+       returning *`,
+      [entry.id, entry.userId, entry.amount, entry.reason, entry.source, JSON.stringify(entry.metadata), entry.createdAt]
+    );
+    return rowToCreditEntry(result.rows[0]);
+  }
+  const state = readState();
+  if (!state.users[ownerId]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  state.creditLedger[entry.id] = entry;
+  writeState(state);
+  return entry;
+}
+
+export async function getPipCreditBalance({ userId } = {}) {
+  const ownerId = requireUserId(userId);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query("select coalesce(sum(amount), 0)::integer as balance from pip_credit_ledger where user_id = $1", [ownerId]);
+    return Number(result.rows[0]?.balance || 0);
+  }
+  return creditBalanceFromState(readState(), ownerId);
 }
 
 export async function upsertUser(user = {}) {
@@ -262,6 +545,8 @@ export async function deleteUserData({ userId } = {}) {
     delete state.conversations[conversationId];
   });
   Object.values(state.feedback).filter((item) => item.userId === ownerId).forEach((item) => delete state.feedback[item.id]);
+  Object.values(state.usageEvents).filter((item) => item.userId === ownerId).forEach((item) => delete state.usageEvents[item.id]);
+  Object.values(state.creditLedger).filter((item) => item.userId === ownerId).forEach((item) => delete state.creditLedger[item.id]);
   const deleted = Boolean(state.users[ownerId]);
   delete state.users[ownerId];
   writeState(state);
@@ -1019,6 +1304,37 @@ async function ensureSchema(pool) {
     );
     create index if not exists pip_feedback_user_created_idx on pip_feedback(user_id, created_at desc);
     create index if not exists pip_feedback_rating_created_idx on pip_feedback(rating, created_at desc);
+
+    create table if not exists pip_usage_events (
+      id text primary key,
+      user_id text references pip_users(id) on delete cascade,
+      ip_hash text,
+      session_tier text not null,
+      event_type text not null,
+      credits_used integer not null,
+      model text,
+      input_tokens integer,
+      output_tokens integer,
+      estimated_cost_usd numeric(12,8),
+      metadata jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      check (user_id is not null or ip_hash is not null),
+      check (credits_used >= 0)
+    );
+    create index if not exists pip_usage_events_user_created_idx on pip_usage_events(user_id, created_at desc);
+    create index if not exists pip_usage_events_ip_created_idx on pip_usage_events(ip_hash, created_at desc);
+
+    create table if not exists pip_credit_ledger (
+      id text primary key,
+      user_id text not null references pip_users(id) on delete cascade,
+      amount integer not null,
+      reason text not null,
+      source text not null,
+      usage_event_id text,
+      metadata jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists pip_credit_ledger_user_created_idx on pip_credit_ledger(user_id, created_at desc);
   `);
   return schemaPromise;
 }
@@ -1055,6 +1371,8 @@ function readState() {
   stateCache.readings ||= {};
   stateCache.seeds ||= {};
   stateCache.pushSubscriptions ||= {};
+  stateCache.usageEvents ||= {};
+  stateCache.creditLedger ||= {};
   return stateCache;
 }
 
@@ -1428,6 +1746,113 @@ function standardReminderDefaults() {
 function toIso(value) {
   if (!value) return null;
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function normalizeUsageIdentity({ userId, ipHash } = {}) {
+  const normalizedUserId = String(userId || "").trim() || null;
+  const normalizedIpHash = String(ipHash || "").trim().slice(0, 128) || null;
+  if (!normalizedUserId && !normalizedIpHash) {
+    throw Object.assign(new Error("Usage tracking requires a userId or ipHash"), { statusCode: 400 });
+  }
+  return { userId: normalizedUserId, ipHash: normalizedIpHash };
+}
+
+function normalizeUsageTier(tier) {
+  return ["visitor", "free_member", "pip_pro"].includes(tier) ? tier : "visitor";
+}
+
+function normalizeCreditAmount(value, name) {
+  const amount = Number(value);
+  if (!Number.isInteger(amount) || amount <= 0) {
+    throw Object.assign(new Error(`${name} must be a positive integer`), { statusCode: 400 });
+  }
+  return amount;
+}
+
+function normalizeUsageMetadata(metadata) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
+  const safe = { ...metadata };
+  delete safe.prompt;
+  delete safe.message;
+  delete safe.response;
+  delete safe.image;
+  return JSON.parse(JSON.stringify(safe));
+}
+
+function cleanUsageText(value, maxLength) {
+  const cleaned = String(value || "").trim();
+  return cleaned ? cleaned.slice(0, maxLength) : null;
+}
+
+function optionalNonnegativeInteger(value) {
+  if (value == null) return null;
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : null;
+}
+
+function optionalNonnegativeNumber(value) {
+  if (value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+function requireUsageId(value) {
+  const id = String(value || "").trim();
+  if (!id) throw Object.assign(new Error("reservationId is required"), { statusCode: 400 });
+  return id;
+}
+
+function usageLockKey(identity) {
+  return identity.userId ? `user:${identity.userId}` : `ip:${identity.ipHash}`;
+}
+
+function utcDayStart() {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  return start.toISOString();
+}
+
+function usageEventMatches(event, identity, start) {
+  const identityMatches = identity.userId
+    ? event.userId === identity.userId
+    : !event.userId && event.ipHash === identity.ipHash;
+  return identityMatches && String(event.createdAt) >= start;
+}
+
+function creditBalanceFromState(state, userId) {
+  return Object.values(state.creditLedger)
+    .filter((entry) => entry.userId === userId)
+    .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+}
+
+function rowToUsageEvent(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    ipHash: row.ip_hash,
+    sessionTier: row.session_tier,
+    eventType: row.event_type,
+    creditsUsed: Number(row.credits_used || 0),
+    model: row.model,
+    inputTokens: row.input_tokens == null ? null : Number(row.input_tokens),
+    outputTokens: row.output_tokens == null ? null : Number(row.output_tokens),
+    estimatedCostUsd: row.estimated_cost_usd == null ? null : Number(row.estimated_cost_usd),
+    metadata: row.metadata || {},
+    createdAt: toIso(row.created_at)
+  };
+}
+
+function rowToCreditEntry(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    amount: Number(row.amount || 0),
+    reason: row.reason,
+    source: row.source,
+    usageEventId: row.usage_event_id,
+    metadata: row.metadata || {},
+    createdAt: toIso(row.created_at)
+  };
 }
 
 function cloneDefaultState() {
