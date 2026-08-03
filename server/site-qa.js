@@ -73,8 +73,8 @@ assert.match(wixTrackBridge, /HYDROPIP_EMBED_HEIGHT/, "The Wix Track My Build pa
 assert.doesNotMatch(wixTrackBridge, /14950|25700/, "The Wix Track My Build page must not restore fixed legacy iframe heights");
 
 const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");
-assert.match(homeHtml, /class=["']featureSplit["']/, "Home hero should compare the new tower with mature growth");
-assert.match(homeHtml, /5fe7cb_264e8a42fb11486b808d289b14e6b079/, "Home hero is missing the mature tower photo");
+assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature the mature four-tower system");
+assert.match(homeHtml, /assets\/photos\/hydropip-mature-four-tower-system\.jpg/, "Home hero is missing the mature four-tower photo");
 
 for (const legalFile of ["privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"]) {
   const legalHtml = fs.readFileSync(new URL(`../${legalFile}`, import.meta.url), "utf8");

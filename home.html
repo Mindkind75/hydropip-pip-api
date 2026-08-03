@@ -49,6 +49,10 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .featureSplit img:first-child{object-position:center}
 .featureSplit img:last-child{object-position:center}
 .photoFeature:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,33,25,.04),rgba(15,33,25,.8))}
+.photoFeature.singlePhoto{display:flex;min-height:0;flex-direction:column;background:#0f2119}
+.photoFeature.singlePhoto>img{height:auto;aspect-ratio:4/3;object-fit:cover;object-position:center}
+.photoFeature.singlePhoto:after{display:none}
+.photoFeature.singlePhoto .photoCaption{position:relative;left:auto;right:auto;bottom:auto;border:0;border-top:1px solid rgba(255,255,255,.18);border-radius:0;background:#0f2119;backdrop-filter:none}
 .photoCaption{position:absolute;left:18px;right:18px;bottom:18px;z-index:1;display:grid;gap:12px;padding:18px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(15,33,25,.74);color:#fff;backdrop-filter:blur(10px)}
 .photoCaption>strong{font-size:1.45rem;line-height:1.08}
 .photoCaption span{color:rgba(255,255,255,.8);line-height:1.45}
@@ -157,11 +161,8 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
         <a class="btn" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Track My Build</a>
       </div>
     </div>
-    <figure class="photoFeature" aria-label="HydroPip tower at planting and filled out with food">
-      <div class="featureSplit">
-        <img src="https://static.wixstatic.com/media/5fe7cb_8829592151b24d90aa5a8a88ba1a85a7~mv2.jpg" alt="Newly planted HydroPip tower system" loading="eager">
-        <img src="https://static.wixstatic.com/media/5fe7cb_264e8a42fb11486b808d289b14e6b079~mv2.jpg" alt="Mature HydroPip towers filled out with edible greens" loading="eager">
-      </div>
+    <figure class="photoFeature singlePhoto" aria-label="Mature four-tower HydroPip system filled with food">
+      <img src="/assets/photos/hydropip-mature-four-tower-system.jpg" alt="Four mature HydroPip towers filled with lettuce, herbs, chard, and other edible greens" loading="eager">
       <figcaption class="photoCaption">
         <strong>This is what you can build.</strong>
         <span>A backyard-tested HydroPip system built from common parts, with Pip guiding each step from the first post to the next harvest.</span>
