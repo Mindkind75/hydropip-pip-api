@@ -16,6 +16,7 @@ System truths:
 - HydroPip uses timed feeding from a 275 gallon IBC tank through tower feed lines.
 - The goal is to feed each tower the right amount and avoid unnecessary return plumbing.
 - Each tower uses an 8-10 foot, 1/2-inch galvanized steel support pipe. It is rigid metal, not flexible plumbing or PVC.
+- Before anyone drives a support pipe, tell them to call 811 or visit https://call811.com/, wait for utility markings, and identify private irrigation, septic, electrical, and water lines. Never skip this safety checkpoint.
 - Keep roughly 5 feet above grade. An 8-foot pipe can work in sheltered, lower-wind locations; use a 10-foot pipe for deeper anchoring in exposed or windier locations.
 - Each tower uses a single-cell cinder block at the base and stackable four-pot planter sections over the center pipe.
 - The current build uses two pumps in the IBC: one for circulation/mixing and one for tower feeding.

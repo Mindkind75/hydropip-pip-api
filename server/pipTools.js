@@ -123,7 +123,7 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   if (wantsTowerFeedTubing(q) || wantsTubingPurchase(q)) return tubingSupplyAnswer(contextLead);
   if (wantsHoseEnd(q)) return hoseEndSupplyAnswer(contextLead);
   if ((/\b(pipe|post)\b/.test(q) && /\b(support|supports|tower|center|galvanized|metal)\b/.test(q)) || wantsPart(q, ["support pipe", "center pipe", "tower pipe", "galvanized pipe", "galvanized steel", "metal post", "support post"])) {
-    return `${contextLead}Use an 8-10 foot, 1/2-inch galvanized steel pipe for each tower support. It must be rigid metal, not flexible plumbing or PVC.\n- Home Depot 10-foot reference: ${supportPipeUrl}\n- Keep roughly 5 feet above grade; choose 10 feet for deeper anchoring in exposed or windier locations.`;
+    return `${contextLead}Before driving any support, call 811 or visit https://call811.com/, wait for utility markings, and identify private irrigation, septic, electrical, and water lines. Once the location is confirmed clear, use an 8-10 foot, 1/2-inch galvanized steel pipe for each tower support. It must be rigid metal, not flexible plumbing or PVC.\n- Home Depot 10-foot reference: ${supportPipeUrl}\n- Keep roughly 5 feet above grade; choose 10 feet for deeper anchoring in exposed or windier locations.`;
   }
   if (wantsPart(q, ["main hose", "main feed hose", "garden hose", "feed hose", "hose from pump", "hose to towers"])) {
     return `${contextLead}For the main feed line, use a garden hose long enough to run from the feed pump past each tower.\n- Main hose search: ${affiliateLinks.mainHose}\n- Leave extra length for flushing and future expansion.\n\nHydroPip may earn from qualifying Amazon purchases.`;
@@ -264,7 +264,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Start with timed feeds and tune from runoff.\n- Mild: about 2 feed windows/day.\n- Warm: about 3/day.\n- Hot or mature plants: 4-6 shorter windows.\n\nTell me crop, feed minutes, runoff, pH, and EC/TDS and I will tune it.`;
   }
   if (q.includes("build") || q.includes("step") || q.includes("setup")) {
-    return `${contextLead}Build order: anchor an 8-10 foot, 1/2-inch galvanized steel support pipe, level the cinder block, stack the four-pot planters, use the 3/4-inch PVC tee as a loose top hose guide, add feed tubes and diffusers, install two IBC pumps, then calibrate timed feeds by runoff. Use the 10-foot support in exposed or windier locations for deeper anchoring.`;
+    return `${contextLead}Build order: call 811 or visit https://call811.com/, wait for utility markings, identify private lines, then anchor an 8-10 foot, 1/2-inch galvanized steel support pipe. Level the cinder block, stack the four-pot planters, use the 3/4-inch PVC tee as a loose top hose guide, add feed tubes and diffusers, install two IBC pumps, then calibrate timed feeds by runoff. Use the 10-foot support in exposed or windier locations for deeper anchoring.`;
   }
   if (q.includes("remind") || q.includes("track") || q.includes("save")) {
     return `${contextLead}I can definitely help plan it, but saving reminders/tracking is Pip Pro: ${proSignupUrl}\n\nFree Pip can still tell you what to do next for the HydroPip build and current grow.`;

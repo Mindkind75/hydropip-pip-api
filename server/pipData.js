@@ -15,8 +15,10 @@ export const buildSteps = [
     id: "anchor",
     title: "Anchor the galvanized steel support pipe",
     summary:
-      "Use an 8-10 foot, 1/2-inch galvanized steel pipe, keeping roughly 5 feet above grade, then level a single-cell cinder block at the base.",
+      "Call 811, wait for utility markings, identify private lines, then use an 8-10 foot, 1/2-inch galvanized steel pipe with roughly 5 feet above grade and level a single-cell cinder block at the base.",
     checklist: [
+      "Call 811 or submit a request at https://call811.com/ and wait for underground utilities to be marked.",
+      "Identify private irrigation, septic, electrical, and water lines before choosing the tower location.",
       "Mark tower spacing before driving pipe.",
       "Keep the pipe straight while driving it into the ground.",
       "Use 8 feet in sheltered, lower-wind locations or 10 feet when deeper anchoring is needed for exposed or windier sites.",
