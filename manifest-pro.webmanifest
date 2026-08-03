@@ -1,0 +1,26 @@
+{
+  "id": "https://www.hydropip.com/pip?pro=1&app=pro",
+  "name": "HydroPip Pro",
+  "short_name": "Pip Pro",
+  "description": "Open your Pip Pro grow notebook, schedules, reminders, logs, and AI guidance.",
+  "start_url": "https://www.hydropip.com/pip?pro=1&app=pro",
+  "scope": "https://www.hydropip.com/",
+  "display": "standalone",
+  "background_color": "#0f4f37",
+  "theme_color": "#0f4f37",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://hydropip-pip-api.onrender.com/assets/app-icons/hydropip-pro-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://hydropip-pip-api.onrender.com/assets/app-icons/hydropip-pro-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

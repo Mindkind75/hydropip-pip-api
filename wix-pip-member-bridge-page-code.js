@@ -38,6 +38,12 @@ $w.onReady(() => {
     if (message.type === "HYDROPIP_PIP_LOGIN_REQUEST") {
       await handlePipLoginRequest(message.mode);
       await sendPipSession(pip);
+      return;
+    }
+
+    if (message.type === "HYDROPIP_APP_INSTALL_REQUEST") {
+      const tier = message.tier === "pro" ? "pro" : "build";
+      wixLocation.to(tier === "pro" ? "/pip?pro=1&app=pro&install=1" : "/pip?app=build&install=1");
     }
   });
 
@@ -58,7 +64,7 @@ function collapseOuterHeader() {
 }
 
 function buildPipSource() {
-  const forwarded = ["pro", "project", "projectId"]
+  const forwarded = ["pro", "project", "projectId", "app", "install"]
     .map((key) => {
       const value = wixLocation.query?.[key];
       return value ? `${encodeURIComponent(key)}=${encodeURIComponent(value)}` : null;

@@ -49,7 +49,9 @@ const allowedOrigins = (process.env.PIP_ALLOWED_ORIGINS || "")
 const serviceOrigins = new Set([
   ...allowedOrigins,
   process.env.RENDER_EXTERNAL_URL,
-  "https://hydropip-pip-api.onrender.com"
+  "https://hydropip-pip-api.onrender.com",
+  "https://hydropip.com",
+  "https://www.hydropip.com"
 ].filter(Boolean));
 const chatWindowMs = Number(process.env.PIP_RATE_LIMIT_WINDOW_MS || 60_000);
 const chatMaxRequests = Number(process.env.PIP_RATE_LIMIT_MAX || 20);

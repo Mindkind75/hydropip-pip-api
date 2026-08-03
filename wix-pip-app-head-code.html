@@ -1,0 +1,46 @@
+<script>
+(function () {
+  if (location.pathname !== "/pip") return;
+
+  var query = new URLSearchParams(location.search);
+  var tier = query.get("app") === "pro" || query.get("pro") === "1" ? "pro" : "build";
+  var base = "https://hydropip-pip-api.onrender.com";
+  var title = tier === "pro" ? "HydroPip Pro" : "HydroPip Build";
+  var icon = base + "/assets/app-icons/hydropip-" + tier + "-180.png";
+  var manifest = base + "/manifest-" + tier + ".webmanifest";
+
+  function setMeta(name, content) {
+    var node = document.querySelector('meta[name="' + name + '"]');
+    if (!node) {
+      node = document.createElement("meta");
+      node.name = name;
+      document.head.appendChild(node);
+    }
+    node.content = content;
+  }
+
+  function setLink(rel, href, sizes) {
+    var node = document.querySelector('link[data-hydropip-app="' + rel + '"]');
+    if (!node) {
+      node = document.createElement("link");
+      node.rel = rel;
+      node.dataset.hydropipApp = rel;
+      document.head.appendChild(node);
+    }
+    node.href = href;
+    if (sizes) node.sizes = sizes;
+    if (rel === "manifest") node.crossOrigin = "anonymous";
+  }
+
+  setMeta("apple-mobile-web-app-capable", "yes");
+  setMeta("mobile-web-app-capable", "yes");
+  setMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
+  setMeta("apple-mobile-web-app-title", title);
+  setMeta("application-name", title);
+  setMeta("theme-color", tier === "pro" ? "#0f4f37" : "#f7f5ef");
+  setLink("apple-touch-icon", icon, "180x180");
+  setLink("icon", icon, "180x180");
+  setLink("manifest", manifest);
+  document.title = title;
+})();
+</script>

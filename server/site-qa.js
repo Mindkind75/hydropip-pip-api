@@ -33,7 +33,7 @@ for (const file of files) {
 }
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
-for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog"]) {
+for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipInstallDialog", "pipInstallIcon"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
 for (const page of ["profile", "schedule", "log", "history"]) {
@@ -50,11 +50,19 @@ assert.match(pipHtml, /conversationId:activeConversationId/, "Pip chat requests 
 assert.match(pipHtml, /New conversation/, "Pip should offer focused topic conversations");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
-assert.match(wixPipBridge, /\["pro", "project", "projectId"\]/, "Wix Pip bridge is not forwarding Pro and project context to the iframe");
+assert.match(wixPipBridge, /\["pro", "project", "projectId", "app", "install"\]/, "Wix Pip bridge is not forwarding project and app-install context to the iframe");
+assert.match(wixPipBridge, /HYDROPIP_APP_INSTALL_REQUEST/, "Wix Pip bridge is not routing the tier-specific Home Screen flow");
 assert.match(wixPipBridge, /buildPipSource\(\)/, "Wix Pip bridge is not building a context-aware embed source");
 assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the current Pip embed source");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");
+
+for (const manifest of ["manifest-build.webmanifest", "manifest-pro.webmanifest"]) {
+  const value = JSON.parse(fs.readFileSync(new URL(`../${manifest}`, import.meta.url), "utf8"));
+  assert.equal(value.display, "standalone", `${manifest} should launch without browser chrome when supported`);
+  assert.ok(value.icons.some((icon) => icon.sizes === "192x192"), `${manifest} needs a 192px icon`);
+  assert.ok(value.icons.some((icon) => icon.sizes === "512x512"), `${manifest} needs a 512px icon`);
+}
 
 console.log("HydroPip site QA passed");

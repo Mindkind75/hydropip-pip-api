@@ -1,0 +1,26 @@
+{
+  "id": "https://www.hydropip.com/pip?app=build",
+  "name": "HydroPip Build",
+  "short_name": "Pip Build",
+  "description": "Build and operate the HydroPip timed-feed tower system with Pip.",
+  "start_url": "https://www.hydropip.com/pip?app=build",
+  "scope": "https://www.hydropip.com/",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#0f4f37",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://hydropip-pip-api.onrender.com/assets/app-icons/hydropip-build-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://hydropip-pip-api.onrender.com/assets/app-icons/hydropip-build-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
