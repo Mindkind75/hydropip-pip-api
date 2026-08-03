@@ -19,12 +19,14 @@ import {
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
+  createBetaFeedback,
   claimBuildPhotoCheck,
   deleteUserData,
   deleteProjectReminder,
   deleteProjectSeed,
   getMemoryHealth,
   getBuildPhotoAllowance,
+  getBetaExperience,
   getProject,
   getProjectTemplates,
   listProjectMessages,
@@ -40,6 +42,7 @@ import {
   updateProjectConversation,
   updateProjectReminder,
   updateProjectSeed,
+  updateBetaExperience,
   upsertUser
 } from "./pipMemory.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
@@ -140,6 +143,7 @@ app.post("/api/pip/session/exchange", (req, res) => {
 
 app.use("/api/pip/users", requirePipMember);
 app.use("/api/pip/projects", requirePipMember);
+app.use("/api/pip/feedback", requirePipBeta);
 
 app.post("/api/pip/users", async (req, res, next) => {
   try {
@@ -158,6 +162,40 @@ app.get("/api/pip/users/me/photo-allowance", async (req, res, next) => {
         subscription: req.pipSubscription
       })
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/users/me/beta", requirePipBeta, async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    res.json({ beta: await getBetaExperience({ userId: req.pipUser.id }) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/pip/users/me/beta", requirePipBeta, async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    res.json({
+      beta: await updateBetaExperience({
+        userId: req.pipUser.id,
+        welcomeSeen: req.body?.welcomeSeen,
+        activity: req.body?.activity
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/feedback", async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    const feedback = await createBetaFeedback({ userId: req.pipUser.id, feedback: req.body?.feedback });
+    res.status(201).json({ feedback });
   } catch (error) {
     next(error);
   }
@@ -559,7 +597,13 @@ function optionalPipSession(req) {
         name: signed.name || null,
         wixMemberId: signed.sub
       },
-      subscription: { active: Boolean(signed.pro), plan: signed.plan || "free_member", verified: true }
+      subscription: {
+        active: Boolean(signed.pro),
+        plan: signed.plan || "free_member",
+        planName: signed.planName || null,
+        beta: Boolean(signed.beta),
+        verified: true
+      }
     };
   }
 
@@ -572,4 +616,14 @@ function optionalPipSession(req) {
     user: legacyUser,
     subscription: req.body?.subscription || { active: false, plan: legacyUser ? "free_member" : "visitor" }
   };
+}
+
+function requirePipBeta(req, res, next) {
+  requirePipMember(req, res, () => {
+    if (!req.pipSubscription?.beta) {
+      res.status(403).json({ error: "beta_access_required" });
+      return;
+    }
+    next();
+  });
 }

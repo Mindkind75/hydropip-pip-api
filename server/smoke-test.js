@@ -8,9 +8,11 @@ import {
   createProjectReading,
   createProjectReminder,
   createProjectSeed,
+  createBetaFeedback,
   deleteUserData,
   deleteProjectSeed,
   getMemoryHealth,
+  getBetaExperience,
   getBuildPhotoAllowance,
   getProjectTemplates,
   listProjectMessages,
@@ -24,6 +26,7 @@ import {
   seedProjectDefaults,
   updateProjectConversation,
   updateProjectReminder,
+  updateBetaExperience,
   updateProject
 } from "./pipMemory.js";
 import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
@@ -38,9 +41,11 @@ assert.throws(() => normalizeImageInput({ dataUrl: "data:image/svg+xml;base64,PH
 
 const signedSession = issuePipSession({
   member: { id: "test-user", email: "test@hydropip.com" },
-  subscription: { active: true }
+  subscription: { active: true, beta: true, planName: "Pip Pro Beta Tester" }
 });
 assert.equal(verifyPipSession(signedSession).sub, "test-user");
+assert.equal(verifyPipSession(signedSession).beta, true);
+assert.equal(verifyPipSession(signedSession).planName, "Pip Pro Beta Tester");
 assert.equal(verifyPipSession(`${signedSession}tampered`), null);
 assert.equal(stripSummaryLabel("TL;DR: Use shorter feed cycles."), "Use shorter feed cycles.");
 assert.equal(stripSummaryLabel("Summary: Check pH first."), "Check pH first.");
@@ -108,6 +113,32 @@ assert.equal(freeProject.status, "created");
 assert.equal(freeProject.project.systemProfile.growZone, "9");
 assert.equal(freeProject.project.systemProfile.areaType, "outdoor_open");
 assert.deepEqual(freeProject.project.systemProfile.goals, ["steady_harvests"]);
+
+const betaStart = await getBetaExperience({ userId: "test-user" });
+assert.equal(betaStart.welcomeSeenAt, null);
+assert.equal(betaStart.activity.feedback, false);
+const betaUpdated = await updateBetaExperience({
+  userId: "test-user",
+  welcomeSeen: true,
+  activity: { profile: true, reminder: true }
+});
+assert.equal(Boolean(betaUpdated.welcomeSeenAt), true);
+assert.equal(betaUpdated.activity.profile, true);
+assert.equal(betaUpdated.activity.reminder, true);
+const privateFeedback = await createBetaFeedback({
+  userId: "test-user",
+  feedback: {
+    rating: "not_helpful",
+    category: "pip_answer",
+    message: "The answer missed the fitting.",
+    includeContext: false,
+    prompt: "private prompt",
+    response: "private response"
+  }
+});
+assert.equal(privateFeedback.prompt, null);
+assert.equal(privateFeedback.response, null);
+assert.equal((await getBetaExperience({ userId: "test-user" })).activity.feedback, true);
 
 assert.equal(classifyPhotoRequest({ message: "Is this tower section seated correctly?", projectType: "hydropip_build" }).access, "free_build");
 assert.equal(classifyPhotoRequest({ message: "What bug is eating these leaves?", projectType: "hydropip_build" }).access, "pip_pro_required");

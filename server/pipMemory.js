@@ -57,8 +57,9 @@ export const proConversationStarters = [
 ];
 
 const defaultState = {
-  version: 1,
+  version: 2,
   users: {},
+  feedback: {},
   projects: {},
   chatThreads: {},
   conversations: {},
@@ -100,6 +101,79 @@ export async function upsertUser(user = {}) {
   };
   writeState(state);
   return state.users[normalized.id];
+}
+
+export async function getBetaExperience({ userId } = {}) {
+  const ownerId = requireUserId(userId);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select beta_welcome_seen_at, beta_activity from pip_users where id = $1`,
+      [ownerId]
+    );
+    if (!result.rows[0]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+    return betaExperienceFromValues(result.rows[0].beta_welcome_seen_at, result.rows[0].beta_activity);
+  }
+
+  const user = readState().users[ownerId];
+  if (!user) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  return betaExperienceFromValues(user.betaWelcomeSeenAt, user.betaActivity);
+}
+
+export async function updateBetaExperience({ userId, welcomeSeen, activity } = {}) {
+  const ownerId = requireUserId(userId);
+  const activityPatch = normalizeBetaActivity(activity);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_users
+       set beta_welcome_seen_at = case when $2::boolean then coalesce(beta_welcome_seen_at, now()) else beta_welcome_seen_at end,
+           beta_activity = coalesce(beta_activity, '{}'::jsonb) || $3::jsonb,
+           updated_at = now()
+       where id = $1
+       returning beta_welcome_seen_at, beta_activity`,
+      [ownerId, Boolean(welcomeSeen), JSON.stringify(activityPatch)]
+    );
+    if (!result.rows[0]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+    return betaExperienceFromValues(result.rows[0].beta_welcome_seen_at, result.rows[0].beta_activity);
+  }
+
+  const state = readState();
+  const user = state.users[ownerId];
+  if (!user) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  if (welcomeSeen && !user.betaWelcomeSeenAt) user.betaWelcomeSeenAt = nowIso();
+  user.betaActivity = { ...normalizeBetaActivity(user.betaActivity), ...activityPatch };
+  user.updatedAt = nowIso();
+  writeState(state);
+  return betaExperienceFromValues(user.betaWelcomeSeenAt, user.betaActivity);
+}
+
+export async function createBetaFeedback({ userId, feedback = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  const normalized = normalizeBetaFeedback(feedback);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `insert into pip_feedback
+       (id, user_id, project_id, conversation_id, rating, category, message, page, include_context, prompt, response, device, created_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now())
+       returning *`,
+      [makeId("feedback"), ownerId, normalized.projectId, normalized.conversationId, normalized.rating,
+        normalized.category, normalized.message, normalized.page, normalized.includeContext,
+        normalized.prompt, normalized.response, normalized.device]
+    );
+    await updateBetaExperience({ userId: ownerId, activity: { feedback: true } });
+    return rowToBetaFeedback(result.rows[0]);
+  }
+
+  const state = readState();
+  if (!state.users[ownerId]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  const record = { id: makeId("feedback"), userId: ownerId, ...normalized, createdAt: nowIso() };
+  state.feedback[record.id] = record;
+  state.users[ownerId].betaActivity = { ...normalizeBetaActivity(state.users[ownerId].betaActivity), feedback: true };
+  state.users[ownerId].updatedAt = nowIso();
+  writeState(state);
+  return record;
 }
 
 export async function getBuildPhotoAllowance({ userId, subscription = {} } = {}) {
@@ -187,6 +261,7 @@ export async function deleteUserData({ userId } = {}) {
     delete state.chatThreads[conversationId];
     delete state.conversations[conversationId];
   });
+  Object.values(state.feedback).filter((item) => item.userId === ownerId).forEach((item) => delete state.feedback[item.id]);
   const deleted = Boolean(state.users[ownerId]);
   delete state.users[ownerId];
   writeState(state);
@@ -843,6 +918,8 @@ async function ensureSchema(pool) {
       updated_at timestamptz not null default now()
     );
     alter table pip_users add column if not exists build_photo_checks_used integer not null default 0;
+    alter table pip_users add column if not exists beta_welcome_seen_at timestamptz;
+    alter table pip_users add column if not exists beta_activity jsonb not null default '{}'::jsonb;
 
     create table if not exists pip_projects (
       id text primary key,
@@ -924,6 +1001,24 @@ async function ensureSchema(pool) {
       updated_at timestamptz not null default now()
     );
     create index if not exists pip_seeds_project_created_idx on pip_seeds(project_id, created_at desc);
+
+    create table if not exists pip_feedback (
+      id text primary key,
+      user_id text not null references pip_users(id) on delete cascade,
+      project_id text references pip_projects(id) on delete set null,
+      conversation_id text references pip_conversations(id) on delete set null,
+      rating text not null,
+      category text not null default 'general',
+      message text not null default '',
+      page text,
+      include_context boolean not null default false,
+      prompt text,
+      response text,
+      device jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists pip_feedback_user_created_idx on pip_feedback(user_id, created_at desc);
+    create index if not exists pip_feedback_rating_created_idx on pip_feedback(rating, created_at desc);
   `);
   return schemaPromise;
 }
@@ -938,7 +1033,7 @@ async function upsertUserPg(normalized) {
        name = excluded.name,
        wix_member_id = excluded.wix_member_id,
        updated_at = now()
-     returning id, email, name, wix_member_id, build_photo_checks_used, created_at, updated_at`,
+     returning id, email, name, wix_member_id, build_photo_checks_used, beta_welcome_seen_at, beta_activity, created_at, updated_at`,
     [normalized.id, normalized.email, normalized.name, normalized.wixMemberId]
   );
   return rowToUser(result.rows[0]);
@@ -952,6 +1047,7 @@ function readState() {
     stateCache = cloneDefaultState();
   }
   stateCache.users ||= {};
+  stateCache.feedback ||= {};
   stateCache.projects ||= {};
   stateCache.chatThreads ||= {};
   stateCache.conversations ||= {};
@@ -1045,8 +1141,76 @@ function rowToUser(row) {
     name: row.name,
     wixMemberId: row.wix_member_id,
     buildPhotoChecksUsed: Number(row.build_photo_checks_used || 0),
+    betaWelcomeSeenAt: toIso(row.beta_welcome_seen_at),
+    betaActivity: normalizeBetaActivity(row.beta_activity),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
+  };
+}
+
+function betaExperienceFromValues(welcomeSeenAt, activity) {
+  return {
+    welcomeSeenAt: welcomeSeenAt ? toIso(welcomeSeenAt) : null,
+    activity: normalizeBetaActivity(activity)
+  };
+}
+
+function normalizeBetaActivity(activity = {}) {
+  const source = activity && typeof activity === "object" && !Array.isArray(activity) ? activity : {};
+  return {
+    profile: Boolean(source.profile),
+    conversation: Boolean(source.conversation),
+    reminder: Boolean(source.reminder),
+    growLog: Boolean(source.growLog),
+    photo: Boolean(source.photo),
+    feedback: Boolean(source.feedback)
+  };
+}
+
+function normalizeBetaFeedback(feedback = {}) {
+  const includeContext = Boolean(feedback.includeContext);
+  const rating = ["helpful", "not_helpful", "general"].includes(feedback.rating) ? feedback.rating : "general";
+  const category = ["pip_answer", "broken", "confusing", "mobile", "idea", "general"].includes(feedback.category)
+    ? feedback.category
+    : rating === "not_helpful" ? "pip_answer" : "general";
+  return {
+    projectId: cleanOptionalText(feedback.projectId, 120),
+    conversationId: cleanOptionalText(feedback.conversationId, 120),
+    rating,
+    category,
+    message: String(feedback.message || "").trim().slice(0, 3000),
+    page: cleanOptionalText(feedback.page, 120),
+    includeContext,
+    prompt: includeContext ? cleanOptionalText(feedback.prompt, 3000) : null,
+    response: includeContext ? cleanOptionalText(feedback.response, 5000) : null,
+    device: normalizeFeedbackDevice(feedback.device)
+  };
+}
+
+function normalizeFeedbackDevice(device = {}) {
+  if (!device || typeof device !== "object" || Array.isArray(device)) return {};
+  return {
+    width: normalizeOptionalNumber(device.width),
+    height: normalizeOptionalNumber(device.height),
+    userAgent: cleanOptionalText(device.userAgent, 500)
+  };
+}
+
+function rowToBetaFeedback(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    projectId: row.project_id,
+    conversationId: row.conversation_id,
+    rating: row.rating,
+    category: row.category,
+    message: row.message,
+    page: row.page,
+    includeContext: Boolean(row.include_context),
+    prompt: row.prompt,
+    response: row.response,
+    device: row.device || {},
+    createdAt: toIso(row.created_at)
   };
 }
 

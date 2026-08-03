@@ -52,6 +52,10 @@ assert.match(pipHtml, /input_image|image:imageAttachment/, "Pip photo uploads ar
 assert.match(pipHtml, /thinking-dots/, "Pip should show an animated thinking state while requests are running");
 assert.match(pipHtml, /photo-allowance/, "Pip should show the member's remaining Build Checks");
 assert.match(pipHtml, /photo_limit_reached|data\.photoAllowance/, "Pip should handle the server-enforced photo allowance");
+assert.match(pipHtml, /pipBetaWelcomeDialog/, "Pip should include the beta welcome experience");
+assert.match(pipHtml, /pipBetaChecklist/, "Pip Pro should include the beta test checklist");
+assert.match(pipHtml, /Was this useful\?/, "Fresh Pip answers should support beta ratings");
+assert.match(pipHtml, /Include this question and Pip's reply/, "Chat context sharing should be explicit");
 assert.match(pipHtml, /window\.open\(destination,"_top"\)/, "Home Screen install should have a direct top-level navigation fallback");
 assert.match(pipHtml, /Your Pip Pro workspace is ready/, "Pro activation should offer a Home Screen install CTA");
 assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");

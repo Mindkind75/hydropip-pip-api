@@ -18,11 +18,13 @@ export const getPipAccess = webMethod(Permissions.SiteMember, async () => {
     );
     const pipProOrder = activeOrders.find(isPipProOrder);
     const orderData = /** @type {any} */ (pipProOrder);
+    const planName = orderData?.planName || orderData?.plan?.name || null;
 
     access = {
       active: Boolean(pipProOrder),
       plan: pipProOrder ? "pip_pro" : "free_member",
-      planName: orderData?.planName || orderData?.plan?.name || null,
+      planName,
+      beta: Boolean(pipProOrder && /beta tester/i.test(String(planName || searchableOrderText(orderData)))),
       orderId: orderData?._id || orderData?.id || null,
       checkedBy: "wix_backend"
     };
@@ -70,7 +72,13 @@ function isPipProOrder(/** @type {any} */ order) {
   const orderPlanId = order.planId || order.plan?._id || order.plan?.id;
   if (orderPlanId && PIP_PRO_PLAN_IDS.includes(orderPlanId)) return true;
 
-  const searchable = [
+  const searchable = searchableOrderText(order).toLowerCase();
+
+  return PIP_PRO_PLAN_NAMES.some((name) => searchable.includes(name.toLowerCase()));
+}
+
+function searchableOrderText(/** @type {any} */ order) {
+  return [
     order.planName,
     order.plan?.name,
     order.planDescription,
@@ -78,8 +86,5 @@ function isPipProOrder(/** @type {any} */ order) {
     order.title
   ]
     .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return PIP_PRO_PLAN_NAMES.some((name) => searchable.includes(name.toLowerCase()));
+    .join(" ");
 }

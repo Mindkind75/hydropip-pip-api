@@ -13,7 +13,9 @@ export function issuePipSession({ member, subscription } = {}) {
     email: cleanOptional(member?.email),
     name: cleanOptional(member?.name),
     plan: subscription?.active ? "pip_pro" : "free_member",
+    planName: cleanOptional(subscription?.planName),
     pro: Boolean(subscription?.active),
+    beta: Boolean(subscription?.active && subscription?.beta),
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
     iss: "hydropip-wix"

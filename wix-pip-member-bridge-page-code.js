@@ -134,7 +134,7 @@ async function sendPipSession(pip, force = false) {
   const subscription = member
     ? await getPipSubscription()
     : { active: false, plan: "visitor", orders: [] };
-  const signature = `${member?._id || "visitor"}:${subscription.plan}:${subscription.active}`;
+  const signature = `${member?._id || "visitor"}:${subscription.plan}:${subscription.active}:${subscription.beta || false}`;
   if (!force && signature === lastSessionSignature) return;
   lastSessionSignature = signature;
 
