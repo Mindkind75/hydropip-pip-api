@@ -8,6 +8,7 @@ const kbDir = path.join(rootDir, "HydroPip_AIknowledge_base");
 
 export const systemBrain = fs.readFileSync(path.join(kbDir, "pip_system_brain.md"), "utf8");
 export const schedulingRules = JSON.parse(fs.readFileSync(path.join(kbDir, "scheduling_rules.json"), "utf8"));
+export const zonePlantingCalendar = JSON.parse(fs.readFileSync(path.join(kbDir, "zone_planting_calendar.json"), "utf8"));
 export const setupWizardSchema = JSON.parse(fs.readFileSync(path.join(kbDir, "setup_wizard_schema.json"), "utf8"));
 
 export const buildSteps = [

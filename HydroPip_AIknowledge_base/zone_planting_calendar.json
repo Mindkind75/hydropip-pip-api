@@ -1,0 +1,118 @@
+{
+  "version": "1.0",
+  "purpose": "A local seasonal starting point for outdoor HydroPip tower crop selection. It uses the saved USDA zone and current month without requiring a live weather lookup.",
+  "limitations": [
+    "USDA hardiness zones describe average annual extreme minimum temperatures, not complete vegetable planting dates.",
+    "Saved location, exposure, elevation, and the grower's observed microclimate should refine this calendar when available.",
+    "Live weather is an exception check for unusual heat, frost, storms, or a crop near its tolerance limit, not a default requirement."
+  ],
+  "sources": [
+    {
+      "name": "USDA Plant Hardiness Zone Map - How to Use the Maps",
+      "url": "https://planthardiness.ars.usda.gov/pages/how-to-use-the-maps",
+      "note": "Explains that zones use 30-year average annual extreme minimum temperatures and that microclimates still matter."
+    },
+    {
+      "name": "Florida Vegetable Gardening Guide",
+      "url": "https://edis.ifas.ufl.edu/publication/VH021",
+      "note": "Provides region-specific outdoor vegetable planting windows for North, Central, and South Florida."
+    },
+    {
+      "name": "UGA Vegetable Gardening in Georgia",
+      "url": "https://extension.uga.edu/publications/detail.html?number=C963",
+      "note": "Provides spring and fall crop windows and succession-planting guidance for a warm southeastern climate."
+    },
+    {
+      "name": "University of Minnesota Planting the Vegetable Garden",
+      "url": "https://extension.umn.edu/planting-and-growing-guides/planting-vegetable-garden",
+      "note": "Provides cool-season, warm-season, and fall succession timing for a short northern growing season."
+    },
+    {
+      "name": "University of Arizona Maricopa County Vegetable Planting Calendar",
+      "url": "https://extension.arizona.edu/publication/vegetable-planting-calendar-maricopa-county",
+      "note": "Shows why hot low-desert locations need different seasonal windows even when hardiness zones overlap humid regions."
+    }
+  ],
+  "phases": {
+    "indoor_protected": {
+      "label": "protected and planning season",
+      "summary": "Use protected starts or an indoor growing area while preparing the next outdoor tower cycle.",
+      "plantNow": ["leaf lettuce", "kale", "Swiss chard", "parsley", "cilantro", "basil under protection"],
+      "startNext": ["lettuce", "kale", "chard", "basil", "compact peppers"],
+      "avoidNow": ["unprotected heat-loving crops outdoors", "large unsupported fruiting crops"],
+      "systemNotes": ["Protect exposed feed tubing and plants from freezing.", "Use this period to clean, reset, and stage media for the next tower turn."]
+    },
+    "cool_prime": {
+      "label": "cool-season tower window",
+      "summary": "This is the strongest window for compact leafy greens, brassica greens, and cool-season herbs.",
+      "plantNow": ["leaf lettuce", "arugula", "cilantro", "parsley", "dill", "kale", "mustard greens", "mizuna", "bok choy", "Swiss chard"],
+      "startNext": ["succession lettuce", "cilantro", "kale", "mustard greens", "Swiss chard"],
+      "avoidNow": ["overloading towers with long-season fruiting crops", "varieties known to bolt quickly"],
+      "systemNotes": ["Use succession batches every 2-3 weeks for steadier harvests.", "Cooler conditions usually require fewer or shorter feed windows than summer."]
+    },
+    "warm_transition": {
+      "label": "warm-season transition",
+      "summary": "Keep quick greens producing while adding heat-tolerant herbs and compact warm-season crops.",
+      "plantNow": ["basil", "Swiss chard", "parsley", "oregano", "thyme", "compact peppers", "supported cherry tomatoes"],
+      "startNext": ["basil", "Malabar spinach", "amaranth", "heat-tolerant leafy greens"],
+      "avoidNow": ["large vining crops without separate support", "crowding fruiting crops into every pocket"],
+      "systemNotes": ["Reserve most pockets for greens and herbs; fruiting crops need support and closer nutrient monitoring.", "Recalibrate feed timing as days warm."]
+    },
+    "warm_prime": {
+      "label": "warm-season tower window",
+      "summary": "Favor heat-tolerant herbs, resilient greens, and a limited number of supported fruiting plants.",
+      "plantNow": ["basil", "Swiss chard", "Malabar spinach", "amaranth", "oregano", "thyme", "compact peppers", "supported cherry tomatoes"],
+      "startNext": ["basil", "chard", "heat-tolerant greens", "fall greens near the end of the window"],
+      "avoidNow": ["cool-season lettuce in full afternoon sun", "unsupported heavy fruiting crops"],
+      "systemNotes": ["Use shade during the harshest afternoon exposure when needed.", "Watch media moisture and tune short feed windows by runoff."]
+    },
+    "summer_heat": {
+      "label": "peak-heat tower window",
+      "summary": "Keep the towers productive with crops that tolerate heat, then stage cool-season seedlings for the next break in temperature.",
+      "plantNow": ["basil", "Swiss chard", "Malabar spinach", "amaranth", "oregano", "thyme", "purslane", "heat-tolerant herbs"],
+      "startNext": ["leaf lettuce in a cooler nursery area", "kale", "cilantro", "mizuna", "mustard greens"],
+      "avoidNow": ["standard head lettuce in full sun", "cilantro varieties prone to bolting", "adding nutrients before checking pH and EC"],
+      "systemNotes": ["Use afternoon shade where exposure is harsh.", "Increase feed frequency only after checking media moisture and runoff; do not simply lengthen every cycle."]
+    },
+    "fall_transition": {
+      "label": "cool-season reset window",
+      "summary": "Finish productive warm crops while starting the next high-output cycle of greens and herbs.",
+      "plantNow": ["leaf lettuce", "kale", "mustard greens", "mizuna", "bok choy", "cilantro", "parsley", "Swiss chard"],
+      "startNext": ["succession lettuce", "arugula", "dill", "kale", "mustard greens"],
+      "avoidNow": ["starting too many long-season fruiting plants", "waiting until every mature plant stops producing before resetting"],
+      "systemNotes": ["Move healthy mature plants to raised beds when appropriate, recover the media, and turn tower pockets quickly.", "Reduce summer feed frequency as temperatures and day length fall."]
+    }
+  },
+  "zoneBands": [
+    {
+      "zones": [1, 2, 3],
+      "label": "very short northern season",
+      "months": ["indoor_protected", "indoor_protected", "indoor_protected", "cool_prime", "warm_transition", "warm_prime", "warm_prime", "fall_transition", "cool_prime", "indoor_protected", "indoor_protected", "indoor_protected"]
+    },
+    {
+      "zones": [4, 5],
+      "label": "short northern season",
+      "months": ["indoor_protected", "indoor_protected", "cool_prime", "cool_prime", "warm_transition", "warm_prime", "warm_prime", "fall_transition", "cool_prime", "cool_prime", "indoor_protected", "indoor_protected"]
+    },
+    {
+      "zones": [6, 7],
+      "label": "four-season middle latitude",
+      "months": ["indoor_protected", "cool_prime", "cool_prime", "cool_prime", "warm_transition", "warm_prime", "summer_heat", "summer_heat", "fall_transition", "cool_prime", "cool_prime", "indoor_protected"]
+    },
+    {
+      "zones": [8, 9],
+      "label": "long warm season",
+      "months": ["cool_prime", "cool_prime", "cool_prime", "warm_transition", "warm_prime", "warm_prime", "summer_heat", "summer_heat", "fall_transition", "cool_prime", "cool_prime", "cool_prime"]
+    },
+    {
+      "zones": [10],
+      "label": "subtropical season",
+      "months": ["cool_prime", "cool_prime", "cool_prime", "warm_transition", "summer_heat", "summer_heat", "summer_heat", "summer_heat", "summer_heat", "summer_heat", "fall_transition", "cool_prime"]
+    },
+    {
+      "zones": [11, 12, 13],
+      "label": "tropical season",
+      "months": ["cool_prime", "cool_prime", "cool_prime", "warm_transition", "summer_heat", "summer_heat", "summer_heat", "summer_heat", "summer_heat", "summer_heat", "fall_transition", "cool_prime"]
+    }
+  ]
+}

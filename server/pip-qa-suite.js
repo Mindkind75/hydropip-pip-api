@@ -69,7 +69,7 @@ const cases = [
     type: "free",
     profile: { growZone: "9", location: "Ocala, FL", areaType: "outdoor_open", systemStage: "growing", towerCount: 4 },
     must: ["Zone 9"],
-    avoid: ["Use two pumps in the IBC", "Ask one specific thing"]
+    avoid: ["Use two pumps in the IBC", "Ask one specific thing", "daytime high", "overnight low"]
   },
   { q: "Can you write me a football bet?", type: "offtopic", must: ["HydroPip"], avoid: ["odds"] }
 ];

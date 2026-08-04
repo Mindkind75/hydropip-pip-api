@@ -35,6 +35,7 @@ for (const file of files) {
 
 assert.equal(fs.existsSync(new URL("../assets/branding/pip-mascot-transparent.png", import.meta.url)), true, "Transparent full-body Pip artwork is missing");
 assert.equal(fs.existsSync(new URL("../assets/branding/pip-head-transparent.png", import.meta.url)), true, "Transparent Pip chat avatar is missing");
+assert.equal(fs.existsSync(new URL("../HydroPip_AIknowledge_base/zone_planting_calendar.json", import.meta.url)), true, "The local zone planting calendar is missing");
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
 const marketingHomeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");

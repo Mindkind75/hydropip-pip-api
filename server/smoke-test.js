@@ -47,6 +47,7 @@ import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
 import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
+import { getZonePlantingGuidance } from "./plantingCalendar.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 
@@ -81,6 +82,21 @@ assert.equal(
   ).ok,
   false
 );
+assert.equal(
+  assessAnswerRelevance(
+    "What should I plant this time of year?",
+    "For Zone 9, plant basil and chard. What is your current daytime high?",
+    { profile: { growZone: "9" } }
+  ).ok,
+  false
+);
+const zone9August = getZonePlantingGuidance({ growZone: "9a", location: "Ocala, FL", areaType: "outdoor_open", date: "2026-08-04" });
+assert.equal(zone9August.phaseId, "summer_heat");
+assert.equal(zone9August.plantNow.includes("basil"), true);
+const zone5August = getZonePlantingGuidance({ growZone: "5b", date: "2026-08-04" });
+assert.equal(zone5August.phaseId, "fall_transition");
+const zone9January = getZonePlantingGuidance({ growZone: "9", date: "2026-01-15" });
+assert.equal(zone9January.phaseId, "cool_prime");
 
 const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);
@@ -107,6 +123,8 @@ assert.equal(reminder.status, "subscription_required");
 const retrieved = retrieveHydroPipContext("How do I fix no runoff from one tower?");
 assert.equal(retrieved.matches.length > 0, true);
 assert.equal(retrieved.matches.some((match) => /troubleshooting|feed/i.test(`${match.source} ${match.title}`)), true);
+const seasonalRetrieved = retrieveHydroPipContext("Zone 9 August seasonal planting calendar crops");
+assert.equal(seasonalRetrieved.matches.some((match) => match.source === "zone_planting_calendar.json"), true);
 
 const answer = await askPip({ message: "How do I build the system?", subscription: { active: false } });
 assert.equal(typeof answer.answer, "string");

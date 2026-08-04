@@ -1,4 +1,5 @@
 import { systemBrain } from "./pipData.js";
+import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
 import { createGrowPlan, createReminder, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
 import { appendProjectMessage, buildProjectContext } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
@@ -276,7 +277,9 @@ export async function askPip({ message, image, profile, subscription, history = 
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "When create_reminder or create_grow_plan returns confirmation_required, say the task or schedule is ready to review and use the on-screen confirmation button. Never say it is saved until the user confirms it.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
-      "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action. A grow zone describes seasonal hardiness, not today's weather; ask for current conditions when a weather-sensitive answer needs them.",
+      "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action.",
+      "For seasonal crop questions, use the supplied Zone Seasonal Planting Reference as the default answer source. Do not ask for today's temperature or perform a live weather lookup by default. Ask about current conditions only when the user reports unusual heat, frost, storms, or a crop near a temperature limit.",
+      "USDA zones describe average annual extreme minimums rather than complete vegetable calendars. Use the saved location and area details to refine the zone calendar when relevant, but do not withhold a useful planting answer when the zone and month are known.",
       "When a photo is attached, inspect it directly and use visible details in the answer. Use this compact order: one sentence naming the most useful visible evidence; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Clearly separate visible evidence from anything the photo cannot confirm.",
       "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context (supporting reference only):\n${retrievedContext}`
@@ -622,8 +625,8 @@ function toolsForQuestion(intent, message) {
 
 function selectIntentContext(retrieval, intent) {
   const allowedSources = {
-    crop_selection: ["scheduling_rules.json", "pip_system_brain.md"],
-    crop_plan_action: ["scheduling_rules.json", "pip_system_brain.md"],
+    crop_selection: ["zone_planting_calendar.json", "scheduling_rules.json", "pip_system_brain.md"],
+    crop_plan_action: ["zone_planting_calendar.json", "scheduling_rules.json", "pip_system_brain.md"],
     reminder_action: ["scheduling_rules.json"],
     plant_health: ["troubleshooting.md", "feed_and_nutrient_guidance.md"],
     feeding_nutrients: ["feed_and_nutrient_guidance.md", "troubleshooting.md"],
@@ -647,15 +650,22 @@ function resolveEffectiveProfile(profile, projectContext) {
 }
 
 function buildAnswerContext({ profile, projectContext, subscription, questionIntent }) {
+  const currentDate = new Date().toISOString().slice(0, 10);
   return {
-    currentDate: new Date().toISOString().slice(0, 10),
+    currentDate,
     timeZone: profile?.timeZone || "unknown",
     questionIntent,
     membership: subscription?.active ? "pip_pro" : "free",
     conversationTitle: projectContext?.conversation?.title || null,
     profile: profile || {},
     activeReminderCount: projectContext?.activeReminders?.length || 0,
-    recentReadingCount: projectContext?.recentReadings?.length || 0
+    recentReadingCount: projectContext?.recentReadings?.length || 0,
+    seasonalPlanting: getZonePlantingGuidance({
+      growZone: profile?.growZone,
+      location: profile?.location,
+      areaType: profile?.areaType || profile?.indoorOutdoor,
+      date: currentDate
+    })
   };
 }
 
@@ -680,7 +690,8 @@ function formatAnswerContext(context = {}) {
     ["Medium", profile.medium],
     ["Nutrients", profile.nutrientBrand],
     ["Pump schedule", profile.pumpSchedule],
-    ["User notes", profile.notes]
+    ["User notes", profile.notes],
+    ["Zone Seasonal Planting Reference", formatZonePlantingGuidance(context.seasonalPlanting)]
   ].filter(([, value]) => value !== null && value !== undefined && String(value).trim());
   return values.length ? values.map(([label, value]) => `${label}: ${value}`).join("\n") : "No saved grow profile details are available.";
 }
@@ -698,6 +709,7 @@ async function resolveRelevantAnswer({ client, model, response, trimmed, respons
         instructions: [
           "You are Pip, HydroPip's concise AI grow partner. Rewrite the answer because the first attempt did not answer the user's current question.",
           "Use the authoritative saved profile below. Answer the current question first. Do not drift to pumps, parts, build steps, subscriptions, or a generic menu unless the user asked about them.",
+          "For seasonal crop questions, use the supplied zone-and-month planting reference. Do not ask for today's temperature unless the user described unusual weather or a temperature-sensitive emergency.",
           "Keep the corrected answer under 90 words with one direct sentence and 2-3 useful bullets. Ask one focused follow-up only when truly needed.",
           `AUTHORITATIVE CONTEXT:\n${formatAnswerContext(answerContext)}`,
           `RELEVANCE FAILURE: ${relevance.reason}`,
@@ -746,6 +758,11 @@ export function assessAnswerRelevance(message, answer, answerContext = {}, inten
     if (seasonalQuestion && zone && !normalized.includes(`zone ${zone}`) && !normalized.includes(`zone ${zone.replace(/[^0-9a-z]/g, "")}`)) {
       return { ok: false, reason: `The answer ignored the saved USDA Zone ${zone}.` };
     }
+    const asksForWeatherByDefault = /(?:what(?:'s| is| are)?|tell me|send me|need).{0,45}\b(?:daytime high|overnight low|current temperature|weather|forecast)\b/i.test(answer);
+    const userAskedAboutWeather = /\b(weather|forecast|temperature|heat wave|cold snap|frost|freeze)\b/i.test(message);
+    if (seasonalQuestion && zone && asksForWeatherByDefault && !userAskedAboutWeather) {
+      return { ok: false, reason: "Seasonal guidance asked for live weather even though the saved zone calendar was sufficient." };
+    }
   }
 
   if (intent === "parts_shopping" && !/https?:\/\/|home depot|hardware store|local pickup/i.test(answer)) {
@@ -763,15 +780,17 @@ function contextualFallbackAnswer(question, retrieval, answerContext = {}) {
   const zone = String(profile.growZone || "").trim();
   const location = String(profile.location || "").trim();
   const area = String(profile.areaType || profile.indoorOutdoor || "").replace(/_/g, " ").trim();
-  const month = new Date(`${answerContext.currentDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`).getUTCMonth() + 1;
-  const numericZone = Number.parseInt(zone, 10);
-  const hotSeason = Number.isFinite(numericZone) && numericZone >= 8 && month >= 5 && month <= 9;
   const profileLead = [zone ? `Zone ${zone}` : "your zone", location, area].filter(Boolean).join(", ");
-
-  if (hotSeason) {
-    return `For ${profileLead}, start heat-tolerant tower crops now and stage cool-season greens for the next temperature break.\n- Plant basil, Swiss chard, Malabar spinach, amaranth, and heat-tolerant herbs.\n- Start lettuce, kale, and cilantro in a cooler shaded area for transplant when daytime highs ease.\n- Check your current daytime high before planting; tell me that temperature and I will narrow the list.`;
+  const guidance = answerContext.seasonalPlanting || getZonePlantingGuidance({
+    growZone: zone,
+    location,
+    areaType: area,
+    date: answerContext.currentDate
+  });
+  if (!guidance) {
+    return "Tell me your USDA zone or general location and I will match the current month to a HydroPip planting window. Good first tower crops include lettuce, chard, kale, basil, parsley, and cilantro.";
   }
-  return `For ${profileLead}, start with compact leafy greens and herbs that match your current temperatures.\n- Good HydroPip starters include lettuce, chard, kale, basil, parsley, and cilantro.\n- Use the saved exposure and crop goals to divide the towers by harvest speed.\n- Tell me your current daytime high and overnight low so I can narrow the varieties and timing.`;
+  return `For ${profileLead} in ${guidance.monthName}, this is your ${guidance.phaseLabel}.\n- Plant now: ${guidance.plantNow.slice(0, 6).join(", ")}.\n- Start next: ${guidance.startNext.slice(0, 5).join(", ")}.\n- HydroPip move: ${guidance.systemNotes[0]}`;
 }
 
 async function getOpenAiClient() {
