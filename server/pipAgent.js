@@ -190,7 +190,10 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
   }
 
-  const directAnswer = imageInput || (subscription?.active && wantsCalendarChange(trimmed)) ? null : highConfidenceAnswer(withRecentContext(trimmed, recentHistory), retrieval);
+  const deterministicQuestion = questionIntent === "hydroponic_guidance" && isVagueFollowUp(trimmed)
+    ? withRecentContext(trimmed, recentHistory)
+    : trimmed;
+  const directAnswer = imageInput || (subscription?.active && wantsCalendarChange(trimmed)) ? null : highConfidenceAnswer(deterministicQuestion, retrieval);
   if (directAnswer) {
     const answer = compactAnswer(directAnswer, trimmed, retrieval);
     await rememberProjectMessage(projectContext, {
@@ -449,7 +452,10 @@ export function normalizeImageInput(image) {
 }
 
 async function fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext, mode = "rules_fallback" }) {
-  const answer = compactAnswer(contextualFallbackAnswer(withRecentContext(trimmed, recentHistory), retrieval, answerContext), trimmed, retrieval);
+  const fallbackQuestion = answerContext?.questionIntent === "hydroponic_guidance" && isVagueFollowUp(trimmed)
+    ? withRecentContext(trimmed, recentHistory)
+    : trimmed;
+  const answer = compactAnswer(contextualFallbackAnswer(fallbackQuestion, retrieval, answerContext), trimmed, retrieval);
   const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
   await rememberProjectMessage(projectContext, {
     userId,

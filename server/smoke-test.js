@@ -208,6 +208,17 @@ const profileAwareFallback = await askPip({
 assert.equal(profileAwareFallback.answer.includes("Zone 9"), true);
 assert.equal(/basil|chard/i.test(profileAwareFallback.answer), true);
 assert.equal(/Use two pumps in the IBC/i.test(profileAwareFallback.answer), false);
+
+const seasonalWithPumpHistory = await askPip({
+  message: "Got the towers set. What should I plant this time of year?",
+  profile: { growZone: "9", location: "Ocala, FL", areaType: "outdoor open" },
+  history: [
+    { role: "user", content: "Where can I get a spare pump?" },
+    { role: "assistant", content: "Use two pumps in the IBC: one for circulation and one for feeding the towers." }
+  ]
+});
+assert.equal(/Use two pumps in the IBC/i.test(seasonalWithPumpHistory.answer), false);
+assert.match(seasonalWithPumpHistory.answer, /Zone 9/i);
 if (priorAiDisabled === undefined) delete process.env.PIP_AI_DISABLED;
 else process.env.PIP_AI_DISABLED = priorAiDisabled;
 if (priorOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
