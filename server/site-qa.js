@@ -107,6 +107,9 @@ assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single vi
 assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
 assert.match(homeHtml, /Pip is beside you from the first question\./, "Pip should be prominent in the opening homepage story");
 assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Parts<\//, "Home Parts navigation should retain the complete checklist destination");
+assert.doesNotMatch(homeHtml, /href=["']#[^"']*["']/, "The embedded Home page must not use iframe-local hash links that cannot scroll the Wix parent page");
+assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/field-guide["'][^>]*>How it works<\//, "Home How It Works navigation should open the complete guide");
+assert.match(homeHtml, /href=["']https:\/\/www\.hydropip\.com\/pip["'][^>]*>Pip<\//, "Home Pip navigation should open the working assistant");
 
 const fieldGuideHtml = fs.readFileSync(new URL("../field-guide.html", import.meta.url), "utf8");
 for (const section of ["system-map", "quick-start", "care", "red-flags", "turnover"]) {
