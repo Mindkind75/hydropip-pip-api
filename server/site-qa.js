@@ -134,8 +134,9 @@ assert.match(pipHtml, /window\.self!==window\.top/, "Pip Invite should avoid a b
 assert.match(pipHtml, /facebook\.com\/sharer\/sharer\.php/, "Pip Invite should offer a Facebook fallback when the share sheet is unavailable");
 
 const partsHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
-assert.match(partsHtml, /Supply plan saved/, "The supply planner should visibly confirm a save");
-assert.match(partsHtml, /Saved on this device/, "The supply planner should show persistent saved-state copy");
+assert.match(partsHtml, /Get your build organized\./, "Track My Build should open with focused procurement copy");
+assert.match(partsHtml, /Parts ready\? Start the build\./, "Track My Build should lead collected members into the build guide");
+assert.doesNotMatch(partsHtml, /supply-planner|Pip refill rhythm|data-filter=["']reorder["']/, "Recurring planning should stay in Pip Pro rather than Track My Build");
 assert.match(partsHtml, /\.top\{position:static;top:auto/, "Track My Build navigation should scroll with the page on touch devices");
 
 const wixTrackBridge = fs.readFileSync(new URL("../wix-track-my-build-page-code.js", import.meta.url), "utf8");

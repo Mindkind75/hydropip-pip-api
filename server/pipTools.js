@@ -240,7 +240,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Keep mosquitoes out by covering access to standing water.\n- Cover IBC openings and light gaps.\n- Secure hoses through the lid.\n- Inspect after rain and flush debris.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
   }
   if (/\b(reorder|refill|monthly|recurring|subscription|subscribe|supplies)\b/.test(q) && /\b(nutrient|nutrients|ph|ec|tds|seed|media|ibc|tank|calibration)\b/.test(q)) {
-    return `${contextLead}Recurring supplies to keep stocked:\n- Nutrients: ${affiliateLinks.nutrients}\n- pH calibration / pH Up-Down: ${affiliateLinks.phCalibration} and ${affiliateLinks.phUpDown}\n- Seeds and media top-off: ${affiliateLinks.seeds} and ${affiliateLinks.mediaTopOff}\n\nTrack My Build estimates checks now. Saved refill reminders are Pip Pro: ${proSignupUrl}`;
+    return `${contextLead}Recurring supplies to keep stocked:\n- Nutrients: ${affiliateLinks.nutrients}\n- pH calibration / pH Up-Down: ${affiliateLinks.phCalibration} and ${affiliateLinks.phUpDown}\n- Seeds and media top-off: ${affiliateLinks.seeds} and ${affiliateLinks.mediaTopOff}\n\nPip Pro saves refill dates and recurring tasks in Planner, then shows them in Calendar: ${proSignupUrl}`;
   }
   if (/\b(uphill|above|higher|vertical rise|elevation|head height|head pressure)\b/.test(q) && /\b(ibc|tank|reservoir|pump|tower|towers)\b/.test(q)) {
     return `${contextLead}Measure vertical lift before placing the IBC uphill from the towers.\n- Pump head rating must cover the vertical rise plus hose friction.\n- A long uphill run can reduce pressure and make tower flow uneven.\n- Test the farthest tower first and tune by runoff before planting.`;
