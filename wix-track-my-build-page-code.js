@@ -1,10 +1,11 @@
 import wixWindowFrontend from "wix-window-frontend";
 
-const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260803a";
+const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260804b";
 const TRACK_EMBED_IDS = ["#trackHtml", "#partsHtml", "#html1", "#html2", "#iFrame1"];
 let lastEmbedHeight = 0;
 
 $w.onReady(() => {
+  collapseOuterHeader();
   const embed = getEmbed();
   if (!embed) return;
 
@@ -12,6 +13,15 @@ $w.onReady(() => {
   embed.onMessage((event) => syncEmbedHeight(embed, event.data));
   embed.src = HYDROPIP_TRACK_SRC;
 });
+
+function collapseOuterHeader() {
+  try {
+    const header = $w("#section3");
+    if (header && typeof header.collapse === "function") header.collapse();
+  } catch (error) {
+    // The embedded header still works if this page uses a different Wix section ID.
+  }
+}
 
 function getEmbed() {
   for (const selector of TRACK_EMBED_IDS) {
