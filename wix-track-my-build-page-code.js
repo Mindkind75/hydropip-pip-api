@@ -15,11 +15,15 @@ $w.onReady(() => {
 });
 
 function collapseOuterHeader() {
-  try {
-    const header = $w("#section3");
-    if (header && typeof header.collapse === "function") header.collapse();
-  } catch (error) {
-    // The embedded header still works if this page uses a different Wix section ID.
+  const outerChromeIds = ["#section3", "#membersLoginBar1", "#header1", "#siteHeader"];
+
+  for (const selector of outerChromeIds) {
+    try {
+      const element = $w(/** @type {any} */ (selector));
+      if (element && typeof element.collapse === "function") element.collapse();
+    } catch (error) {
+      // Try the next known global header element ID.
+    }
   }
 }
 
