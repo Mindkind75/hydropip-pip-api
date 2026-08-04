@@ -105,6 +105,10 @@ assert.match(fieldGuideHtml, /window\.print/, "Field Guide should be printable")
 assert.match(fieldGuideHtml, /waterPulse/, "Field Guide should animate the timed-feed water path");
 assert.match(fieldGuideHtml, /prefers-reduced-motion/, "Field Guide animation should respect reduced-motion preferences");
 assert.match(fieldGuideHtml, /Turn the care rhythm into your calendar/, "Field Guide should explain the timely value of Pip Pro");
+assert.match(fieldGuideHtml, /aria-label=["']Field Guide actions["']/, "Field Guide should provide clear global navigation");
+assert.doesNotMatch(fieldGuideHtml, /href=["']https:\/\/www\.hydropip\.com\/["'][^>]*>Home</, "Field Guide should return through Pip Pro instead of bypassing the conversion path");
+assert.match(fieldGuideHtml, /class=["']brand["'][^>]*href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["']|href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["'][^>]*class=["']brand["']/, "Field Guide brand should return to Pip Pro");
+assert.equal((fieldGuideHtml.match(/>Back to Pip Pro<\/a>/g) || []).length >= 2, true, "Field Guide should return users to Pip Pro from the header and closing actions");
 for (const linkedFile of ["home.html", "pip.html", "track-start.html", "parts-checklist.html"]) {
   const linkedHtml = fs.readFileSync(new URL(`../${linkedFile}`, import.meta.url), "utf8");
   assert.match(linkedHtml, /field-guide/, `${linkedFile} should make the Field Guide available`);
