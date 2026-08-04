@@ -102,6 +102,7 @@ app.use(
 app.use(express.json({ limit: "4mb" }));
 app.use(express.static(rootDir));
 
+app.get("/field-guide", (_req, res) => res.sendFile(path.join(rootDir, "field-guide.html")));
 app.get("/beta-test", (_req, res) => res.sendFile(path.join(rootDir, "beta-test.html")));
 app.get("/beta-admin", (_req, res) => res.sendFile(path.join(rootDir, "beta-admin.html")));
 

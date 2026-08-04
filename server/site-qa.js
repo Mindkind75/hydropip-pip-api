@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const files = ["home.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
+const files = ["home.html", "field-guide.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
 const bannedCopy = [/HydroSync/i, /My Site 2/i, /concept render/i, /\brebuild\b/i];
 
 for (const file of files) {
@@ -85,6 +85,22 @@ assert.match(homeHtml, /assets\/photos\/hydropip-mature-four-tower-system\.jpg/,
 assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");
 assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
+assert.match(homeHtml, /field-guide/, "Home should link to the HydroPip Field Guide");
+
+const fieldGuideHtml = fs.readFileSync(new URL("../field-guide.html", import.meta.url), "utf8");
+for (const section of ["system-map", "quick-start", "care", "red-flags", "turnover"]) {
+  assert.match(fieldGuideHtml, new RegExp(`id=["']${section}["']`), `Field Guide is missing its ${section} section`);
+}
+assert.match(fieldGuideHtml, /call 811/i, "Field Guide should put utility safety before support installation");
+assert.match(fieldGuideHtml, /does not route tower runoff back into the IBC/i, "Field Guide should explain the timed-feed runoff model");
+assert.match(fieldGuideHtml, /window\.print/, "Field Guide should be printable");
+assert.match(fieldGuideHtml, /waterPulse/, "Field Guide should animate the timed-feed water path");
+assert.match(fieldGuideHtml, /prefers-reduced-motion/, "Field Guide animation should respect reduced-motion preferences");
+assert.match(fieldGuideHtml, /Turn the care rhythm into your calendar/, "Field Guide should explain the timely value of Pip Pro");
+for (const linkedFile of ["home.html", "pip.html", "track-start.html", "parts-checklist.html"]) {
+  const linkedHtml = fs.readFileSync(new URL(`../${linkedFile}`, import.meta.url), "utf8");
+  assert.match(linkedHtml, /field-guide/, `${linkedFile} should make the Field Guide available`);
+}
 
 for (const productFile of ["home.html", "pip.html", "parts-checklist.html", "server/pipAgent.js", "server/pipData.js", "server/pipTools.js"]) {
   const productSource = fs.readFileSync(new URL(`../${productFile}`, import.meta.url), "utf8");
