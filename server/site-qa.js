@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const files = ["home.html", "field-guide.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
+const files = ["home.html", "field-guide.html", "print-build-guide.html", "print-parts-guide.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
 const bannedCopy = [/HydroSync/i, /My Site 2/i, /concept render/i, /\brebuild\b/i];
 
 for (const file of files) {
@@ -63,6 +63,7 @@ assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/build\.png/, "Track Build 
 const partsChecklistHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-print-checklist.png", import.meta.url)), true, "The transparent Print checklist Pip is missing");
 assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/, "Track My Build should guide members toward the Print button");
+assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
 assert.equal((pipHtml.match(/class=["']notebook-guide["']/g) || []).length, 8, "Every main Pip Pro notebook section should have a visual guide");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
@@ -167,8 +168,9 @@ for (const section of ["system-map", "quick-start", "care", "red-flags", "turnov
 }
 assert.match(fieldGuideHtml, /call 811/i, "Field Guide should put utility safety before support installation");
 assert.match(fieldGuideHtml, /does not route tower runoff back into the IBC/i, "Field Guide should explain the timed-feed runoff model");
-assert.match(fieldGuideHtml, /window\.print/, "Field Guide should be printable");
-assert.match(fieldGuideHtml, /waterPulse/, "Field Guide should animate the timed-feed water path");
+assert.match(fieldGuideHtml, /\/print-build-guide\.html/, "Field Guide should open the dedicated printable build guide");
+assert.match(fieldGuideHtml, /hydropip-system-map-v2\.png/, "Field Guide should use the accurate Pip-style system map");
+assert.doesNotMatch(fieldGuideHtml, /class=["']systemStage["']/, "Field Guide should not render the old CSS tower diagram");
 assert.match(fieldGuideHtml, /prefers-reduced-motion/, "Field Guide animation should respect reduced-motion preferences");
 assert.match(fieldGuideHtml, /\.pipCue \.btn\{color:var\(--ink\)\}/, "Field Guide closing buttons need readable text contrast");
 assert.match(fieldGuideHtml, /Turn the care rhythm into your calendar/, "Field Guide should explain the timely value of Pip Pro");
@@ -180,6 +182,13 @@ assert.match(fieldGuideHtml, /aria-label=["']Field Guide actions["']/, "Field Gu
 assert.doesNotMatch(fieldGuideHtml, /href=["']https:\/\/www\.hydropip\.com\/["'][^>]*>Home</, "Field Guide should return through Pip Pro instead of bypassing the conversion path");
 assert.match(fieldGuideHtml, /class=["']brand["'][^>]*href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["']|href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["'][^>]*class=["']brand["']/, "Field Guide brand should return to Pip Pro");
 assert.equal((fieldGuideHtml.match(/>Back to Pip Pro<\/a>/g) || []).length >= 2, true, "Field Guide should return users to Pip Pro from the header and closing actions");
+const printBuildHtml = fs.readFileSync(new URL("../print-build-guide.html", import.meta.url), "utf8");
+const printPartsHtml = fs.readFileSync(new URL("../print-parts-guide.html", import.meta.url), "utf8");
+assert.match(printBuildHtml, /Page 4 of 4/, "The print build guide should contain four designed pages");
+assert.match(printBuildHtml, /window\.print/, "The print build guide needs a print control");
+assert.equal((printPartsHtml.match(/data-part=/g) || []).length, 25, "The printable parts guide should cover all 25 initial build items");
+assert.match(printPartsHtml, /hydropipMemberPartsChecklist/, "The printable parts guide should carry over saved checklist progress");
+assert.equal(fs.existsSync(new URL("../assets/website/field-guide/hydropip-system-map-v2.png", import.meta.url)), true, "The illustrated HydroPip system map is missing");
 for (const linkedFile of ["home.html", "pip.html", "track-start.html", "parts-checklist.html"]) {
   const linkedHtml = fs.readFileSync(new URL(`../${linkedFile}`, import.meta.url), "utf8");
   assert.match(linkedHtml, /field-guide/, `${linkedFile} should make the Field Guide available`);
