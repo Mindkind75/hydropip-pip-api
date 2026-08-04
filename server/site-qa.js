@@ -58,9 +58,11 @@ for (const page of ["profile", "planner", "calendar", "log", "history"]) {
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }
 assert.match(pipHtml, /activateProPage/, "Pip Pro notebook tabs are not wired to page navigation");
-for (const view of ["agenda", "day", "month", "year"]) assert.match(pipHtml, new RegExp(`data-calendar-view=["']${view}["']`), `Pip Calendar is missing its ${view} view`);
+for (const view of ["agenda", "day", "week", "month", "year"]) assert.match(pipHtml, new RegExp(`data-calendar-view=["']${view}["']`), `Pip Calendar is missing its ${view} view`);
 assert.match(pipHtml, /function renderCalendar/, "Pip Calendar is not rendered from Planner tasks");
+assert.match(pipHtml, /function renderCalendarWeek/, "Pip Calendar is missing weekly task grouping");
 assert.match(pipHtml, /plannerReminders/, "Pip Planner and Calendar should share one reminder collection");
+assert.match(pipHtml, /id=["']pipReturnTop["']/, "Pip needs a return-to-navigation handle on contained scroll views");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
@@ -187,6 +189,9 @@ assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the 
 assert.match(wixPipBridge, /HYDROPIP_INVITE_COPY_REQUEST/, "Wix Pip bridge should receive Invite copy requests");
 assert.match(wixPipBridge, /copyToClipboard/, "Wix Pip bridge should copy Invite links from the top-level Wix page");
 assert.match(wixPipBridge, /HYDROPIP_INVITE_COPY_RESULT/, "Wix Pip bridge should return the Invite copy result to Pip");
+assert.match(wixPipBridge, /HYDROPIP_SCROLL_TOP/, "Wix Pip bridge should let contained pages return to the outer navigation");
+assert.match(wixPipBridge, /scrollTo\(0, 0\)/, "Wix Pip bridge should reset the outer page scroll");
+assert.doesNotMatch(wixPipBridge, /formFactor === "Desktop" \? 860 : 800/, "Wix Pip must not force an iframe taller than common phone viewports");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");

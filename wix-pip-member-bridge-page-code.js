@@ -5,7 +5,7 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=beta-20260803b";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=beta-20260804a";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -22,10 +22,15 @@ $w.onReady(() => {
     const message = event.data || {};
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
-      const requested = Math.floor(Number(message.height));
-      if (Number.isFinite(requested)) {
-        const minimum = wixWindowFrontend.formFactor === "Desktop" ? 860 : 800;
-        pip.height = Math.max(minimum, Math.min(1800, requested));
+      await sizePipToViewport(pip);
+      return;
+    }
+
+    if (message.type === "HYDROPIP_SCROLL_TOP") {
+      try {
+        await wixWindowFrontend.scrollTo(0, 0);
+      } catch (error) {
+        // The inner handle still resets Pip if the outer Wix page is already at the top.
       }
       return;
     }
@@ -88,11 +93,12 @@ function buildPipSource() {
 }
 
 function sizePipToViewport(pip) {
-  wixWindowFrontend.getBoundingRect().then((size) => {
+  return wixWindowFrontend.getBoundingRect().then((size) => {
     const windowHeight = Math.floor(Number(size?.window?.height));
     if (!Number.isFinite(windowHeight)) return;
-    const minimum = wixWindowFrontend.formFactor === "Desktop" ? 860 : 800;
-    pip.height = Math.max(minimum, windowHeight - 32);
+    const minimum = wixWindowFrontend.formFactor === "Desktop" ? 640 : 460;
+    const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 24 : 64;
+    pip.height = Math.max(minimum, windowHeight - chromeAllowance);
   }).catch(() => {});
 }
 
