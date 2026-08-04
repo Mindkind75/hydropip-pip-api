@@ -53,8 +53,11 @@ for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", 
   assert.equal(fs.existsSync(new URL(`../assets/marketing/pro-tabs/${asset}`, import.meta.url)), true, `Pip notebook guide is missing: ${asset}`);
   assert.match(pipHtml, new RegExp(`/assets/marketing/pro-tabs/${asset.replaceAll(".", "\\.")}`), `Pip Pro should use the ${asset} notebook guide`);
 }
-assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/build.jpg", import.meta.url)), true, "The Track Build notebook guide is missing");
-assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/build\.jpg/, "Track Build should use its construction Pip guide");
+assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/build.png", import.meta.url)), true, "The transparent Track Build notebook guide is missing");
+assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/build\.png/, "Track Build should use its transparent construction Pip guide");
+const partsChecklistHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
+assert.equal(fs.existsSync(new URL("../assets/marketing/pip-print-checklist.png", import.meta.url)), true, "The transparent Print checklist Pip is missing");
+assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/, "Track My Build should guide members toward the Print button");
 assert.equal((pipHtml.match(/class=["']notebook-guide["']/g) || []).length, 8, "Every main Pip Pro notebook section should have a visual guide");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
