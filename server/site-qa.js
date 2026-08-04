@@ -68,6 +68,14 @@ assert.doesNotMatch(pipHtml, /Add to Home Screen|pipInstallNudge|requestInstall|
 assert.match(pipHtml, /Ready for your Calendar/, "Pip chat should present reviewable calendar actions");
 assert.match(pipHtml, /\/reminders\/batch/, "Pip chat calendar actions should save through the authenticated batch endpoint");
 assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");
+for (const id of ["proInviteLink", "proCopyInvite", "proShareInvite", "proInviteShareChoices", "proInviteText", "proInviteEmail", "proInviteFacebook"]) {
+  assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `Pip Invite is missing ${id}`);
+}
+assert.match(pipHtml, /HYDROPIP_INVITE_COPY_REQUEST/, "Pip Invite should ask the Wix parent page to copy when iframe clipboard access is blocked");
+assert.match(pipHtml, /document\.execCommand\("copy"\)/, "Pip Invite should retain a legacy iframe copy fallback");
+assert.match(pipHtml, /navigator\.share/, "Pip Invite should use the device share sheet when available");
+assert.match(pipHtml, /window\.self!==window\.top/, "Pip Invite should avoid a blocked native share call inside the Wix iframe");
+assert.match(pipHtml, /facebook\.com\/sharer\/sharer\.php/, "Pip Invite should offer a Facebook fallback when the share sheet is unavailable");
 
 const partsHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
 assert.match(partsHtml, /Supply plan saved/, "The supply planner should visibly confirm a save");
@@ -138,6 +146,9 @@ assert.match(wixPipBridge, /\["pro", "project", "projectId"\]/, "Wix Pip bridge 
 assert.doesNotMatch(wixPipBridge, /HYDROPIP_APP_INSTALL_REQUEST|"app", "install"/, "Wix Pip bridge should not route the retired Home Screen flow");
 assert.match(wixPipBridge, /buildPipSource\(\)/, "Wix Pip bridge is not building a context-aware embed source");
 assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the current Pip embed source");
+assert.match(wixPipBridge, /HYDROPIP_INVITE_COPY_REQUEST/, "Wix Pip bridge should receive Invite copy requests");
+assert.match(wixPipBridge, /copyToClipboard/, "Wix Pip bridge should copy Invite links from the top-level Wix page");
+assert.match(wixPipBridge, /HYDROPIP_INVITE_COPY_RESULT/, "Wix Pip bridge should return the Invite copy result to Pip");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");

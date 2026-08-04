@@ -41,6 +41,24 @@ $w.onReady(() => {
       return;
     }
 
+    if (message.type === "HYDROPIP_INVITE_COPY_REQUEST") {
+      const requestId = String(message.requestId || "");
+      const text = String(message.text || "");
+      let ok = false;
+      try {
+        await wixWindowFrontend.copyToClipboard(text);
+        ok = true;
+      } catch (error) {
+        console.warn("HydroPip invite link could not be copied", error);
+      }
+      pip.postMessage({
+        type: "HYDROPIP_INVITE_COPY_RESULT",
+        requestId,
+        ok
+      });
+      return;
+    }
+
   });
 
   pip.src = buildPipSource();

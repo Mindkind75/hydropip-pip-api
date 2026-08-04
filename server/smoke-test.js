@@ -76,7 +76,7 @@ const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);
 
 const parts = recommendParts({ towerCount: 4 });
-assert.equal(parts.parts.find((part) => part.name.includes("Four-pot")).suggestedQuantity, "8 orders total");
+assert.equal(parts.parts.find((part) => part.name.includes("four-pot")).suggestedQuantity, "2 five-tier orders per tower");
 
 const plan = createGrowPlan({
   towerCount: 4,
