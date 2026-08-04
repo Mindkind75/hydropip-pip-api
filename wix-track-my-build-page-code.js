@@ -1,6 +1,6 @@
 import wixWindowFrontend from "wix-window-frontend";
 
-const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260804b";
+const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260804c&embed=1";
 const TRACK_EMBED_IDS = ["#trackHtml", "#partsHtml", "#html1", "#html2", "#iFrame1"];
 let lastEmbedHeight = 0;
 
