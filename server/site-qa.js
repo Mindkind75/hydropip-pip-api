@@ -69,7 +69,7 @@ assert.match(pipHtml, /function bestSavedProject\(/, "Pip chat should choose the
 assert.match(pipHtml, /requestedProjectId\?projects\.find/, "Pip chat should prioritize an explicitly selected notebook");
 assert.match(pipHtml, /\.top-actions a/, "Pip Pro shortcuts should link to the selected notebook");
 assert.match(pipHtml, /body:not\(\.pro-mode\) \.return-top-handle\{display:none!important\}/, "Chat should use its persistent navigation instead of the floating top handle");
-assert.match(pipHtml, /pip-pro-workspace\.jpg/, "The Pip Pro notebook heading should feature the dedicated Pro mascot");
+assert.match(pipHtml, /pip-pro-workspace-transparent\.png/, "The Pip Pro notebook heading should feature the transparent Pro mascot");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
