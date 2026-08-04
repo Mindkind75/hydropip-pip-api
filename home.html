@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -140,12 +140,15 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .deviceMobile .photoFeature{min-height:500px}
 .deviceMobile .card,.deviceMobile .step,.deviceMobile .part,.deviceMobile .pipPanel,.deviceMobile .signupPanel{padding:18px}
 .deviceMobile .turnoverGrid{grid-template-columns:1fr}.deviceMobile .turnoverVisual,.deviceMobile .turnoverVisual img{min-height:480px}.deviceMobile .turnoverCaption{left:12px;right:12px;bottom:12px;padding:14px}
+.pipLockup img{border-radius:0;background:transparent;filter:drop-shadow(0 12px 14px rgba(19,54,39,.18));animation:pipFloat 3.6s ease-in-out infinite}
+@keyframes pipFloat{0%,100%{transform:translateY(0) scale(1.08)}50%{transform:translateY(-7px) scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.pipLockup img{animation:none;transform:scale(1.08)}}
 </style>
 </head>
 <body>
 <header class="topbar">
   <a class="brand" href="#top" aria-label="HydroPip home">
-    <img src="https://static.wixstatic.com/media/5fe7cb_cdb3b09ac4864f5491fc6324cafb7182~mv2.png/v1/fill/w_71,h_71,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/2c7aedcc-5630-465d-b27c-c60a878d613e.png" alt="Pip HydroPip mascot">
+    <img src="/assets/branding/pip-mascot-transparent.png" alt="Pip HydroPip mascot">
     <span>HydroPip<small>Systems</small></span>
   </a>
   <div class="headerTools">
@@ -271,7 +274,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     <div class="inner split">
       <div>
         <div class="pipLockup">
-          <img src="https://static.wixstatic.com/media/5fe7cb_cdb3b09ac4864f5491fc6324cafb7182~mv2.png/v1/fill/w_71,h_71,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/2c7aedcc-5630-465d-b27c-c60a878d613e.png" alt="Pip mascot">
+          <img src="/assets/branding/pip-mascot-transparent.png" alt="Pip mascot">
           <div>
             <p class="eyebrow">Meet Pip</p>
             <h2>Your AI build buddy for the HydroPip system.</h2>

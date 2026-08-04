@@ -22,6 +22,7 @@ for (const file of files) {
   for (const phrase of bannedCopy) {
     assert.equal(phrase.test(html), false, `${file} contains launch copy that should be removed: ${phrase}`);
   }
+  assert.doesNotMatch(html, /5fe7cb_cdb3/i, `${file} still uses the old tan-background Pip artwork`);
 
   const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/gi)];
   for (const [, attributes, source] of scripts) {
@@ -31,6 +32,9 @@ for (const file of files) {
 
   console.log(`${file}: ${hrefs.length} links and ${scripts.length} inline scripts checked`);
 }
+
+assert.equal(fs.existsSync(new URL("../assets/branding/pip-mascot-transparent.png", import.meta.url)), true, "Transparent full-body Pip artwork is missing");
+assert.equal(fs.existsSync(new URL("../assets/branding/pip-head-transparent.png", import.meta.url)), true, "Transparent Pip chat avatar is missing");
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
@@ -58,6 +62,9 @@ assert.match(pipHtml, /photo_limit_reached|data\.photoAllowance/, "Pip should ha
 assert.match(pipHtml, /pip_daily_limit_reached/, "Pip should explain daily AI limits without breaking local guidance");
 assert.match(pipHtml, /Pip Credits are coming soon/, "Pip should set a friendly expectation while top-up checkout is pending");
 assert.match(pipHtml, /your HydroPip grow partner/, "Pip should open with a clear capability-focused introduction");
+assert.match(pipHtml, /class=["']chat-head["'][^>]*>[\s\S]*?pip-head-transparent\.png/, "Pip chat header should use the head-only avatar");
+assert.match(pipHtml, /var mascot = ["']\/assets\/branding\/pip-head-transparent\.png["']/, "Pip replies should use the head-only avatar");
+assert.match(pipHtml, /proPipFloat/, "The Pip Pro conversion hero should give Pip restrained motion");
 assert.match(pipHtml, /Build the system step by step/, "Pip's introduction should explain build guidance");
 assert.match(pipHtml, /in-app calendar and reminders/, "Pip's introduction should explain the Pro value without a long sales pitch");
 assert.match(pipHtml, /pipBetaWelcomeDialog/, "Pip should include the beta welcome experience");
@@ -94,6 +101,7 @@ assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower tur
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");
 assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
 assert.match(homeHtml, /field-guide/, "Home should link to the HydroPip Field Guide");
+assert.match(homeHtml, /pipFloat/, "The Meet Pip conversion moment should give the mascot restrained motion");
 
 const fieldGuideHtml = fs.readFileSync(new URL("../field-guide.html", import.meta.url), "utf8");
 for (const section of ["system-map", "quick-start", "care", "red-flags", "turnover"]) {
@@ -104,6 +112,7 @@ assert.match(fieldGuideHtml, /does not route tower runoff back into the IBC/i, "
 assert.match(fieldGuideHtml, /window\.print/, "Field Guide should be printable");
 assert.match(fieldGuideHtml, /waterPulse/, "Field Guide should animate the timed-feed water path");
 assert.match(fieldGuideHtml, /prefers-reduced-motion/, "Field Guide animation should respect reduced-motion preferences");
+assert.match(fieldGuideHtml, /\.pipCue \.btn\{color:var\(--ink\)\}/, "Field Guide closing buttons need readable text contrast");
 assert.match(fieldGuideHtml, /Turn the care rhythm into your calendar/, "Field Guide should explain the timely value of Pip Pro");
 assert.match(fieldGuideHtml, /aria-label=["']Field Guide actions["']/, "Field Guide should provide clear global navigation");
 assert.doesNotMatch(fieldGuideHtml, /href=["']https:\/\/www\.hydropip\.com\/["'][^>]*>Home</, "Field Guide should return through Pip Pro instead of bypassing the conversion path");
