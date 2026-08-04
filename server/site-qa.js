@@ -64,6 +64,9 @@ assert.match(pipHtml, /function renderCalendarWeek/, "Pip Calendar is missing we
 assert.match(pipHtml, /plannerReminders/, "Pip Planner and Calendar should share one reminder collection");
 assert.match(pipHtml, /id=["']pipReturnTop["']/, "Pip needs a return-to-navigation handle on contained scroll views");
 assert.match(pipHtml, /chat-nav-menu/, "Pip chat should keep account navigation beside the conversation selector");
+assert.match(pipHtml, /function bestSavedProject\(/, "Pip chat should choose the most complete saved grow profile");
+assert.match(pipHtml, /requestedProjectId\?projects\.find/, "Pip chat should prioritize an explicitly selected notebook");
+assert.match(pipHtml, /\.top-actions a/, "Pip Pro shortcuts should link to the selected notebook");
 assert.match(pipHtml, /body:not\(\.pro-mode\) \.return-top-handle\{display:none!important\}/, "Chat should use its persistent navigation instead of the floating top handle");
 assert.match(pipHtml, /pip-pro-workspace\.jpg/, "The Pip Pro notebook heading should feature the dedicated Pro mascot");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");

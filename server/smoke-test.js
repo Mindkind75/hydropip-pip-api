@@ -255,6 +255,24 @@ assert.equal(freeProject.project.systemProfile.growZone, "9");
 assert.equal(freeProject.project.systemProfile.areaType, "outdoor_open");
 assert.deepEqual(freeProject.project.systemProfile.goals, ["steady_harvests"]);
 
+const savedProfileAiDisabled = process.env.PIP_AI_DISABLED;
+process.env.PIP_AI_DISABLED = "true";
+const savedProjectCropAnswer = await askPip({
+  message: "Using my saved profile, what crops should I plant this time of year?",
+  user: { id: "test-user", email: "test@example.com" },
+  projectId: freeProject.project.id,
+  subscription: { active: true },
+  history: [
+    { role: "user", content: "Where can I get a spare pump?" },
+    { role: "assistant", content: "Use two pumps in the IBC: one for circulation and one for feeding the towers." }
+  ]
+});
+assert.match(savedProjectCropAnswer.answer, /Zone 9/i);
+assert.match(savedProjectCropAnswer.answer, /basil|chard/i);
+assert.equal(/Use two pumps in the IBC/i.test(savedProjectCropAnswer.answer), false);
+if (savedProfileAiDisabled === undefined) delete process.env.PIP_AI_DISABLED;
+else process.env.PIP_AI_DISABLED = savedProfileAiDisabled;
+
 const betaStart = await getBetaExperience({ userId: "test-user" });
 assert.equal(betaStart.welcomeSeenAt, null);
 assert.equal(betaStart.activity.feedback, false);
@@ -349,9 +367,9 @@ await appendProjectMessage({ userId: "test-user", projectId: freeProject.project
 await appendProjectMessage({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id, role: "user", content: "I found aphids." });
 const buildMessages = await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id, conversationId: defaultConversations[0].id });
 const pestMessages = await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id });
-assert.deepEqual(buildMessages.map((item) => item.content), ["I am stacking the first tower."]);
+assert.equal(buildMessages.at(-1)?.content, "I am stacking the first tower.");
 assert.deepEqual(pestMessages.map((item) => item.content), ["I found aphids."]);
-assert.equal((await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id, allConversations: true })).length, 2);
+assert.equal((await listProjectMessages({ userId: "test-user", projectId: freeProject.project.id, allConversations: true })).length, buildMessages.length + pestMessages.length);
 const renamedConversation = await updateProjectConversation({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id, patch: { title: "Pests" }, subscription: { active: true } });
 assert.equal(renamedConversation.conversation.title, "Pests");
 const archivedConversation = await updateProjectConversation({ userId: "test-user", projectId: freeProject.project.id, conversationId: pestConversation.conversation.id, patch: { status: "archived" }, subscription: { active: true } });
