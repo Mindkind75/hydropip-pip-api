@@ -57,6 +57,9 @@ assert.match(pipHtml, /photo-allowance/, "Pip should show the member's remaining
 assert.match(pipHtml, /photo_limit_reached|data\.photoAllowance/, "Pip should handle the server-enforced photo allowance");
 assert.match(pipHtml, /pip_daily_limit_reached/, "Pip should explain daily AI limits without breaking local guidance");
 assert.match(pipHtml, /Pip Credits are coming soon/, "Pip should set a friendly expectation while top-up checkout is pending");
+assert.match(pipHtml, /your HydroPip grow partner/, "Pip should open with a clear capability-focused introduction");
+assert.match(pipHtml, /Build the system step by step/, "Pip's introduction should explain build guidance");
+assert.match(pipHtml, /in-app calendar and reminders/, "Pip's introduction should explain the Pro value without a long sales pitch");
 assert.match(pipHtml, /pipBetaWelcomeDialog/, "Pip should include the beta welcome experience");
 assert.match(pipHtml, /pipBetaChecklist/, "Pip Pro should include the beta test checklist");
 assert.match(pipHtml, /Was this useful\?/, "Fresh Pip answers should support beta ratings");
