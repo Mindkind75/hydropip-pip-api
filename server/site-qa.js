@@ -102,6 +102,11 @@ assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower tu
 assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
 assert.match(homeHtml, /field-guide/, "Home should link to the HydroPip Field Guide");
 assert.match(homeHtml, /pipFloat/, "The Meet Pip conversion moment should give the mascot restrained motion");
+assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real food\./, "Home should provide a concise How It Works overview");
+assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
+assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
+assert.match(homeHtml, /Pip is beside you from the first question\./, "Pip should be prominent in the opening homepage story");
+assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Parts<\//, "Home Parts navigation should retain the complete checklist destination");
 
 const fieldGuideHtml = fs.readFileSync(new URL("../field-guide.html", import.meta.url), "utf8");
 for (const section of ["system-map", "quick-start", "care", "red-flags", "turnover"]) {
@@ -114,6 +119,9 @@ assert.match(fieldGuideHtml, /waterPulse/, "Field Guide should animate the timed
 assert.match(fieldGuideHtml, /prefers-reduced-motion/, "Field Guide animation should respect reduced-motion preferences");
 assert.match(fieldGuideHtml, /\.pipCue \.btn\{color:var\(--ink\)\}/, "Field Guide closing buttons need readable text contrast");
 assert.match(fieldGuideHtml, /Turn the care rhythm into your calendar/, "Field Guide should explain the timely value of Pip Pro");
+assert.match(fieldGuideHtml, /id=["']meet-pip["']/, "Field Guide should introduce Pip before the build stages");
+assert.match(fieldGuideHtml, /Pip helps turn the guide into your next decision\./, "Field Guide needs a concise Pip capability introduction");
+assert.match(fieldGuideHtml, /Pip Pro remembers your grow zone/, "Field Guide should explain the practical Pip Pro memory benefit");
 assert.match(fieldGuideHtml, /aria-label=["']Field Guide actions["']/, "Field Guide should provide clear global navigation");
 assert.doesNotMatch(fieldGuideHtml, /href=["']https:\/\/www\.hydropip\.com\/["'][^>]*>Home</, "Field Guide should return through Pip Pro instead of bypassing the conversion path");
 assert.match(fieldGuideHtml, /class=["']brand["'][^>]*href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["']|href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["'][^>]*class=["']brand["']/, "Field Guide brand should return to Pip Pro");

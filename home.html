@@ -143,6 +143,16 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .pipLockup img{border-radius:0;background:transparent;filter:drop-shadow(0 12px 14px rgba(19,54,39,.18));animation:pipFloat 3.6s ease-in-out infinite}
 @keyframes pipFloat{0%,100%{transform:translateY(0) scale(1.08)}50%{transform:translateY(-7px) scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.pipLockup img{animation:none;transform:scale(1.08)}}
+#top{display:flex;flex-direction:column}.hero{order:1}#story{order:2}#why{order:3}#pip{order:4}#start{order:5}#build,#flip-day,#photos,#parts,#signup{display:none}
+.hero h1{font-size:clamp(2.85rem,4.5vw,4.7rem);line-height:.96}
+.heroGuide{display:grid;grid-template-columns:94px minmax(0,1fr);gap:14px;align-items:center;max-width:650px;margin:24px 0;padding:14px 16px;border:1px solid rgba(31,122,79,.22);border-radius:8px;background:rgba(255,255,255,.72)}.heroGuide img{width:94px;height:94px;object-fit:contain;filter:drop-shadow(0 10px 12px rgba(19,54,39,.17));animation:heroPipFloat 3.8s ease-in-out infinite}.heroGuide strong{display:block;margin-bottom:3px;color:var(--deep);font-size:1.05rem}.heroGuide p{margin:0!important;font-size:.95rem!important;line-height:1.48!important}
+.howIntro{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.42fr);gap:28px;align-items:end;margin-bottom:28px}.howIntro h2{max-width:760px}.pipPrompt{display:grid;grid-template-columns:68px 1fr;gap:12px;align-items:center;padding:14px;border-left:4px solid var(--gold);background:#fff8e8}.pipPrompt img{width:68px;height:58px;object-fit:contain}.pipPrompt strong{display:block;color:var(--deep);line-height:1.3}.pipPrompt span{display:block;margin-top:3px;color:var(--muted);font-size:.88rem;line-height:1.4}
+.howOverview{display:grid;grid-template-columns:minmax(300px,.92fr) minmax(0,1.08fr);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}.howPhoto{position:relative;min-height:480px;margin:0;background:#173f30}.howPhoto img{display:block;width:100%;height:100%;min-height:480px;object-fit:cover}.howPhoto figcaption{position:absolute;left:16px;right:16px;bottom:16px;padding:14px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(15,79,55,.9);color:#fff;font-weight:900}.howSteps{display:grid;grid-template-columns:1fr 1fr}.howStep{display:grid;grid-template-columns:38px 1fr;gap:12px;align-content:center;min-height:190px;padding:24px;border-left:1px solid var(--line);border-bottom:1px solid var(--line)}.howStep:nth-child(3),.howStep:nth-child(4){border-bottom:0}.howStep b{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--water);color:var(--deep)}.howStep strong{display:block;margin-bottom:5px;color:var(--deep);font-size:1.02rem}.howStep p{margin:0;font-size:.92rem;line-height:1.48}.howActions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;padding:18px 24px;border-top:1px solid var(--line);background:var(--mint)}
+@keyframes heroPipFloat{0%,100%{transform:translateY(0) scale(1.06)}50%{transform:translateY(-6px) scale(1.06)}}
+@media(min-width:1001px){.hero{min-height:640px;padding-top:clamp(34px,4vw,58px);padding-bottom:clamp(34px,4vw,58px)}}
+@media(max-width:1000px){.howIntro,.howOverview{grid-template-columns:1fr}.howPhoto,.howPhoto img{min-height:420px}}
+@media(max-width:720px){.heroGuide{grid-template-columns:78px 1fr}.heroGuide img{width:78px;height:78px}.howIntro{gap:16px}.howSteps{grid-template-columns:1fr}.howStep,.howStep:nth-child(3){min-height:0;border-left:0;border-bottom:1px solid var(--line)}.howStep:nth-child(4){border-bottom:0}.howActions{display:grid;padding:16px}.howActions .btn{width:100%}.howPhoto,.howPhoto img{min-height:360px}.pipPrompt{grid-template-columns:58px 1fr}.pipPrompt img{width:58px;height:50px}}
+@media(prefers-reduced-motion:reduce){.heroGuide img{animation:none;transform:scale(1.06)}}
 </style>
 </head>
 <body>
@@ -155,9 +165,9 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     <nav class="nav" id="nav" aria-label="Primary navigation">
       <a href="#story">How it works</a>
       <a href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a>
-      <a href="#build">Build</a>
+      <a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Build</a>
       <a href="#pip">Pip</a>
-      <a href="#parts">Parts</a>
+      <a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Parts</a>
       <a href="https://www.hydropip.com/pip?pro=1" target="_top">Pip Pro</a>
       <a class="navCta" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Track My Build</a>
     </nav>
@@ -175,10 +185,11 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
       <p class="eyebrow">Grow food at home with a simpler hydroponic system</p>
       <h1>Build a commercial-quality hydroponic tower system from off-the-shelf parts.</h1>
       <p>HydroPip shows you how to assemble a four-tower, 160-pot timed-feed system in just a few hours. Pip guides the build step by step, then Pip Pro can keep your crop plans, feeding, maintenance, pruning, harvest, and next planting cycle organized in one place.</p>
+      <div class="heroGuide"><img src="/assets/branding/pip-mascot-transparent.png" alt="Pip mascot"><div><strong>Pip is beside you from the first question.</strong><p>Ask about your space, the right part, the next build step, or what your plants are telling you.</p></div></div>
       <div class="actions">
-        <a class="btn primary" href="https://www.hydropip.com/account-settings" target="_top">Create free account</a>
-        <a class="btn gold" href="https://www.hydropip.com/pip" target="_top">Ask Pip now</a>
-        <a class="btn" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Track My Build</a>
+        <a class="btn primary" href="#story">See how it works</a>
+        <a class="btn gold" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Open the Field Guide</a>
+        <a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a>
       </div>
     </div>
     <figure class="photoFeature singlePhoto" aria-label="Mature four-tower HydroPip system filled with food">
@@ -197,22 +208,24 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 
   <section id="story" class="band white">
     <div class="inner">
-      <div class="center">
-        <p class="eyebrow">The HydroPip loop</p>
-        <h2>Sign up. Ask Pip. Build the system. Grow. Repeat.</h2>
-        <p>HydroPip brings the build, parts list, grow guidance, and AI support into one simple path so you can start with confidence and keep improving every crop cycle.</p>
+      <div class="howIntro">
+        <div><p class="eyebrow">How it works</p><h2>One reservoir. Brief feeds. Four towers growing real food.</h2><p>HydroPip uses a large mixed reservoir and scheduled feed windows. Water reaches each tower from the top, moves through reusable media, and drains away without return plumbing.</p></div>
+        <div class="pipPrompt"><img src="/assets/branding/pip-head-transparent.png" alt="Pip"><div><strong>Not sure what comes next?</strong><span>Pip can explain the system, check your plan, and guide the decision in front of you.</span></div></div>
       </div>
-      <div class="storyLine">
-        <article><strong>1. Sign up</strong><p>Create a free account and keep your build checklist in one place.</p></article>
-        <article><strong>2. Ask Pip</strong><p>Get HydroPip-specific answers for parts, setup, feeding, nutrients, and troubleshooting.</p></article>
-        <article><strong>3. Buy parts</strong><p>Use the organized parts list for stack pots, pumps, nutrients, media, meters, and fittings.</p></article>
-        <article><strong>4. Build + plant</strong><p>Set the tower, test the flow, mix the IBC, and get your first crop started.</p></article>
-        <article><strong>5. Harvest + flip</strong><p>Move healthy mature plants to raised beds, recover the reusable media, and replant the next crop in a few focused hours.</p></article>
+      <div class="howOverview">
+        <figure class="howPhoto"><img src="/assets/photos/hydropip-mature-four-tower-system.jpg" alt="Mature four-tower HydroPip system"><figcaption>A commercial-quality growing system assembled from accessible parts.</figcaption></figure>
+        <div class="howSteps">
+          <article class="howStep"><b>1</b><div><strong>Mix</strong><p>Prepare nutrients in the 275-gallon IBC and circulate before testing.</p></div></article>
+          <article class="howStep"><b>2</b><div><strong>Feed</strong><p>A dedicated pump sends short scheduled doses through the main line.</p></div></article>
+          <article class="howStep"><b>3</b><div><strong>Grow</strong><p>Four vertical towers hold up to 160 planting pockets in reusable media.</p></div></article>
+          <article class="howStep"><b>4</b><div><strong>Harvest + reset</strong><p>Recover the media, preserve productive plants, and start the next crop.</p></div></article>
+          <div class="howActions"><a class="btn gold" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">See the complete Field Guide</a><a class="btn primary" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Start My Build</a></div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="band mint">
+  <section id="why" class="band mint">
     <div class="inner split">
       <div>
         <p class="eyebrow">Why HydroPip exists</p>
@@ -341,7 +354,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     </div>
   </section>
 
-  <section class="band cream">
+  <section id="signup" class="band cream">
     <div class="inner split">
       <div>
         <p class="eyebrow">Why sign up now</p>
@@ -364,7 +377,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     </div>
   </section>
 
-  <section class="band deep">
+  <section id="start" class="band deep">
     <div class="inner finalCta">
       <div>
         <p class="eyebrow">Start the loop</p>
