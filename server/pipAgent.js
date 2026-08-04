@@ -96,10 +96,19 @@ export async function askPip({ message, image, profile, subscription, history = 
   const trimmed = String(message || "").trim() || (imageInput ? "Inspect this photo and identify the most likely HydroPip plant-health, pest, plumbing, or equipment issue." : "");
   if (!trimmed) return { answer: "Ask me where you are in the HydroPip build and I will guide the next step.", mode: "empty" };
   const recentHistory = normalizeHistory(history);
-  const retrieval = retrieveHydroPipContext(trimmed, { limit: 7 });
-  const retrievedContext = formatContextForPrompt(retrieval);
   const userId = String(user?.id || user?.email || "").trim();
   const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId, conversationId }) : null;
+  const questionIntent = classifyQuestionIntent(trimmed, { image: Boolean(imageInput) });
+  const rawRetrieval = retrieveHydroPipContext(trimmed, { limit: 10 });
+  const retrieval = selectIntentContext(rawRetrieval, questionIntent);
+  const retrievedContext = formatContextForPrompt(retrieval);
+  const effectiveProfile = resolveEffectiveProfile(profile, projectContext);
+  const answerContext = buildAnswerContext({
+    profile: effectiveProfile,
+    projectContext,
+    subscription,
+    questionIntent
+  });
   const projectMemory = projectContext
     ? {
         active: true,
@@ -202,7 +211,7 @@ export async function askPip({ message, image, profile, subscription, history = 
 
   const client = await getOpenAiClient();
   if (!client) {
-    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory });
+    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext });
   }
 
   const model = process.env.PIP_MODEL || "gpt-5-mini";
@@ -216,9 +225,13 @@ export async function askPip({ message, image, profile, subscription, history = 
       type: "input_text",
       text: JSON.stringify({
         message: trimmed,
-        currentProfile: profile || null,
+        currentDate: answerContext.currentDate,
+        currentTimeZone: answerContext.timeZone,
+        questionIntent,
+        authoritativeGrowProfile: effectiveProfile,
         subscription: subscription || { active: false, plan: "free" },
-        projectContext: compactProjectContext(projectContext)
+        projectContext: compactProjectContext(projectContext),
+        contextRules: "The saved grow profile is authoritative. The current question controls intent. Conversation history and retrieved notes are supporting context only."
       })
     },
     ...(imageInput ? [{ type: "input_image", image_url: imageInput.dataUrl, detail: "auto" }] : [])
@@ -227,15 +240,20 @@ export async function askPip({ message, image, profile, subscription, history = 
     ...recentHistory,
     { role: "user", content: currentUserContent }
   ];
+  const enabledTools = toolsForQuestion(questionIntent, trimmed);
   try {
-    response = await client.responses.create({
-    model,
-    store: false,
-    instructions: [
+    const request = {
+      model,
+      store: false,
+      instructions: [
       systemBrain,
-      "Use HydroPip tools whenever the user asks for build steps, parts, grow plans, reminders, or setup questions.",
+      `CURRENT QUESTION INTENT: ${questionIntent}. Answer this intent; do not drift to a different HydroPip topic.`,
+      `AUTHORITATIVE USER AND GROW CONTEXT:\n${formatAnswerContext(answerContext)}`,
+      "Use the saved grow profile whenever it contains relevant details. Do not ask for zone, location, area type, system stage, tower count, reservoir size, crops, medium, nutrients, or goals when that value is already present.",
+      "Start with a direct answer to the current question. Conversation history is useful for references and follow-ups, but an older topic must never override a clear new question.",
+      "Use HydroPip tools only when one is available for the current intent. Do not call a parts or build tool for crop-selection, seasonal, plant-health, or general growing questions.",
       "For a Pip Pro user who asks to create, add, save, or schedule a reminder, call create_reminder. For a Pip Pro user who asks Pip to build or add a crop schedule, call create_grow_plan. Collect missing dates or crop details with one focused question before proposing the action. Express user-supplied reminder times as dueTime in local 24-hour HH:MM form; do not convert them to UTC.",
-      "Use the retrieved HydroPip knowledge-base context below before generic hydroponic knowledge.",
+      "Use retrieved HydroPip knowledge only when it directly answers the current intent. Ignore retrieved notes that are about a different topic. For crop timing and plant questions, combine relevant saved profile details with sound hydroponic and horticultural knowledge.",
       "HydroPip is a real timed-feed runoff tower system, not a recirculating tower kit. Do not recommend return plumbing, drain plumbing, recycling tower runoff, filters for returning runoff, or generic recirculating tower layouts unless the user explicitly asks to compare alternatives.",
       "For the physical build, describe the actual HydroPip parts: an 8-10 foot, 1/2-inch galvanized steel support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one circulation pump, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media. Never describe the structural support as flexible plumbing or PVC. Keep roughly 5 feet above grade; recommend 10 feet for deeper anchoring in exposed or windier locations.",
       "Whenever driving, anchoring, pounding, or installing a support pipe is discussed, first tell the user to call 811 or visit https://call811.com/, wait for utility markings, and identify private irrigation, septic, electrical, and water lines. Do not imply that driving is safe until the location is confirmed clear.",
@@ -254,19 +272,22 @@ export async function askPip({ message, image, profile, subscription, history = 
       `Free-member photo checks are only for inspecting the HydroPip physical build, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "When create_reminder or create_grow_plan returns confirmation_required, say the task or schedule is ready to review and use the on-screen confirmation button. Never say it is saved until the user confirms it.",
-      "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat.",
+      "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action. A grow zone describes seasonal hardiness, not today's weather; ask for current conditions when a weather-sensitive answer needs them.",
       "When a photo is attached, inspect it directly and use visible details in the answer. Use this compact order: one sentence naming the most useful visible evidence; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Clearly separate visible evidence from anything the photo cannot confirm.",
       "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
-      `Retrieved HydroPip knowledge-base context:\n${retrievedContext}`
-    ].join("\n\n"),
-    input: responseInput,
-    tools,
-    tool_choice: "auto"
-    });
+      `Retrieved HydroPip knowledge-base context (supporting reference only):\n${retrievedContext}`
+      ].join("\n\n"),
+      input: responseInput
+    };
+    if (enabledTools.length) {
+      request.tools = enabledTools;
+      request.tool_choice = "auto";
+    }
+    response = await client.responses.create(request);
   } catch (error) {
     console.warn(`OpenAI response failed, using HydroPip fallback: ${error.message}`);
-    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, mode: "ai_error_fallback" });
+    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext, mode: "ai_error_fallback" });
   }
 
   const toolResults = [];
@@ -300,7 +321,18 @@ export async function askPip({ message, image, profile, subscription, history = 
   }
 
   if (!toolResults.length) {
-    const answer = compactAnswer(response.output_text || fallbackAnswer(trimmed, retrieval), trimmed, retrieval);
+    const resolved = await resolveRelevantAnswer({
+      client,
+      model,
+      response,
+      trimmed,
+      responseInput,
+      retrieval,
+      answerContext,
+      questionIntent,
+      imageInput
+    });
+    const answer = compactAnswer(resolved.answer, trimmed, retrieval);
     const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
     await rememberProjectMessage(projectContext, {
       userId,
@@ -315,7 +347,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       mode: "ai_rag",
       sources,
       projectMemory,
-      aiUsage: { model, ...combineOpenAiUsage(response) }
+      aiUsage: { model, ...combineOpenAiUsage(response, resolved.retryResponse) }
     };
   }
 
@@ -364,10 +396,21 @@ export async function askPip({ message, image, profile, subscription, history = 
     });
   } catch (error) {
     console.warn(`OpenAI tool follow-up failed, using HydroPip fallback: ${error.message}`);
-    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, mode: "ai_tool_error_fallback" });
+    return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext, mode: "ai_tool_error_fallback" });
   }
 
-  const answer = compactAnswer(final.output_text || fallbackAnswer(trimmed, retrieval), trimmed, retrieval);
+  const resolved = await resolveRelevantAnswer({
+    client,
+    model,
+    response: final,
+    trimmed,
+    responseInput,
+    retrieval,
+    answerContext,
+    questionIntent,
+    imageInput
+  });
+  const answer = compactAnswer(resolved.answer, trimmed, retrieval);
   const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
   await rememberProjectMessage(projectContext, {
     userId,
@@ -384,7 +427,7 @@ export async function askPip({ message, image, profile, subscription, history = 
     sources,
     projectMemory,
     actions,
-    aiUsage: { model, ...combineOpenAiUsage(response, final) }
+    aiUsage: { model, ...combineOpenAiUsage(response, final, resolved.retryResponse) }
   };
 }
 
@@ -405,8 +448,8 @@ export function normalizeImageInput(image) {
   return { dataUrl, mimeType: match[1].toLowerCase() };
 }
 
-async function fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, mode = "rules_fallback" }) {
-  const answer = compactAnswer(fallbackAnswer(withRecentContext(trimmed, recentHistory), retrieval), trimmed, retrieval);
+async function fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext, mode = "rules_fallback" }) {
+  const answer = compactAnswer(contextualFallbackAnswer(withRecentContext(trimmed, recentHistory), retrieval, answerContext), trimmed, retrieval);
   const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
   await rememberProjectMessage(projectContext, {
     userId,
@@ -544,6 +587,185 @@ function isClearlyOffTopic(message) {
     return false;
   }
   return /\b(politics|president|stock market|crypto|bitcoin|football|baseball|nba|betting|gambling|wager|wagers|betting picks|sports picks|movie|recipe|dating|homework|essay|code|javascript|python|weather|news|celebrity|song|lyrics)\b/.test(normalized);
+}
+
+export function classifyQuestionIntent(message, { image = false } = {}) {
+  const normalized = String(message || "").toLowerCase();
+  if (image) return "photo_diagnosis";
+  if (wantsCalendarChange(normalized)) return /\b(remind|reminder|task|calendar)\b/.test(normalized) ? "reminder_action" : "crop_plan_action";
+  if (/\b(what|which|when|should|can)\b.*\b(plant|grow|sow|transplant|crop|variety|varieties)\b|\b(this time of year|right now|this season|crop rotation|succession planting)\b/.test(normalized)) return "crop_selection";
+  if (/\b(yellow|pale|wilt|droop|spot|spots|holes|chewed|bug|bugs|pest|pests|aphid|gnat|mildew|mold|rot|roots?|disease|symptom)\b/.test(normalized)) return "plant_health";
+  if (/\b(ph|ec|tds|ppm|nutrient|nutrients|masterblend|feed timing|feeding|runoff|water temperature)\b/.test(normalized)) return "feeding_nutrients";
+  if (/\b(link|amazon|buy|purchase|order|where (?:can|do|should) i (?:find|get)|what part|which part|need the|parts? list)\b/.test(normalized)) return "parts_shopping";
+  if (/\b(build|install|assemble|anchor|stack|plumb|pipe|tower setup|first step|next step|fit my space|footprint)\b/.test(normalized)) return "hydropip_build";
+  return "hydroponic_guidance";
+}
+
+function toolsForQuestion(intent, message) {
+  const requested = new Set();
+  if (intent === "hydropip_build") {
+    requested.add("get_build_step");
+    requested.add("recommend_parts");
+  }
+  if (intent === "parts_shopping") requested.add("recommend_parts");
+  if (intent === "reminder_action") requested.add("create_reminder");
+  if (intent === "crop_plan_action") requested.add("create_grow_plan");
+  if (/\b(setup wizard|profile questions|what information do you need)\b/i.test(message)) requested.add("get_wizard_schema");
+  return tools.filter((tool) => requested.has(tool.name));
+}
+
+function selectIntentContext(retrieval, intent) {
+  const allowedSources = {
+    crop_selection: ["scheduling_rules.json", "pip_system_brain.md"],
+    crop_plan_action: ["scheduling_rules.json", "pip_system_brain.md"],
+    reminder_action: ["scheduling_rules.json"],
+    plant_health: ["troubleshooting.md", "feed_and_nutrient_guidance.md"],
+    feeding_nutrients: ["feed_and_nutrient_guidance.md", "troubleshooting.md"],
+    parts_shopping: ["build_guide.md", "pip_system_brain.md"],
+    hydropip_build: ["build_guide.md", "pip_system_brain.md"],
+    photo_diagnosis: ["troubleshooting.md", "build_guide.md", "feed_and_nutrient_guidance.md"]
+  };
+  const allowed = allowedSources[intent];
+  const matches = (retrieval?.matches || [])
+    .filter((match) => allowed ? allowed.includes(match.source) : match.score >= 0.18)
+    .slice(0, intent === "hydroponic_guidance" ? 4 : 5);
+  return { query: retrieval?.query || "", matches };
+}
+
+function resolveEffectiveProfile(profile, projectContext) {
+  const clientProfile = profile && typeof profile === "object" && !Array.isArray(profile) ? profile : {};
+  const savedProfile = projectContext?.project?.systemProfile && typeof projectContext.project.systemProfile === "object"
+    ? projectContext.project.systemProfile
+    : {};
+  return { ...clientProfile, ...savedProfile };
+}
+
+function buildAnswerContext({ profile, projectContext, subscription, questionIntent }) {
+  return {
+    currentDate: new Date().toISOString().slice(0, 10),
+    timeZone: profile?.timeZone || "unknown",
+    questionIntent,
+    membership: subscription?.active ? "pip_pro" : "free",
+    conversationTitle: projectContext?.conversation?.title || null,
+    profile: profile || {},
+    activeReminderCount: projectContext?.activeReminders?.length || 0,
+    recentReadingCount: projectContext?.recentReadings?.length || 0
+  };
+}
+
+function formatAnswerContext(context = {}) {
+  const profile = context.profile || {};
+  const values = [
+    ["Date", context.currentDate],
+    ["Conversation", context.conversationTitle],
+    ["System", profile.systemType],
+    ["Grow name", profile.title],
+    ["USDA zone", profile.growZone],
+    ["Location", profile.location],
+    ["Growing area", profile.areaType || profile.indoorOutdoor],
+    ["Exposure", profile.exposure],
+    ["System stage", profile.systemStage],
+    ["Planting date", profile.plantingDate],
+    ["Tower count", profile.towerCount],
+    ["Plant sites", profile.plantSites],
+    ["Reservoir gallons", profile.reservoirGallons],
+    ["Current crops", Array.isArray(profile.crops) ? profile.crops.join(", ") : profile.crops],
+    ["Goals", Array.isArray(profile.goals) ? profile.goals.join(", ") : profile.goals],
+    ["Medium", profile.medium],
+    ["Nutrients", profile.nutrientBrand],
+    ["Pump schedule", profile.pumpSchedule],
+    ["User notes", profile.notes]
+  ].filter(([, value]) => value !== null && value !== undefined && String(value).trim());
+  return values.length ? values.map(([label, value]) => `${label}: ${value}`).join("\n") : "No saved grow profile details are available.";
+}
+
+async function resolveRelevantAnswer({ client, model, response, trimmed, responseInput, retrieval, answerContext, questionIntent, imageInput }) {
+  const initial = String(response?.output_text || "").trim();
+  const relevance = assessAnswerRelevance(trimmed, initial, answerContext, questionIntent);
+  if (relevance.ok) return { answer: initial, retryResponse: null };
+
+  if (!imageInput && String(process.env.PIP_AI_RETRY_ON_IRRELEVANT || "true").toLowerCase() !== "false") {
+    try {
+      const retryResponse = await client.responses.create({
+        model,
+        store: false,
+        instructions: [
+          "You are Pip, HydroPip's concise AI grow partner. Rewrite the answer because the first attempt did not answer the user's current question.",
+          "Use the authoritative saved profile below. Answer the current question first. Do not drift to pumps, parts, build steps, subscriptions, or a generic menu unless the user asked about them.",
+          "Keep the corrected answer under 90 words with one direct sentence and 2-3 useful bullets. Ask one focused follow-up only when truly needed.",
+          `AUTHORITATIVE CONTEXT:\n${formatAnswerContext(answerContext)}`,
+          `RELEVANCE FAILURE: ${relevance.reason}`,
+          `SUPPORTING HYDROPIP NOTES:\n${formatContextForPrompt(retrieval)}`
+        ].join("\n\n"),
+        input: [
+          ...responseInput.filter((item) => item.role !== "assistant"),
+          {
+            role: "user",
+            content: [{
+              type: "input_text",
+              text: JSON.stringify({ currentQuestion: trimmed, rejectedAnswer: initial })
+            }]
+          }
+        ]
+      });
+      const corrected = String(retryResponse.output_text || "").trim();
+      if (assessAnswerRelevance(trimmed, corrected, answerContext, questionIntent).ok) {
+        return { answer: corrected, retryResponse };
+      }
+    } catch (error) {
+      console.warn(`OpenAI relevance retry failed, using contextual fallback: ${error.message}`);
+    }
+  }
+
+  return {
+    answer: contextualFallbackAnswer(trimmed, retrieval, answerContext),
+    retryResponse: null
+  };
+}
+
+export function assessAnswerRelevance(message, answer, answerContext = {}, intent = classifyQuestionIntent(message)) {
+  const normalized = String(answer || "").toLowerCase();
+  if (!normalized) return { ok: false, reason: "The answer was empty." };
+  if (/tell me the step or part|ask one specific thing|i can help with hydropip build, parts/.test(normalized)) {
+    return { ok: false, reason: "The answer used a generic menu instead of answering the question." };
+  }
+
+  if (intent === "crop_selection") {
+    const cropLanguage = /\b(plant|sow|transplant|crop|lettuce|greens|basil|herb|chard|kale|spinach|cilantro|pepper|tomato|strawberry|variety|season)\b/.test(normalized);
+    if (!cropLanguage) return { ok: false, reason: "A crop-selection question did not receive crop guidance." };
+    const hardwareOnly = /\b(pump|ibc|hose|tubing|pipe)\b/.test(normalized) && !/\b(plant|sow|crop|lettuce|greens|basil|herb|chard|kale|spinach|variety)\b/.test(normalized);
+    if (hardwareOnly) return { ok: false, reason: "The answer drifted from crop selection into hardware." };
+    const zone = String(answerContext?.profile?.growZone || "").trim().toLowerCase();
+    const seasonalQuestion = /\b(this time of year|right now|this season|what should i plant|what can i plant|when should i plant)\b/i.test(message);
+    if (seasonalQuestion && zone && !normalized.includes(`zone ${zone}`) && !normalized.includes(`zone ${zone.replace(/[^0-9a-z]/g, "")}`)) {
+      return { ok: false, reason: `The answer ignored the saved USDA Zone ${zone}.` };
+    }
+  }
+
+  if (intent === "parts_shopping" && !/https?:\/\/|home depot|hardware store|local pickup/i.test(answer)) {
+    return { ok: false, reason: "A shopping question did not include a useful source or product link." };
+  }
+  return { ok: true, reason: "" };
+}
+
+function contextualFallbackAnswer(question, retrieval, answerContext = {}) {
+  const intent = classifyQuestionIntent(question);
+  const seasonalSelection = /\b(this time of year|right now|this season|what should i plant|what can i plant|which crops? should i plant|what should i grow|what can i grow now)\b/i.test(question);
+  if (intent !== "crop_selection" || !seasonalSelection) return fallbackAnswer(question, retrieval);
+
+  const profile = answerContext?.profile || {};
+  const zone = String(profile.growZone || "").trim();
+  const location = String(profile.location || "").trim();
+  const area = String(profile.areaType || profile.indoorOutdoor || "").replace(/_/g, " ").trim();
+  const month = new Date(`${answerContext.currentDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`).getUTCMonth() + 1;
+  const numericZone = Number.parseInt(zone, 10);
+  const hotSeason = Number.isFinite(numericZone) && numericZone >= 8 && month >= 5 && month <= 9;
+  const profileLead = [zone ? `Zone ${zone}` : "your zone", location, area].filter(Boolean).join(", ");
+
+  if (hotSeason) {
+    return `For ${profileLead}, start heat-tolerant tower crops now and stage cool-season greens for the next temperature break.\n- Plant basil, Swiss chard, Malabar spinach, amaranth, and heat-tolerant herbs.\n- Start lettuce, kale, and cilantro in a cooler shaded area for transplant when daytime highs ease.\n- Check your current daytime high before planting; tell me that temperature and I will narrow the list.`;
+  }
+  return `For ${profileLead}, start with compact leafy greens and herbs that match your current temperatures.\n- Good HydroPip starters include lettuce, chard, kale, basil, parsley, and cilantro.\n- Use the saved exposure and crop goals to divide the towers by harvest speed.\n- Tell me your current daytime high and overnight low so I can narrow the varieties and timing.`;
 }
 
 async function getOpenAiClient() {

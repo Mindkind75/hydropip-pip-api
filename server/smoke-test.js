@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { askPip, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
+import { askPip, assessAnswerRelevance, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
 import {
   appendProjectMessage,
   claimBuildPhotoCheck,
@@ -71,6 +71,16 @@ const linkedCompact = compactAnswer(
 assert.equal(linkedCompact.includes("https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20"), true);
 assert.equal(linkedCompact.includes("As an Amazon Associate I earn from qualifying purchases."), true);
 assert.equal(linkedCompact.split(/\s+/).filter(Boolean).length <= 100, true);
+assert.equal(classifyQuestionIntent("Got the towers set. What should I plant this time of year?"), "crop_selection");
+assert.equal(classifyQuestionIntent("Where can I buy the small tower tubing?"), "parts_shopping");
+assert.equal(
+  assessAnswerRelevance(
+    "Got the towers set. What should I plant this time of year?",
+    "Use two pumps in the IBC.",
+    { profile: { growZone: "9" } }
+  ).ok,
+  false
+);
 
 const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);
@@ -190,6 +200,14 @@ const disabledAnswer = await askPip({
 });
 assert.equal(disabledAnswer.mode, "rules_fallback");
 assert.equal(disabledGateCalls, 0);
+const profileAwareFallback = await askPip({
+  message: "Got the towers set. What should I plant this time of year?",
+  profile: { growZone: "9", location: "Ocala, FL", areaType: "outdoor_open", towerCount: 4 },
+  subscription: { active: true }
+});
+assert.equal(profileAwareFallback.answer.includes("Zone 9"), true);
+assert.equal(/basil|chard/i.test(profileAwareFallback.answer), true);
+assert.equal(/Use two pumps in the IBC/i.test(profileAwareFallback.answer), false);
 if (priorAiDisabled === undefined) delete process.env.PIP_AI_DISABLED;
 else process.env.PIP_AI_DISABLED = priorAiDisabled;
 if (priorOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;

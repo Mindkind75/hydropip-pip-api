@@ -78,7 +78,7 @@ export function getKnowledgeIndex() {
 
 export function formatContextForPrompt(searchResult) {
   if (!searchResult.matches.length) {
-    return "No specific HydroPip knowledge-base matches were found. Ask one practical follow-up question before giving exact tuning advice.";
+    return "No directly relevant HydroPip knowledge-base note was found. Use the authoritative saved profile and sound hydroponic or horticultural reasoning; ask one focused follow-up only if a necessary fact is missing.";
   }
 
   return searchResult.matches

@@ -64,12 +64,19 @@ const cases = [
   { q: "Is this safe around kids and pets?", type: "free", must: ["safe"], avoid: ["Tell me the step"] },
   { q: "Can I run this during a storm?", type: "free", must: ["GFCI"], avoid: ["Tell me the step"] },
   { q: "What grow zone should I use for plant timing?", type: "free", must: ["zone"], avoid: ["Tell me the step"] },
+  {
+    q: "Got the towers set. What should I plant this time of year?",
+    type: "free",
+    profile: { growZone: "9", location: "Ocala, FL", areaType: "outdoor_open", systemStage: "growing", towerCount: 4 },
+    must: ["Zone 9"],
+    avoid: ["Use two pumps in the IBC", "Ask one specific thing"]
+  },
   { q: "Can you write me a football bet?", type: "offtopic", must: ["HydroPip"], avoid: ["odds"] }
 ];
 
 const results = [];
 for (const item of cases) {
-  const data = await ask(item.q, item.history || []);
+  const data = await ask(item.q, item.history || [], item.profile || null);
   const answer = String(data.answer || "");
   const words = answer.trim().split(/\s+/).filter(Boolean).length;
   const detailed = item.type === "detailed";
@@ -101,7 +108,7 @@ for (const result of results) {
 
 assert.equal(failed.length, 0, `${failed.length} Pip QA case(s) failed`);
 
-async function ask(message, history = []) {
+async function ask(message, history = [], profile = null) {
   if (apiUrl) {
     const response = await fetch(`${apiUrl.replace(/\/$/, "")}/api/pip/chat`, {
       method: "POST",
@@ -109,6 +116,7 @@ async function ask(message, history = []) {
       body: JSON.stringify({
         message,
         history,
+        profile,
         subscription: { active: false, plan: "free_member" },
         user: { id: "qa-suite", email: "qa@hydropip.com" }
       })
@@ -119,6 +127,7 @@ async function ask(message, history = []) {
   return askPip({
     message,
     history,
+    profile,
     subscription: { active: false, plan: "free_member" },
     user: { id: "qa-suite", email: "qa@hydropip.com" }
   });
