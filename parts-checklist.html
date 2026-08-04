@@ -18,8 +18,8 @@ body{touch-action:pan-y}
   .section-title{grid-column:1/-1}
   .part{height:100%}
 }
-.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,260px);align-items:center;gap:24px}.hero-copy{min-width:0}.print-guide{align-self:start;margin:-22px 0 -12px;text-align:center}.print-guide img{display:block;width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(20,33,29,.16))}.legal-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px;margin:0 0 30px;color:var(--muted);font-size:.82rem}.legal-links a{text-underline-offset:3px}
-@media(max-width:760px){.hero{grid-template-columns:1fr;gap:8px}.print-guide{width:min(220px,62vw);margin:-4px auto 0}.print-guide img{filter:drop-shadow(0 8px 12px rgba(20,33,29,.14))}}
+.hero{display:block;padding-top:92px}.hero-copy{min-width:0}.print-spot{position:relative;display:flex;align-items:center}.print-guide{position:absolute;top:calc(100% + 4px);left:50%;z-index:4;width:112px;margin:0;transform:translateX(-30%);pointer-events:none}.print-guide img{display:block;width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(20,33,29,.14))}.legal-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px;margin:0 0 30px;color:var(--muted);font-size:.82rem}.legal-links a{text-underline-offset:3px}
+@media(max-width:760px){.print-spot{flex:1}.print-spot .btn{width:100%}.hero{padding-top:78px}.print-guide{top:calc(100% + 5px);left:50%;width:92px;transform:translateX(-31%)}}
 @media print{.print-guide{display:none}}
 </style>
 </head>
@@ -27,7 +27,7 @@ body{touch-action:pan-y}
 <header class="top">
   <div class="wrap top-inner">
     <a class="brand" href="https://www.hydropip.com/" target="_top"><img src="/assets/branding/pip-mascot-transparent.png" alt="Pip mascot"><span>HydroPip<small>Track My Build</small></span></a>
-    <div class="actions"><a class="btn" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a><a class="btn" href="https://www.hydropip.com/pip?pro=1" target="_top">Pip Pro</a><a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a><button class="btn primary" type="button" id="printBtn">Print</button></div>
+    <div class="actions"><a class="btn" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a><a class="btn" href="https://www.hydropip.com/pip?pro=1" target="_top">Pip Pro</a><a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a><div class="print-spot"><button class="btn primary" type="button" id="printBtn">Print</button><figure class="print-guide"><img src="/assets/marketing/pip-print-checklist.png" alt="Pip pointing toward the Print button and reminding you to print the checklist, then return to update it"></figure></div></div>
   </div>
 </header>
 <main class="wrap">
@@ -37,7 +37,6 @@ body{touch-action:pan-y}
       <h1>Buy the parts. Check them off. Build one tower at a time.</h1>
       <p>This member checklist keeps the real HydroPip timed-feed tower build in one place: Amazon affiliate links, local hardware-store items, quantities, and build notes. Checkmarks save on this device.</p>
     </div>
-    <figure class="print-guide"><img src="/assets/marketing/pip-print-checklist.png" alt="Pip pointing toward the Print button and reminding you to print the checklist, then return to update it"></figure>
   </section>
   <section class="tools" aria-label="Checklist tools">
     <div class="meter" aria-hidden="true"><span id="bar"></span></div>
