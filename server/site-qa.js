@@ -37,13 +37,19 @@ assert.equal(fs.existsSync(new URL("../assets/branding/pip-mascot-transparent.pn
 assert.equal(fs.existsSync(new URL("../assets/branding/pip-head-transparent.png", import.meta.url)), true, "Transparent Pip chat avatar is missing");
 
 const pipHtml = fs.readFileSync(new URL("../pip.html", import.meta.url), "utf8");
+const marketingHomeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");
 for (const asset of ["pip-take-a-pic-illustration.jpg", "pip-planning-illustration.jpg", "pip-maintenance-illustration.jpg"]) {
   assert.equal(fs.existsSync(new URL(`../assets/marketing/${asset}`, import.meta.url)), true, `Pip marketing asset is missing: ${asset}`);
   assert.match(pipHtml, new RegExp(asset.replaceAll(".", "\\.")), `Pip Pro should use ${asset}`);
 }
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-photo-guidance-poster.jpg", import.meta.url)), true, "The social photo-guidance poster should remain in the marketing library");
-assert.doesNotMatch(pipHtml, /pip-history-(?:poster|wide)-concept\.jpg/, "Concept graphics with inaccurate branding or system plumbing must not appear on the live Pip page");
+assert.match(marketingHomeHtml, /pip-photo-guidance-poster\.jpg/, "The homepage should use the Pip photo-guidance poster");
+assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster.webp", import.meta.url)), true, "The corrected Pip history poster should exist");
+assert.match(pipHtml, /pip-history-poster\.webp/, "The Pro history notebook should use the corrected Pip history poster");
+assert.match(pipHtml, /pip-history-wide-concept\.jpg/, "The Pro sales page should explain saved grow memory visually");
+assert.doesNotMatch(pipHtml, /pip-history-poster-concept\.jpg/, "The history poster with outdated branding must not appear on the live Pip page");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
+assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
