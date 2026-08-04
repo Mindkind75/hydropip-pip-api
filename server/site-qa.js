@@ -75,6 +75,9 @@ assert.match(pipHtml, /requestedProjectId\?projects\.find/, "Pip chat should pri
 assert.match(pipHtml, /\.top-actions a/, "Pip Pro shortcuts should link to the selected notebook");
 assert.match(pipHtml, /body:not\(\.pro-mode\) \.return-top-handle\{display:none!important\}/, "Chat should use its persistent navigation instead of the floating top handle");
 assert.match(pipHtml, /pip-pro-workspace-transparent\.png/, "The Pip Pro notebook heading should feature the transparent Pro mascot");
+assert.match(pipHtml, /class=["']pro-auth-loading["']/, "Pip Pro should show a neutral loading state while Wix resolves membership");
+assert.match(pipHtml, /pro-auth-pending \.pro-view>\.pip-top/, "Pip Pro must hide public content while membership is unresolved");
+assert.match(pipHtml, /function revealProPage\(\)/, "Pip Pro should reveal the correct view only after session resolution");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
