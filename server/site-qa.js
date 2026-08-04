@@ -49,6 +49,11 @@ assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster.webp"
 assert.match(pipHtml, /pip-history-poster\.webp/, "The Pro history notebook should use the corrected Pip history poster");
 assert.match(pipHtml, /pip-history-wide-concept\.jpg/, "The Pro sales page should explain saved grow memory visually");
 assert.doesNotMatch(pipHtml, /pip-history-poster-concept\.jpg/, "The history poster with outdated branding must not appear on the live Pip page");
+for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", "grow-log.png", "history.png"]) {
+  assert.equal(fs.existsSync(new URL(`../assets/marketing/pro-tabs/${asset}`, import.meta.url)), true, `Pip notebook guide is missing: ${asset}`);
+  assert.match(pipHtml, new RegExp(`/assets/marketing/pro-tabs/${asset.replaceAll(".", "\\.")}`), `Pip Pro should use the ${asset} notebook guide`);
+}
+assert.equal((pipHtml.match(/class=["']notebook-guide["']/g) || []).length, 6, "The six working Pip Pro sections should each have one visual guide");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
