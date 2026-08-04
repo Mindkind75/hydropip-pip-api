@@ -53,6 +53,11 @@ for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", 
   assert.equal(fs.existsSync(new URL(`../assets/marketing/pro-tabs/${asset}`, import.meta.url)), true, `Pip notebook guide is missing: ${asset}`);
   assert.match(pipHtml, new RegExp(`/assets/marketing/pro-tabs/${asset.replaceAll(".", "\\.")}`), `Pip Pro should use the ${asset} notebook guide`);
 }
+assert.deepEqual(
+  fs.readFileSync(new URL("../assets/marketing/pro-tabs/calendar.png", import.meta.url)),
+  fs.readFileSync(new URL("../assets/marketing/pro-tabs/planner.png", import.meta.url)),
+  "Planner and Calendar should use the same planning Pip head"
+);
 assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/build.png", import.meta.url)), true, "The transparent Track Build notebook guide is missing");
 assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/build\.png/, "Track Build should use its transparent construction Pip guide");
 const partsChecklistHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
@@ -70,6 +75,8 @@ for (const page of ["profile", "planner", "calendar", "log", "history"]) {
 }
 assert.match(pipHtml, /activateProPage/, "Pip Pro notebook tabs are not wired to page navigation");
 assert.match(pipHtml, /id=["']proArrangeTabs["']/, "Pip Pro needs an Arrange tabs control");
+assert.match(pipHtml, /class=["'][^"']*workspace-tab[^"']*arrange-tabs[^"']*["'][^>]*id=["']proArrangeTabs["']/, "Arrange tabs should live inside the notebook tab strip");
+assert.match(pipHtml, /appendChild\(proArrangeTabs\)/, "Arrange should remain pinned after member tab ordering is applied");
 assert.match(pipHtml, /id=["']proTabOrderDialog["']/, "Pip Pro needs a mobile-friendly tab ordering panel");
 assert.match(pipHtml, /\/api\/pip\/users\/me\/preferences/, "Pip Pro tab order should persist to the member account");
 assert.match(pipHtml, /workspaceTabOrder/, "Pip Pro should apply the saved tab order across devices");
