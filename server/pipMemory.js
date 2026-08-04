@@ -1337,17 +1337,19 @@ export async function buildProjectContext({ userId, projectId, conversationId } 
   if (!userId || !projectId) return null;
   const project = await getProject({ userId, projectId });
   if (!project) return null;
-  const conversation = await resolveConversation({ userId, projectId, conversationId });
+  const [conversation, reminders, readings] = await Promise.all([
+    resolveConversation({ userId, projectId, conversationId }),
+    listProjectReminders({ userId, projectId }),
+    listProjectReadings({ userId, projectId })
+  ]);
   if (!conversation) return null;
   const messages = (await listProjectMessages({ userId, projectId, conversationId: conversation.id, limit: 8 })) || [];
-  const reminders = (await listProjectReminders({ userId, projectId })) || [];
-  const readings = (await listProjectReadings({ userId, projectId })) || [];
   return {
     project,
     conversation,
     recentMessages: messages,
-    activeReminders: reminders.filter((item) => item.status === "active").slice(-10),
-    recentReadings: readings.slice(-10)
+    activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
+    recentReadings: (readings || []).slice(-10)
   };
 }
 

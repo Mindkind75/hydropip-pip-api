@@ -87,6 +87,9 @@ assert.match(pipHtml, /conversationId:activeConversationId/, "Pip chat requests 
 assert.match(pipHtml, /New conversation/, "Pip should offer focused topic conversations");
 assert.match(pipHtml, /input_image|image:imageAttachment/, "Pip photo uploads are not connected to chat requests");
 assert.match(pipHtml, /thinking-dots/, "Pip should show an animated thinking state while requests are running");
+assert.match(pipHtml, /pipProgressSteps/, "Pip should narrate useful progress while preparing an answer");
+assert.match(pipHtml, /Examining your photo/, "Photo questions should show a specific analysis progress state");
+assert.match(pipHtml, /Checking it against the parts list/, "Parts questions should show a specific matching progress state");
 assert.match(pipHtml, /photo-allowance/, "Pip should show the member's remaining Build Checks");
 assert.match(pipHtml, /photo_limit_reached|data\.photoAllowance/, "Pip should handle the server-enforced photo allowance");
 assert.match(pipHtml, /pip_daily_limit_reached/, "Pip should explain daily AI limits without breaking local guidance");
