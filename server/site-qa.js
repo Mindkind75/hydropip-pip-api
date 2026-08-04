@@ -112,6 +112,8 @@ for (const legalFile of ["privacy.html", "terms.html", "affiliate-disclosure.htm
   const legalHtml = fs.readFileSync(new URL(`../${legalFile}`, import.meta.url), "utf8");
   assert.match(legalHtml, /Hartshorn Studios LLC|HydroPip Systems by Hartshorn Studios LLC/, `${legalFile} should identify the business`);
   assert.match(legalHtml, /info@hydropip\.com/, `${legalFile} should provide a contact email`);
+  assert.match(legalHtml, /class=["']legal-button["'][^>]*>Home</, `${legalFile} should provide a clear Home button`);
+  assert.match(legalHtml, /class=["']legal-button pro["'][^>]*>Pip Pro</, `${legalFile} should provide a clear Pip Pro button`);
 }
 assert.match(fs.readFileSync(new URL("../affiliate-disclosure.html", import.meta.url), "utf8"), /As an Amazon Associate I earn from qualifying purchases\./, "Affiliate disclosure needs Amazon's required statement");
 
