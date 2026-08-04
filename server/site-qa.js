@@ -122,6 +122,7 @@ assert.match(fieldGuideHtml, /Turn the care rhythm into your calendar/, "Field G
 assert.match(fieldGuideHtml, /id=["']meet-pip["']/, "Field Guide should introduce Pip before the build stages");
 assert.match(fieldGuideHtml, /Pip helps turn the guide into your next decision\./, "Field Guide needs a concise Pip capability introduction");
 assert.match(fieldGuideHtml, /Pip Pro remembers your grow zone/, "Field Guide should explain the practical Pip Pro memory benefit");
+assert.match(fieldGuideHtml, /class=["']heroPanel["']/, "Field Guide hero copy needs a high-contrast reading panel");
 assert.match(fieldGuideHtml, /aria-label=["']Field Guide actions["']/, "Field Guide should provide clear global navigation");
 assert.doesNotMatch(fieldGuideHtml, /href=["']https:\/\/www\.hydropip\.com\/["'][^>]*>Home</, "Field Guide should return through Pip Pro instead of bypassing the conversion path");
 assert.match(fieldGuideHtml, /class=["']brand["'][^>]*href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["']|href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["'][^>]*class=["']brand["']/, "Field Guide brand should return to Pip Pro");
