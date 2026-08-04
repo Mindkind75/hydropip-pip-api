@@ -53,7 +53,9 @@ for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", 
   assert.equal(fs.existsSync(new URL(`../assets/marketing/pro-tabs/${asset}`, import.meta.url)), true, `Pip notebook guide is missing: ${asset}`);
   assert.match(pipHtml, new RegExp(`/assets/marketing/pro-tabs/${asset.replaceAll(".", "\\.")}`), `Pip Pro should use the ${asset} notebook guide`);
 }
-assert.equal((pipHtml.match(/class=["']notebook-guide["']/g) || []).length, 6, "The six working Pip Pro sections should each have one visual guide");
+assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/build.jpg", import.meta.url)), true, "The Track Build notebook guide is missing");
+assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/build\.jpg/, "Track Build should use its construction Pip guide");
+assert.equal((pipHtml.match(/class=["']notebook-guide["']/g) || []).length, 8, "Every main Pip Pro notebook section should have a visual guide");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
@@ -64,6 +66,10 @@ for (const page of ["profile", "planner", "calendar", "log", "history"]) {
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }
 assert.match(pipHtml, /activateProPage/, "Pip Pro notebook tabs are not wired to page navigation");
+assert.match(pipHtml, /id=["']proArrangeTabs["']/, "Pip Pro needs an Arrange tabs control");
+assert.match(pipHtml, /id=["']proTabOrderDialog["']/, "Pip Pro needs a mobile-friendly tab ordering panel");
+assert.match(pipHtml, /\/api\/pip\/users\/me\/preferences/, "Pip Pro tab order should persist to the member account");
+assert.match(pipHtml, /workspaceTabOrder/, "Pip Pro should apply the saved tab order across devices");
 for (const view of ["agenda", "day", "week", "month", "year"]) assert.match(pipHtml, new RegExp(`data-calendar-view=["']${view}["']`), `Pip Calendar is missing its ${view} view`);
 assert.match(pipHtml, /function renderCalendar/, "Pip Calendar is not rendered from Planner tasks");
 assert.match(pipHtml, /function renderCalendarWeek/, "Pip Calendar is missing weekly task grouping");

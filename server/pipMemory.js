@@ -8,6 +8,20 @@ const defaultDataFile = path.join(__dirname, ".data", "pip-memory.json");
 const dataFile = process.env.PIP_MEMORY_FILE || defaultDataFile;
 export const FREE_BUILD_PHOTO_LIMIT = 5;
 
+export const DEFAULT_WORKSPACE_TAB_ORDER = [
+  "profile",
+  "planner",
+  "calendar",
+  "seeds",
+  "log",
+  "history",
+  "build",
+  "account",
+  "beta",
+  "guide",
+  "chat"
+];
+
 export const projectTemplates = [
   {
     id: "hydropip_build",
@@ -385,6 +399,44 @@ export async function upsertUser(user = {}) {
   };
   writeState(state);
   return state.users[normalized.id];
+}
+
+export async function getUserPreferences({ userId } = {}) {
+  const ownerId = requireUserId(userId);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query("select preferences from pip_users where id = $1", [ownerId]);
+    if (!result.rows[0]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+    return normalizeUserPreferences(result.rows[0].preferences);
+  }
+
+  const user = readState().users[ownerId];
+  if (!user) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  return normalizeUserPreferences(user.preferences);
+}
+
+export async function updateUserPreferences({ userId, patch = {} } = {}) {
+  const ownerId = requireUserId(userId);
+  const current = await getUserPreferences({ userId: ownerId });
+  const next = { ...current };
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "workspaceTabOrder")) {
+    next.workspaceTabOrder = normalizeWorkspaceTabOrder(patch.workspaceTabOrder);
+  }
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      "update pip_users set preferences = $1::jsonb, updated_at = now() where id = $2 returning preferences",
+      [JSON.stringify(next), ownerId]
+    );
+    return normalizeUserPreferences(result.rows[0]?.preferences);
+  }
+
+  const state = readState();
+  state.users[ownerId].preferences = next;
+  state.users[ownerId].updatedAt = nowIso();
+  writeState(state);
+  return normalizeUserPreferences(next);
 }
 
 export async function getBetaExperience({ userId } = {}) {
@@ -1393,12 +1445,14 @@ async function ensureSchema(pool) {
       name text,
       wix_member_id text,
       build_photo_checks_used integer not null default 0,
+      preferences jsonb not null default '{}'::jsonb,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     );
     alter table pip_users add column if not exists build_photo_checks_used integer not null default 0;
     alter table pip_users add column if not exists beta_welcome_seen_at timestamptz;
     alter table pip_users add column if not exists beta_activity jsonb not null default '{}'::jsonb;
+    alter table pip_users add column if not exists preferences jsonb not null default '{}'::jsonb;
 
     create table if not exists pip_projects (
       id text primary key,
@@ -1573,7 +1627,7 @@ async function upsertUserPg(normalized) {
        name = excluded.name,
        wix_member_id = excluded.wix_member_id,
        updated_at = now()
-     returning id, email, name, wix_member_id, build_photo_checks_used, beta_welcome_seen_at, beta_activity, created_at, updated_at`,
+     returning id, email, name, wix_member_id, build_photo_checks_used, beta_welcome_seen_at, beta_activity, preferences, created_at, updated_at`,
     [normalized.id, normalized.email, normalized.name, normalized.wixMemberId]
   );
   return rowToUser(result.rows[0]);
@@ -1618,6 +1672,27 @@ function normalizeUser(user = {}) {
     name: user.name ? String(user.name).trim() : null,
     wixMemberId: user.wixMemberId ? String(user.wixMemberId).trim() : null
   };
+}
+
+function normalizeWorkspaceTabOrder(value) {
+  const requested = Array.isArray(value) ? value : [];
+  const seen = new Set();
+  const order = [];
+  for (const item of requested) {
+    const key = String(item || "").trim();
+    if (!DEFAULT_WORKSPACE_TAB_ORDER.includes(key) || seen.has(key)) continue;
+    seen.add(key);
+    order.push(key);
+  }
+  for (const key of DEFAULT_WORKSPACE_TAB_ORDER) {
+    if (!seen.has(key)) order.push(key);
+  }
+  return order;
+}
+
+function normalizeUserPreferences(value) {
+  const preferences = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return { workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder) };
 }
 
 function requireUserId(userId) {
@@ -1686,6 +1761,7 @@ function rowToUser(row) {
     buildPhotoChecksUsed: Number(row.build_photo_checks_used || 0),
     betaWelcomeSeenAt: toIso(row.beta_welcome_seen_at),
     betaActivity: normalizeBetaActivity(row.beta_activity),
+    preferences: normalizeUserPreferences(row.preferences),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
   };

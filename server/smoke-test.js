@@ -20,6 +20,7 @@ import {
   getDailyAiUsageSummary,
   getPipCreditBalance,
   getProjectTemplates,
+  getUserPreferences,
   listProjectMessages,
   listProjectConversations,
   listProjectReminders,
@@ -40,6 +41,7 @@ import {
   updateBetaApplicationReview,
   updateBetaFeedbackReview,
   updateProject,
+  updateUserPreferences,
   upsertUser
 } from "./pipMemory.js";
 import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
@@ -251,6 +253,17 @@ resetMemoryForTests();
 
 const templates = getProjectTemplates();
 assert.equal(templates.templates.some((template) => template.id === "existing_system_setup"), true);
+
+await upsertUser({ id: "test-user", email: "test@example.com" });
+const defaultPreferences = await getUserPreferences({ userId: "test-user" });
+assert.equal(defaultPreferences.workspaceTabOrder[0], "profile");
+assert.equal(defaultPreferences.workspaceTabOrder.includes("chat"), true);
+const savedPreferences = await updateUserPreferences({
+  userId: "test-user",
+  patch: { workspaceTabOrder: ["chat", "planner", "planner", "invalid", "profile"] }
+});
+assert.deepEqual(savedPreferences.workspaceTabOrder.slice(0, 3), ["chat", "planner", "profile"]);
+assert.equal(savedPreferences.workspaceTabOrder.includes("calendar"), true);
 
 const freeProject = await createProject({
   user: { id: "test-user", email: "test@example.com" },

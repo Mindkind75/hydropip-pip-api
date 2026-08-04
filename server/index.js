@@ -33,6 +33,7 @@ import {
   getBetaExperience,
   getProject,
   getProjectTemplates,
+  getUserPreferences,
   getDailyAiUsageSummary,
   grantPipCredits,
   listProjectMessages,
@@ -52,6 +53,7 @@ import {
   updateProjectConversation,
   updateProjectReminder,
   updateProjectSeed,
+  updateUserPreferences,
   updateBetaExperience,
   updateBetaApplicationReview,
   updateBetaFeedbackReview,
@@ -263,6 +265,29 @@ app.use("/api/pip/feedback", requirePipBeta);
 app.post("/api/pip/users", async (req, res, next) => {
   try {
     res.status(201).json({ user: await upsertUser(req.pipUser) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/users/me/preferences", async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    res.json({ preferences: await getUserPreferences({ userId: req.pipUser.id }) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/pip/users/me/preferences", async (req, res, next) => {
+  try {
+    await upsertUser(req.pipUser);
+    res.json({
+      preferences: await updateUserPreferences({
+        userId: req.pipUser.id,
+        patch: req.body?.patch || req.body || {}
+      })
+    });
   } catch (error) {
     next(error);
   }
