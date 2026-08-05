@@ -22,7 +22,7 @@ $w.onReady(() => {
     const message = event.data || {};
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
-      await sizePipToViewport(pip);
+      settlePipToViewport(pip);
       return;
     }
 
@@ -67,7 +67,7 @@ $w.onReady(() => {
   });
 
   pip.src = buildPipSource();
-  sizePipToViewport(pip);
+  settlePipToViewport(pip);
 
   setTimeout(() => sendPipSession(pip), 1200);
 
@@ -100,6 +100,13 @@ function sizePipToViewport(pip) {
     const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 24 : 64;
     pip.height = Math.max(minimum, windowHeight - chromeAllowance);
   }).catch(() => {});
+}
+
+function settlePipToViewport(pip) {
+  sizePipToViewport(pip);
+  setTimeout(() => sizePipToViewport(pip), 120);
+  setTimeout(() => sizePipToViewport(pip), 420);
+  setTimeout(() => sizePipToViewport(pip), 900);
 }
 
 function getPipComponent() {

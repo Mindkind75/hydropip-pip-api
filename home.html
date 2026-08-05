@@ -28,8 +28,8 @@
 <style>
 :root{--ink:#13211d;--muted:#52645e;--leaf:#1f7a4f;--deep:#0f4f37;--mint:#eaf3ed;--cream:#f7f5ef;--gold:#f1b84f;--water:#dff2f5;--line:rgba(20,33,29,.14);--panel:#fff;--shadow:0 18px 48px rgba(20,33,29,.12)}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--cream);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+html{scroll-behavior:smooth;overflow-x:hidden;overscroll-behavior-y:auto}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:pan-y pinch-zoom}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}

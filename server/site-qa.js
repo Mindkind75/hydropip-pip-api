@@ -160,6 +160,11 @@ assert.match(homeHtml, /pipFloat/, "The Meet Pip conversion moment should give t
 assert.match(homeHtml, /deviceLandscape/, "Home should provide an automatic landscape presentation layout for phones and casting");
 assert.match(homeHtml, /orientationchange/, "Home should react when a phone rotates between portrait and landscape");
 assert.match(homeHtml, /root\.classList\.toggle\("deviceMobile",forceMobile\|\|\(handheld&&!landscape\)\)/, "Landscape phones should not remain locked to the portrait mobile layout");
+assert.doesNotMatch(partsHtml, /html,body\{overflow-y:hidden\}/, "Track My Build must preserve vertical page scrolling");
+assert.match(partsHtml, /html,body\{overflow-y:auto\}/, "Track My Build should use natural vertical scrolling");
+assert.match(pipHtml, /\.pro-mode \.pro-view\{overscroll-behavior-y:contain\}/, "Pip Pro should not chain notebook scrolling into the surrounding Wix page");
+assert.match(pipHtml, /id=["']pipProScrollContext["']/, "Pip Pro mobile layouts should identify the notebook page scroll position");
+assert.match(pipHtml, /\.workspace-tabs\{overflow-y:hidden;overscroll-behavior-inline:contain;touch-action:pan-x\}/, "Notebook tab navigation should reserve swiping for horizontal movement");
 assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real food\./, "Home should provide a concise How It Works overview");
 assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
 assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
