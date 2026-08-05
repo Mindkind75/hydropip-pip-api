@@ -118,6 +118,14 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .photoCard{position:relative;min-height:250px;overflow:hidden;background:#eaf3ed}
 .photoCard.big{grid-column:span 2;min-height:360px}
 .photoCard figcaption{position:absolute;left:10px;right:10px;bottom:10px;padding:10px 12px;border-radius:8px;background:rgba(15,33,25,.76);color:#fff;font-weight:850;font-size:.88rem}
+.proofBand{background:#f5f8f2}
+.proofHead{display:flex;align-items:end;justify-content:space-between;gap:28px;margin-bottom:24px}
+.proofHead>div{max-width:760px}.proofHead p:last-child{margin-bottom:0}
+.proofNote{max-width:330px;padding:14px 16px;border-left:4px solid var(--gold);background:#fff;color:var(--deep);font-weight:900;line-height:1.45}
+.proofGrid{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:14px}
+.proofPhoto{position:relative;min-height:330px;margin:0;overflow:hidden;border:1px solid var(--line);border-radius:8px;background:#dfeae2;box-shadow:0 12px 36px rgba(20,33,29,.1)}
+.proofPhoto img{display:block;width:100%;height:100%;min-height:330px;object-fit:cover}
+.proofPhoto figcaption{position:absolute;left:12px;right:12px;bottom:12px;padding:12px 14px;border-radius:8px;background:rgba(15,33,25,.82);color:#fff;font-weight:900;line-height:1.35;backdrop-filter:blur(6px)}
 .partsHead{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:22px}
 .partsGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
 .part{display:grid;gap:10px;min-height:220px}
@@ -141,10 +149,10 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .turnoverCaption strong{display:block;margin-bottom:6px;font-size:1.35rem}
 .turnoverCaption span{display:block;color:rgba(255,255,255,.84);line-height:1.5}
 .footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding:28px clamp(18px,4vw,54px);border-top:1px solid var(--line);background:#17221c;color:rgba(255,255,255,.78);font-weight:900}.footerLinks{display:flex;flex-wrap:wrap;gap:10px 16px}.footer a{color:#fff;text-decoration:underline;text-underline-offset:3px}
-@media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta,.turnoverGrid{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}}
+@media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta,.turnoverGrid{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}.proofHead{align-items:start;flex-direction:column}.proofGrid{grid-template-columns:1fr 1fr}.proofPhoto:last-child{grid-column:1/-1}}
 @media(max-width:1000px){.pipShowcase{grid-template-columns:1fr}.pipPoster{width:min(100%,520px);margin:0 auto}}
 @media(max-width:700px){.pipMemory{grid-template-columns:110px minmax(0,1fr);gap:16px;margin-top:28px;padding-top:26px}.pipMemory img{width:110px;max-height:160px}.pipMemory h3{font-size:1.45rem}.pipMemory .actions{grid-column:1/-1}}
-@media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;z-index:25;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.nav .navPro{grid-column:1/-1}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
+@media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;z-index:25;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.nav .navPro{grid-column:1/-1}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup,.proofGrid{grid-template-columns:1fr}.photoCard.big,.proofPhoto:last-child{grid-column:auto}.proofPhoto,.proofPhoto img{min-height:280px}.proofNote{max-width:none}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
 @media(max-width:430px){.nav.open{grid-template-columns:1fr}.brand{font-size:.95rem}.brand img{width:50px;height:50px}.photoCaption{left:12px;right:12px;bottom:12px;gap:9px;padding:13px}.photoCaption>strong{font-size:1.25rem}.photoCaption span{font-size:.92rem;line-height:1.38}.statGrid div{padding:8px 6px}.statGrid small{font-size:.65rem}.statGrid b{font-size:.82rem}.photoFeature{min-height:500px}.card,.step,.part,.pipPanel,.signupPanel{padding:18px}}
 .deviceMobile .featureSplit{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
 .deviceMobile .topbar{position:relative;top:auto;align-items:flex-start}
@@ -178,7 +186,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .pipLockup img{border-radius:0;background:transparent;filter:drop-shadow(0 12px 14px rgba(19,54,39,.18));animation:pipFloat 3.6s ease-in-out infinite}
 @keyframes pipFloat{0%,100%{transform:translateY(0) scale(1.08)}50%{transform:translateY(-7px) scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.pipLockup img{animation:none;transform:scale(1.08)}}
-#top{display:flex;flex-direction:column}.hero{order:1}#story{order:2}#why{order:3}#pip{order:4}#start{order:5}#build,#flip-day,#photos,#parts,#signup{display:none}
+#top{display:flex;flex-direction:column}.hero{order:1}#story{order:2}#proof{order:3}#why{order:4}#pip{order:5}#start{order:6}#build,#flip-day,#photos,#parts,#signup{display:none}
 .hero h1{font-size:clamp(2.85rem,4.5vw,4.7rem);line-height:.96}
 .heroGuide{display:grid;grid-template-columns:94px minmax(0,1fr);gap:14px;align-items:center;max-width:650px;margin:24px 0;padding:14px 16px;border:1px solid rgba(31,122,79,.22);border-radius:8px;background:rgba(255,255,255,.72)}.heroGuide img{width:94px;height:94px;object-fit:contain;filter:drop-shadow(0 10px 12px rgba(19,54,39,.17));animation:heroPipFloat 3.8s ease-in-out infinite}.heroGuide strong{display:block;margin-bottom:3px;color:var(--deep);font-size:1.05rem}.heroGuide p{margin:0!important;font-size:.95rem!important;line-height:1.48!important}
 .howIntro{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.42fr);gap:28px;align-items:end;margin-bottom:28px}.howIntro h2{max-width:760px}.pipPrompt{display:grid;grid-template-columns:68px 1fr;gap:12px;align-items:center;padding:14px;border-left:4px solid var(--gold);background:#fff8e8}.pipPrompt img{width:68px;height:58px;object-fit:contain}.pipPrompt strong{display:block;color:var(--deep);line-height:1.3}.pipPrompt span{display:block;margin-top:3px;color:var(--muted);font-size:.88rem;line-height:1.4}
@@ -254,6 +262,24 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
           <article class="howStep"><b>4</b><div><strong>Harvest + reset</strong><p>Recover the media, preserve productive plants, and start the next crop.</p></div></article>
           <div class="howActions"><a class="btn gold" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">See the complete Field Guide</a><a class="btn primary" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Start My Build</a></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="proof" class="band proofBand">
+    <div class="inner">
+      <div class="proofHead">
+        <div>
+          <p class="eyebrow">Built and grown for real</p>
+          <h2>This is the actual HydroPip build.</h2>
+          <p>HydroPip was developed hands-on, rebuilt with ordinary tools and off-the-shelf parts, and proven through full harvests. These are real photos from the system you will learn to build.</p>
+        </div>
+        <div class="proofNote">See the real build, the real hardware, and the food it produces. Follow the same practical path with Pip beside you.</div>
+      </div>
+      <div class="proofGrid">
+        <figure class="proofPhoto"><img src="https://static.wixstatic.com/media/5fe7cb_37cad690e3ff400c90b6ce749450a3a2~mv2.jpg" alt="Building HydroPip by driving the galvanized support pipe into the ground" loading="lazy"><figcaption>Driving the support pipe</figcaption></figure>
+        <figure class="proofPhoto"><img src="https://static.wixstatic.com/media/5fe7cb_0c4f73ac322d45da824ea4f4d3d0fc80~mv2.jpg" alt="Filling the HydroPip stackable pots with reusable growing media" loading="lazy"><figcaption>Filling the pots with reusable media</figcaption></figure>
+        <figure class="proofPhoto"><img src="https://static.wixstatic.com/media/5fe7cb_264e8a42fb11486b808d289b14e6b079~mv2.jpg" alt="The real HydroPip towers filled with edible greens" loading="lazy"><figcaption>The real towers filled with food</figcaption></figure>
       </div>
     </div>
   </section>
