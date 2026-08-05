@@ -47,6 +47,12 @@ assert.equal(fs.existsSync(new URL("../assets/marketing/pip-photo-guidance-poste
 assert.match(marketingHomeHtml, /pip-photo-guidance-poster\.jpg/, "The homepage should use the Pip photo-guidance poster");
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster-transparent.png", import.meta.url)), true, "The transparent Pip history poster should exist");
 assert.match(marketingHomeHtml, /pip-history-poster-transparent\.png/, "The homepage should explain Pip Pro grow memory with the transparent history poster");
+assert.match(marketingHomeHtml, /class="navField"[^>]*>Field Guide<\/a>/, "The homepage should distinguish the Field Guide in primary navigation");
+assert.match(marketingHomeHtml, /class="navTrack"[^>]*>Track My Build<\/a>/, "The homepage should make Track My Build a primary navigation path");
+assert.match(marketingHomeHtml, /class="navPip"[^>]*>Ask Pip<\/a>/, "The homepage should name the Pip destination as Ask Pip");
+assert.match(marketingHomeHtml, /class="navPro"[^>]*>[\s\S]*class="navProBadge">PRO<\/span>/, "The homepage should give Pip Pro a premium navigation treatment");
+assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Build<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Build link");
+assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Parts<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Parts link");
 assert.doesNotMatch(pipHtml, /class=["']history-feature["']/, "The Pro history notebook should prioritize saved activity over a large marketing block");
 assert.match(pipHtml, /class=["']history-layout["']/, "The Pro history notebook should use the compact working layout");
 assert.match(pipHtml, /pip-history-wide-concept\.jpg/, "The Pro sales page should explain saved grow memory visually");
@@ -171,10 +177,10 @@ assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real f
 assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
 assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
 assert.match(homeHtml, /Pip walks with you from parts to first harvest\./, "Pip should be prominent in the opening homepage story");
-assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Parts<\//, "Home Parts navigation should retain the complete checklist destination");
+assert.match(homeHtml, /class=["']navTrack["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Track My Build<\//, "Home navigation should consolidate parts and build organization under Track My Build");
 assert.doesNotMatch(homeHtml, /href=["']#[^"']*["']/, "The embedded Home page must not use iframe-local hash links that cannot scroll the Wix parent page");
-assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/field-guide["'][^>]*>How it works<\//, "Home How It Works navigation should open the complete guide");
-assert.match(homeHtml, /href=["']https:\/\/www\.hydropip\.com\/pip["'][^>]*>Pip<\//, "Home Pip navigation should open the working assistant");
+assert.match(homeHtml, /class=["']navHow["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/field-guide["'][^>]*>How It Works<\//, "Home How It Works navigation should open the complete guide");
+assert.match(homeHtml, /class=["']navPip["'][^>]*href=["']https:\/\/www\.hydropip\.com\/pip["'][^>]*>Ask Pip<\//, "Home Ask Pip navigation should open the working assistant");
 
 const fieldGuideHtml = fs.readFileSync(new URL("../field-guide.html", import.meta.url), "utf8");
 for (const section of ["system-map", "quick-start", "care", "red-flags", "turnover"]) {

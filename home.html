@@ -39,10 +39,20 @@ button{font:inherit;color:inherit}
 .brand small{display:block;color:var(--muted);font-size:.78rem}
 .menuBtn{display:none;width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:#fff;color:transparent;position:relative}
 .menuBtn:before{content:"";width:20px;height:2px;background:var(--ink);box-shadow:0 7px 0 var(--ink),0 -7px 0 var(--ink);border-radius:2px}
-.nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.nav a{padding:10px 12px;border-radius:8px;color:var(--muted);font-weight:900}
-.nav a:hover{background:var(--mint);color:var(--ink)}
-.nav .navCta{background:var(--leaf);color:#fff}
+.nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.nav a{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:9px 12px;border:1px solid transparent;border-radius:8px;color:var(--muted);font-weight:900;line-height:1;transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}
+.nav a:hover{transform:translateY(-1px)}
+.nav a:focus-visible{outline:3px solid rgba(31,122,79,.28);outline-offset:2px}
+.nav .navHow:hover{border-color:var(--line);background:#fff;color:var(--ink)}
+.nav .navField{border-color:#c6ded4;background:#edf6f2;color:var(--deep)}
+.nav .navField:hover{border-color:#96c7b3;background:#e2f1eb;color:var(--ink)}
+.nav .navTrack{border-color:var(--leaf);background:var(--leaf);color:#fff;box-shadow:0 7px 16px rgba(31,122,79,.18)}
+.nav .navTrack:hover{border-color:#17643f;background:#17643f;color:#fff}
+.nav .navPip{border-color:#e7aa3b;background:var(--gold);color:var(--ink)}
+.nav .navPip:hover{border-color:#d69825;background:#f6c660;color:var(--ink)}
+.nav .navPro{border-color:#ef9a38;background:#171b18;color:#fff;box-shadow:0 7px 18px rgba(19,33,29,.2)}
+.nav .navPro:hover{border-color:#f4af59;background:#252b27;color:#fff}
+.navProBadge{display:inline-grid;place-items:center;min-width:29px;height:19px;padding:0 5px;border-radius:4px;background:#ef9a38;color:#171b18;font-size:.63rem;font-weight:950;letter-spacing:.06em}
 .headerTools{display:flex;align-items:center;justify-content:flex-end;gap:8px}.memberMenu{position:relative;flex:0 0 auto}.memberTrigger{display:flex;align-items:center;gap:7px;min-height:44px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:900;cursor:pointer}.memberPhoto,.memberInitial{width:32px;height:32px;flex:0 0 auto;border-radius:50%;border:1px solid var(--line);background:var(--mint);object-fit:cover}.memberInitial{display:grid;place-items:center;color:var(--deep)}.memberChevron{font-size:.82rem;color:var(--muted)}.memberPopover{position:absolute;top:calc(100% + 8px);right:0;z-index:30;display:grid;width:218px;padding:6px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.memberPopover[hidden]{display:none}.memberPopover a,.memberPopover button{min-height:40px;padding:9px 10px;border:0;border-radius:6px;background:transparent;text-align:left;color:var(--ink);font-weight:850;cursor:pointer}.memberPopover a:hover,.memberPopover button:hover{background:var(--mint)}.memberPopover .memberLogout{border-top:1px solid var(--line);border-radius:0;margin-top:4px;color:#8a2f24}.memberMenu.isVisitor [data-member-only]{display:none}.memberMenu:not(.isVisitor) [data-visitor-only]{display:none}
 .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,460px);gap:clamp(24px,5vw,58px);align-items:center;min-height:760px;padding:clamp(34px,6vw,82px) clamp(18px,5vw,68px);background:linear-gradient(115deg,#fbfaf4 0%,#eff8ef 50%,#d9f1f4 100%)}
 .eyebrow{margin:0 0 12px;color:var(--deep);font-size:.78rem;font-weight:950;letter-spacing:.08em;text-transform:uppercase}
@@ -133,14 +143,15 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 @media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta,.turnoverGrid{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}}
 @media(max-width:1000px){.pipShowcase{grid-template-columns:1fr}.pipPoster{width:min(100%,520px);margin:0 auto}}
 @media(max-width:700px){.pipMemory{grid-template-columns:110px minmax(0,1fr);gap:16px;margin-top:28px;padding-top:26px}.pipMemory img{width:110px;max-height:160px}.pipMemory h3{font-size:1.45rem}.pipMemory .actions{grid-column:1/-1}}
-@media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
+@media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;z-index:25;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.nav .navPro{grid-column:1/-1}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
 @media(max-width:430px){.nav.open{grid-template-columns:1fr}.brand{font-size:.95rem}.brand img{width:50px;height:50px}.photoCaption{left:12px;right:12px;bottom:12px;gap:9px;padding:13px}.photoCaption>strong{font-size:1.25rem}.photoCaption span{font-size:.92rem;line-height:1.38}.statGrid div{padding:8px 6px}.statGrid small{font-size:.65rem}.statGrid b{font-size:.82rem}.photoFeature{min-height:500px}.card,.step,.part,.pipPanel,.signupPanel{padding:18px}}
 .deviceMobile .featureSplit{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
 .deviceMobile .topbar{position:relative;top:auto;align-items:flex-start}
 .deviceMobile .menuBtn{display:grid;place-items:center;flex:0 0 auto}
-.deviceMobile .nav{display:none;position:absolute;left:14px;right:14px;top:70px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}
+.deviceMobile .nav{display:none;position:absolute;left:14px;right:14px;top:70px;z-index:25;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}
 .deviceMobile .nav.open{display:grid;grid-template-columns:1fr 1fr}
 .deviceMobile .nav a{text-align:center}
+.deviceMobile .nav .navPro{grid-column:1/-1}
 .deviceMobile .hero{min-height:auto;padding:30px 18px 44px}
 .deviceMobile .photoFeature{min-height:500px}
 .deviceMobile .band{padding:58px 18px}
@@ -162,7 +173,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .deviceLandscape .topbar{position:sticky;top:0;min-height:62px;padding:6px 18px;gap:10px}.deviceLandscape .brand{font-size:.9rem}.deviceLandscape .brand img{width:46px;height:46px}.deviceLandscape .brand small{font-size:.68rem}.deviceLandscape .headerTools{min-width:0;gap:5px}.deviceLandscape .menuBtn{display:none}.deviceLandscape .nav{position:static;display:flex;min-width:0;padding:0;border:0;background:transparent;box-shadow:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.deviceLandscape .nav::-webkit-scrollbar{display:none}.deviceLandscape .nav a{flex:0 0 auto;padding:7px 8px;font-size:.78rem}.deviceLandscape .memberTrigger{min-height:40px;padding:4px 6px}.deviceLandscape .memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 .deviceLandscape .hero{grid-template-columns:minmax(0,1.08fr) minmax(260px,.78fr);gap:24px;align-items:center;min-height:calc(100vh - 62px);padding:24px 30px 32px}.deviceLandscape .hero h1{font-size:3rem;line-height:.96}.deviceLandscape .heroText p:not(.eyebrow){font-size:.96rem;line-height:1.48}.deviceLandscape .heroGuide{grid-template-columns:64px minmax(0,1fr);max-width:620px;margin:16px 0;padding:10px 12px}.deviceLandscape .heroGuide img{width:64px;height:64px}.deviceLandscape .heroGuide strong{font-size:.92rem}.deviceLandscape .heroGuide p{font-size:.82rem!important}.deviceLandscape .photoFeature.singlePhoto>img{aspect-ratio:16/10}.deviceLandscape .photoFeature{min-height:0}.deviceLandscape .photoCaption{padding:13px}.deviceLandscape .photoCaption>strong{font-size:1.2rem}.deviceLandscape .photoCaption span{font-size:.84rem}.deviceLandscape .statGrid div{padding:8px}.deviceLandscape .statGrid small{font-size:.68rem}.deviceLandscape .statGrid b{font-size:.82rem}
 .deviceLandscape .band{padding:46px 30px}.deviceLandscape .howIntro{grid-template-columns:minmax(0,1fr) minmax(240px,.42fr);gap:22px}.deviceLandscape .howOverview{grid-template-columns:minmax(280px,.82fr) minmax(0,1.18fr)}.deviceLandscape .howPhoto,.deviceLandscape .howPhoto img{min-height:400px}.deviceLandscape .howStep{min-height:160px;padding:18px}.deviceLandscape .pipShowcase{grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:32px}.deviceLandscape .pipTiers{grid-template-columns:repeat(3,minmax(0,1fr))}.deviceLandscape .pipMemory{grid-template-columns:170px minmax(0,1fr)}.deviceLandscape .pipMemory img{width:170px;max-height:230px}.deviceLandscape .finalCta{grid-template-columns:1fr auto}.deviceLandscape .actions .btn,.deviceLandscape .miniActions .btn{width:auto;min-height:42px;padding:9px 13px}
-@media(max-width:760px) and (orientation:landscape){.deviceLandscape .topbar{padding-left:12px;padding-right:12px}.deviceLandscape .nav a{padding:6px;font-size:.72rem}.deviceLandscape .nav a:nth-child(1),.deviceLandscape .nav a:nth-child(5){display:none}.deviceLandscape .hero{grid-template-columns:minmax(0,1fr) 240px;padding-left:20px;padding-right:20px}.deviceLandscape .hero h1{font-size:2.25rem}.deviceLandscape .heroGuide{display:none}.deviceLandscape .band{padding-left:20px;padding-right:20px}.deviceLandscape .howOverview{grid-template-columns:260px minmax(0,1fr)}.deviceLandscape .howStep{min-height:150px;padding:14px}.deviceLandscape .pipShowcase{grid-template-columns:minmax(0,1fr) 270px}}
+@media(max-width:760px) and (orientation:landscape){.deviceLandscape .topbar{padding-left:12px;padding-right:12px}.deviceLandscape .nav{gap:4px}.deviceLandscape .nav a{min-height:38px;padding:6px;font-size:.72rem}.deviceLandscape .navProBadge{min-width:25px;height:17px;font-size:.56rem}.deviceLandscape .hero{grid-template-columns:minmax(0,1fr) 240px;padding-left:20px;padding-right:20px}.deviceLandscape .hero h1{font-size:2.25rem}.deviceLandscape .heroGuide{display:none}.deviceLandscape .band{padding-left:20px;padding-right:20px}.deviceLandscape .howOverview{grid-template-columns:260px minmax(0,1fr)}.deviceLandscape .howStep{min-height:150px;padding:14px}.deviceLandscape .pipShowcase{grid-template-columns:minmax(0,1fr) 270px}}
 .pipLockup img{border-radius:0;background:transparent;filter:drop-shadow(0 12px 14px rgba(19,54,39,.18));animation:pipFloat 3.6s ease-in-out infinite}
 @keyframes pipFloat{0%,100%{transform:translateY(0) scale(1.08)}50%{transform:translateY(-7px) scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.pipLockup img{animation:none;transform:scale(1.08)}}
@@ -186,13 +197,11 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
   </a>
   <div class="headerTools">
     <nav class="nav" id="nav" aria-label="Primary navigation">
-      <a href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">How it works</a>
-      <a href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a>
-      <a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Build</a>
-      <a href="https://www.hydropip.com/pip" target="_top">Pip</a>
-      <a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Parts</a>
-      <a href="https://www.hydropip.com/pip?pro=1" target="_top">Pip Pro</a>
-      <a class="navCta" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Track My Build</a>
+      <a class="navHow" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">How It Works</a>
+      <a class="navField" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a>
+      <a class="navTrack" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Track My Build</a>
+      <a class="navPip" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a>
+      <a class="navPro" href="https://www.hydropip.com/pip?pro=1" target="_top"><span>Pip Pro</span><span class="navProBadge">PRO</span></a>
     </nav>
     <div class="memberMenu isVisitor" data-member-menu>
       <button class="memberTrigger" type="button" aria-expanded="false" aria-label="Open account menu"><img class="memberPhoto" data-member-photo alt="" hidden><span class="memberInitial" data-member-initial aria-hidden="true">?</span><span class="memberLabel" data-member-label>Sign in</span><span class="memberChevron" aria-hidden="true">&#9662;</span></button>
