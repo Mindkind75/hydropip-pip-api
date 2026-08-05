@@ -49,7 +49,7 @@ import {
   updateUserPreferences,
   upsertUser
 } from "./pipMemory.js";
-import { createGrowPlan, createReminder, getBuildStep, recommendParts } from "./pipTools.js";
+import { calculateNutrients, createGrowPlan, createReminder, estimateBuild, getBuildStep, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
@@ -133,7 +133,30 @@ const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);
 
 const parts = recommendParts({ towerCount: 4 });
-assert.equal(parts.parts.find((part) => part.name.includes("four-pot")).suggestedQuantity, "2 five-tier orders per tower");
+assert.equal(parts.parts.find((part) => part.id === "planter-order").suggestedQuantity, 8);
+assert.notEqual(parts.parts.find((part) => part.id === "mix-return-hose").id, parts.parts.find((part) => part.id === "main-feed-hose").id);
+assert.equal(parts.parts.some((part) => part.id === "mix-hose-strap"), true);
+
+const seedBatch = calculateNutrients({ reservoirGallons: 275, stage: "seeds", startingNewBatch: true });
+assert.deepEqual([seedBatch.masterblendGrams, seedBatch.calciumNitrateGrams, seedBatch.magnesiumSulfateGrams], [300, 300, 150]);
+const growingBatch = calculateNutrients({ reservoirGallons: 275, stage: "growing", startingNewBatch: true });
+assert.deepEqual([growingBatch.masterblendGrams, growingBatch.calciumNitrateGrams, growingBatch.magnesiumSulfateGrams], [400, 400, 200]);
+const fruitingBatch = calculateNutrients({ reservoirGallons: 275, stage: "fruiting", startingNewBatch: true });
+assert.deepEqual([fruitingBatch.masterblendGrams, fruitingBatch.calciumNitrateGrams, fruitingBatch.magnesiumSulfateGrams], [600, 600, 300]);
+const halfBatch = calculateNutrients({ reservoirGallons: 137.5, stage: "growing", startingNewBatch: true });
+assert.deepEqual([halfBatch.masterblendGrams, halfBatch.calciumNitrateGrams, halfBatch.magnesiumSulfateGrams], [200, 200, 100]);
+assert.equal(calculateNutrients({ reservoirGallons: 275, stage: "growing", startingNewBatch: false }).status, "fresh_batch_required");
+assert.equal(calculateNutrients({ reservoirGallons: 0, stage: "growing", startingNewBatch: true }).error, "invalid_reservoir_volume");
+
+const fourTowerEstimate = estimateBuild({ towerCount: 4, tiersPerTower: 10, reservoir: "used", support: "galvanized" });
+assert.equal(fourTowerEstimate.plantingPositions, 160);
+assert.equal(fourTowerEstimate.items.find((item) => item.id === "planter-order").quantity, 8);
+const ownedIbcEstimate = estimateBuild({ towerCount: 4, tiersPerTower: 10, reservoir: "used", support: "galvanized", ownedItemIds: ["ibc-used"] });
+assert.equal(ownedIbcEstimate.total.typical < fourTowerEstimate.total.typical, true);
+assert.equal(ownedIbcEstimate.savingsFromOwnedItems, fourTowerEstimate.items.find((item) => item.id === "ibc-used").typicalTotal);
+const selectedOwnedIbcEstimate = estimateBuild({ towerCount: 4, tiersPerTower: 10, reservoir: "owned", support: "galvanized" });
+assert.equal(selectedOwnedIbcEstimate.total.typical < fourTowerEstimate.total.typical, true);
+assert.equal(selectedOwnedIbcEstimate.savingsFromOwnedItems, 90);
 
 const plan = createGrowPlan({
   towerCount: 4,
@@ -143,7 +166,7 @@ const plan = createGrowPlan({
   runoffLevel: "unknown"
 });
 assert.equal(plan.profile.reservoirGallons, 275);
-assert.equal(plan.reminders.some((item) => item.title.includes("pH")), true);
+assert.equal(plan.reminders.some((item) => item.title.includes("tank")), true);
 assert.equal(plan.reminders.length <= 8, true);
 assert.equal(plan.reminders.some((item) => item.repeat?.frequency === "weekly"), true);
 assert.equal(plan.reminders.some((item) => item.repeat?.frequency === "monthly"), true);
@@ -296,6 +319,22 @@ assert.equal(savedPreferences.workspaceTabOrder.includes("calendar"), true);
 assert.equal(savedPreferences.accountAvatar, "/assets/branding/pip-head-transparent.png");
 const rejectedAvatarPreferences = await updateUserPreferences({ userId: "test-user", patch: { accountAvatar: "javascript:alert(1)" } });
 assert.equal(rejectedAvatarPreferences.accountAvatar, null);
+const savedBuildPreferences = await updateUserPreferences({
+  userId: "test-user",
+  patch: {
+    buildEstimate: {
+      options: { towers: 2, tiers: 8, planterChoice: "some", ownedPlanterTiers: 4, reservoir: "owned", support: "galvanized", optional: ["ibc-cover"] },
+      checked: { "feed-pump": true },
+      purchases: { "feed-pump": { owned: false, paid: 19.99, date: "2026-08-05", retailer: "Local store" } },
+      summary: { low: 300, typical: 450, high: 700, positions: 64, savings: 90 },
+      savedAt: "2026-08-05T12:00:00.000Z"
+    }
+  }
+});
+assert.equal(savedBuildPreferences.buildEstimate.options.towers, 2);
+assert.equal(savedBuildPreferences.buildEstimate.checked["feed-pump"], true);
+assert.equal(savedBuildPreferences.buildEstimate.purchases["feed-pump"].paid, 19.99);
+assert.equal(savedBuildPreferences.buildEstimate.summary.positions, 64);
 
 const freeProject = await createProject({
   user: { id: "test-user", email: "test@example.com" },
@@ -601,8 +640,8 @@ const defaultSchedule = await seedProjectDefaults({
 assert.equal(defaultSchedule.reminders.length, 6);
 assert.equal(defaultSchedule.removedCount, 1);
 assert.equal(defaultSchedule.reminders.some((item) => item.title.includes("Plant or transplant leafy greens")), true);
-assert.equal(defaultSchedule.reminders.some((item) => item.title === "Weekly HydroPip check-in"), true);
-assert.equal(defaultSchedule.reminders.some((item) => item.title === "Monthly HydroPip service"), true);
+assert.equal(defaultSchedule.reminders.some((item) => item.title === "Weekly tank, mixing circulation, and flow check"), true);
+assert.equal(defaultSchedule.reminders.some((item) => item.title === "Review plant stage, refill window, pumps, and hoses"), true);
 const savedSchedule = await listProjectReminders({ userId: "test-user", projectId: paidProject.project.id });
 assert.equal(savedSchedule.some((item) => item.note === "hydropip_default"), false);
 const readySchedule = await seedProjectDefaults({

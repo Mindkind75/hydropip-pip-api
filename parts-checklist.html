@@ -21,7 +21,9 @@ body{touch-action:pan-y pinch-zoom}
   .part{height:100%}
 }
 .hero{display:block;padding-top:84px}.hero-copy{min-width:0}.print-spot{position:relative;display:flex;align-items:center}.print-guide{position:absolute;top:calc(100% + 4px);right:0;left:auto;z-index:4;width:92px;margin:0;transform:none;pointer-events:none}.print-guide img{display:block;width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(20,33,29,.14))}.legal-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px;margin:0 0 30px;color:var(--muted);font-size:.82rem}.legal-links a{text-underline-offset:3px}
+.estimator{margin:0 0 20px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.estimator summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px;cursor:pointer;font-weight:950;list-style:none}.estimator summary::-webkit-details-marker{display:none}.estimator summary span{color:var(--muted);font-weight:750}.estimate-body{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;padding:0 18px 18px;border-top:1px solid var(--line)}.estimate-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:18px}.estimate-form label{display:grid;gap:6px;color:var(--deep);font-size:.85rem;font-weight:900}.estimate-form input,.estimate-form select,.purchase-fields input{width:100%;min-height:42px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit}.estimate-wide{grid-column:1/-1}.optional-picks{display:grid;grid-template-columns:1fr 1fr;gap:8px}.optional-picks label{display:grid;grid-template-columns:auto 1fr;align-items:center;padding:9px;border:1px solid var(--line);border-radius:7px;background:var(--soft)}.optional-picks input{width:18px;min-height:18px}.estimate-results{padding-top:18px}.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.total{padding:12px;border:1px solid var(--line);border-radius:7px;background:var(--soft);text-align:center}.total strong{display:block;color:var(--deep);font-size:1.45rem}.total small{color:var(--muted);font-weight:850}.estimate-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.estimate-stats div{padding:9px;border-bottom:1px solid var(--line)}.estimate-stats strong{display:block}.estimate-note{color:var(--muted);font-size:.84rem;line-height:1.45}.owned-row{display:flex;align-items:center;gap:7px;margin-top:9px;color:var(--deep);font-size:.84rem;font-weight:900}.owned-row input{width:18px;height:18px;accent-color:var(--leaf)}.purchase{margin-top:9px}.purchase summary{padding:0;color:var(--deep);font-size:.82rem;cursor:pointer}.purchase-fields{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.purchase-fields input:last-child{grid-column:1/-1}.part-cost{display:block;margin-top:6px;color:var(--deep);font-size:.82rem;font-weight:900}
 @media(max-width:760px){.print-spot{flex:1}.print-spot .btn{width:100%}.hero{padding-top:68px}.print-guide{top:calc(100% + 5px);right:0;left:auto;width:72px;transform:none}}
+@media(max-width:760px){.estimate-body{grid-template-columns:1fr;padding:0 12px 12px}.estimate-form{grid-template-columns:1fr}.estimate-wide{grid-column:auto}.optional-picks{grid-template-columns:1fr}.estimate-results{padding-top:0}.totals{grid-template-columns:1fr}.total{display:flex;justify-content:space-between;align-items:center;text-align:left}.estimate-stats{grid-template-columns:1fr}.purchase-fields{grid-template-columns:1fr}.purchase-fields input:last-child{grid-column:auto}.estimator summary{align-items:flex-start;flex-direction:column;padding:14px}}
 @media print{.print-guide{display:none}}
 </style>
 </head>
@@ -40,6 +42,25 @@ body{touch-action:pan-y pinch-zoom}
       <p>Collect the right parts, confirm quantities, and check off each item before installation. Your progress stays on this device. When everything is ready, open the Field Guide or ask Pip to begin the build step by step.</p>
     </div>
   </section>
+  <details class="estimator" id="buildEstimator" open>
+    <summary><strong>Estimate My Build</strong><span>Choose your size, subtract what you own, and plan the remaining cost.</span></summary>
+    <div class="estimate-body">
+      <form class="estimate-form" id="estimateForm">
+        <label>System size<select id="systemSize"><option value="1">One tower</option><option value="2">Two towers</option><option value="3">Three towers</option><option value="4" selected>Four towers</option><option value="custom">Custom towers</option></select></label>
+        <label id="customTowerLabel" hidden>Custom tower count<input id="towerCount" type="number" min="1" max="40" value="4"></label>
+        <label>Planter tiers per tower<input id="tiersPerTower" type="number" min="1" max="30" value="10"></label>
+        <label>Planters<select id="planterChoice"><option value="include" selected>Include all required planters</option><option value="some">I own some planter tiers</option><option value="all">I own all planter tiers</option></select></label>
+        <label id="ownedPlanterLabel" hidden>Planter tiers already owned<input id="ownedPlanterTiers" type="number" min="0" max="1200" value="0"></label>
+        <label>Reservoir<select id="reservoirChoice"><option value="used" selected>Used verified food-grade IBC</option><option value="new">New food-grade IBC</option><option value="owned">I already own an IBC</option><option value="custom">Custom reservoir</option></select></label>
+        <label id="customReservoirLabel" hidden>Custom reservoir estimate ($)<input id="customReservoirPrice" type="number" min="0" max="10000" step="1" value="0"></label>
+        <label>Support type<select id="supportChoice"><option value="galvanized" selected>Galvanized metal pipe</option><option value="pvc">PVC support pipe</option><option value="owned">I already own support pipes</option></select></label>
+        <fieldset class="estimate-wide" style="border:0;padding:0;margin:0"><legend style="margin-bottom:7px;color:var(--deep);font-size:.85rem;font-weight:900">Optional upgrades</legend><div class="optional-picks" id="optionalPicks"></div></fieldset>
+        <div class="actions estimate-wide"><button class="btn primary" type="submit">Update estimate</button><button class="btn" id="saveEstimate" type="button">Save estimate</button></div>
+        <p class="estimate-note estimate-wide" id="estimateStatus" aria-live="polite">Your selections and purchase details stay on this device. Use only a reservoir with safe materials and a known, verified history.</p>
+      </form>
+      <section class="estimate-results" id="estimateResults" aria-live="polite"><p>Loading the HydroPip build catalog...</p></section>
+    </div>
+  </details>
   <section class="tools" aria-label="Checklist tools">
     <div class="meter" aria-hidden="true"><span id="bar"></span></div>
     <div class="progress" id="progress">0 of 0 collected</div>
@@ -49,6 +70,7 @@ body{touch-action:pan-y pinch-zoom}
       <button class="filter" type="button" data-filter="flow">Flow</button>
       <button class="filter" type="button" data-filter="care">Care</button>
       <button class="filter" type="button" data-filter="tools">Tools</button>
+      <button class="filter" type="button" data-filter="optional">Upgrades</button>
     </div>
   </section>
   <section class="grid" id="partsGrid" aria-label="HydroPip parts checklist"></section>
@@ -60,53 +82,37 @@ body{touch-action:pan-y pinch-zoom}
 </main>
 <script>
 (function(){
-  var key="hydropipMemberPartsChecklist";
-  var checked=JSON.parse(localStorage.getItem(key)||"{}");
-  var parts=[
-    ["Mr. Stacky four-pot planter sections","structure","Tower stack","Approved HydroPip fit with a center opening designed for an optional 1/2-inch support pole.","2 five-tier orders per tower. For 4 towers: 8 orders total.","https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20","View on Amazon"],
-    ["8-10 ft 1/2-inch galvanized steel pipe","structure","Support post","Rigid metal tower support. Keep roughly 5 feet above grade and use the longer option for deeper anchoring in exposed or windier locations.","1 per tower. For 4 towers: 4 pipes total.","https://www.homedepot.com/p/100537138","View at Home Depot"],
-    ["Single-cell cinder block","structure","Tower base","Lifts and supports the tower stack base.","1 per tower. For 4 towers: 4 blocks total.","https://www.homedepot.com/s/single%20cell%20cinder%20block","Search Home Depot"],
-    ["3/4 inch PVC tee","structure","Top guide","Intentionally loose, removable top hose guide for the feed hose loop at the top of the 1/2 inch support pipe.","1 per tower. For 4 towers: 4 tees total. Keep it loose so it can pop off when flipping pots for the next crop.","https://www.homedepot.com/s/3%2F4%20inch%20pvc%20tee","Search Home Depot"],
-    ["275 gallon IBC tote","flow","Reservoir","Large nutrient tank that feeds the tower line.","1 per system. Used food-safe/non-hazardous totes are often cheaper.","https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20","View on Amazon"],
-    ["IBC tote cover","flow","Tank protection","Reduces sun exposure, heat, and algae growth.","1 per IBC tank.","https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20","View on Amazon"],
-    ["Submersible pumps","flow","Mix + feed","Two pumps in the IBC: one for circulation and one for tower feeding.","2 pumps per system. Zip-tie them together in the tote.","https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20","View on Amazon"],
-    ["Main garden hose","flow","Feed line","Runs from the feed pump through each tower top.","Choose enough length for all towers plus future expansion.","https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20","Open Amazon search"],
-    ["Rigid 1/4-inch drip tubing","flow","Tower feed tubing","More rigid tubing holds its shape as it carries water from the main hose into each tower.","100-foot roll with built-in 0.5 GPH emitters at 6-inch spacing; cut feed pieces to suit the tower layout.","https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20","View on Amazon"],
-    ["Diffuser tubing pieces","flow","Diffuser","Short pieces spread water inside towers instead of spraying one hard stream.","Cut test pieces during setup and document the best hole size.","https://www.amazon.com/s?k=1%2F2+inch+vinyl+tubing+flexible+hose&tag=hydrpip2002-20","Open Amazon search"],
-    ["End-of-hose shutoff valve","flow","Flush point","Lets the grower flush and control the main feed line.","1 at the end of the main feed hose.","https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20","View on Amazon"],
-    ["Hose connector adapters","flow","Expansion","Used for hose extensions, nozzle connections, and future tower runs.","Quantity as needed for expansion.","https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20","View on Amazon"],
-    ["Outdoor smart plug","tools","Automation","Schedules the circulation pump and tower feed pump separately.","1 two-outlet outdoor smart plug per system.","https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20","View on Amazon"],
-    ["Post driver / rammer","tools","Install tool","Drives the galvanized steel support pipe only after an 811 locate and private-line check confirm the location is clear.","Useful if you do not already own one. Call 811 before using it.","https://www.amazon.com/s?k=post+driver+rammer+fence+post+driver&tag=hydrpip2002-20","Open Amazon search"],
-    ["Hose clamps","tools","Securing","Secures hose connections and reduces leaks.","Optional but useful while dialing in flow.","https://www.amazon.com/s?k=stainless+steel+hose+clamps+assorted&tag=hydrpip2002-20","Open Amazon search"],
-    ["Zip ties","tools","Pump control","Secures the two pumps together inside the IBC.","Use outdoor-rated ties and keep extras nearby.","https://www.amazon.com/s?k=outdoor+zip+ties+heavy+duty&tag=hydrpip2002-20","Open Amazon search"],
-    ["Tubing punch / awl","tools","Feed holes","Makes clean holes in the main hose for tower feed tubes.","Cleaner holes seal better and feed more consistently.","https://www.amazon.com/s?k=drip+irrigation+tubing+punch+tool&tag=hydrpip2002-20","Open Amazon search"],
-    ["MasterBlend-style nutrient kit","care","Nutrients","Powdered nutrients for mixing the IBC reservoir.","Record mix amounts, pH, EC/TDS, crop stage, and refill interval.","https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20","View on Amazon"],
-    ["Vermiculite growing medium","care","Media","Water-retentive half of the reusable media blend.","Mix 50/50 with perlite.","https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20","View on Amazon"],
-    ["Perlite growing medium","care","Media","Airy drainage half of the reusable media blend.","Mix 50/50 with vermiculite.","https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20","View on Amazon"],
-    ["pH meter","care","Testing","Checks IBC nutrient solution pH.","Calibrate and rinse the meter for useful readings.","https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20","View on Amazon"],
-    ["EC/TDS meter","care","Testing","Checks nutrient strength so Pip can tune reminders.","Use with pH, refill dates, and plant observations.","https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20","Open Amazon search"],
-    ["pH Up / pH Down kit","care","Adjustment","Corrects reservoir pH after nutrient mixing.","Adjust slowly and retest after circulation.","https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20","Open Amazon search"],
-    ["Storage tub and rabbit wire","tools","Media reset","A grate system for recovering reusable perlite/vermiculite.","Shake roots and media over the grate between plantings.","https://www.amazon.com/s?k=storage+tub+hardware+cloth+rabbit+wire&tag=hydrpip2002-20","Open Amazon search"],
-    ["Seed starting supplies","care","Planting","Optional trays, starter plugs, or net cups before tower transplanting.","Choose based on crop and planting style.","https://www.amazon.com/s?k=hydroponic+seed+starting+tray+net+cups+starter+plugs&tag=hydrpip2002-20","Open Amazon search"]
-  ];
-  var labels={structure:"Structure",flow:"Water flow",care:"Nutrients + care",tools:"Tools + controls"};
+  var key="hydropipMemberPartsChecklist",estimateKey="hydropipBuildEstimateV2",purchaseKey="hydropipBuildPurchasesV2",sessionToken=null;
+  var checked=JSON.parse(localStorage.getItem(key)||"{}"),saved=JSON.parse(localStorage.getItem(estimateKey)||"{}"),purchases=JSON.parse(localStorage.getItem(purchaseKey)||"{}");
+  var catalog=null,parts=[],estimate=null;
+  var labels={structure:"Structure",flow:"Water flow",care:"Nutrients + care",tools:"Electrical + controls",optional:"Optional upgrades"};
   var grid=document.querySelector("#partsGrid");
   var progress=document.querySelector("#progress");
   var bar=document.querySelector("#bar");
   var empty=document.querySelector("#empty");
+  var form=document.querySelector("#estimateForm"),results=document.querySelector("#estimateResults"),status=document.querySelector("#estimateStatus"),optionalPicks=document.querySelector("#optionalPicks");
   var active="all";
-  function id(name){return name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+  function esc(value){return String(value||"").replace(/[&<>\"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
   function save(){localStorage.setItem(key,JSON.stringify(checked))}
+  function requestHeaders(){var headers={"Content-Type":"application/json"};if(sessionToken)headers.Authorization="Bearer "+sessionToken;return headers}
+  function applySavedOptions(next){if(!next||typeof next!=="object")return;saved=next;if(saved.towers){document.querySelector("#systemSize").value=saved.towers<=4?String(saved.towers):"custom";document.querySelector("#towerCount").value=saved.towers;document.querySelector("#customTowerLabel").hidden=saved.towers<=4}if(saved.tiers)document.querySelector("#tiersPerTower").value=saved.tiers;if(saved.planterChoice)document.querySelector("#planterChoice").value=saved.planterChoice;if(saved.ownedPlanterTiers!==undefined)document.querySelector("#ownedPlanterTiers").value=saved.ownedPlanterTiers;document.querySelector("#ownedPlanterLabel").hidden=document.querySelector("#planterChoice").value!=="some";if(saved.reservoir)document.querySelector("#reservoirChoice").value=saved.reservoir;if(saved.customReservoirPrice!==undefined)document.querySelector("#customReservoirPrice").value=saved.customReservoirPrice;document.querySelector("#customReservoirLabel").hidden=document.querySelector("#reservoirChoice").value!=="custom";if(saved.support)document.querySelector("#supportChoice").value=saved.support;Array.prototype.forEach.call(optionalPicks.querySelectorAll("input"),function(box){box.checked=(saved.optional||[]).indexOf(box.value)!==-1});if(catalog)estimateNow()}
+  function savedEstimatePayload(){return{version:2,options:options(),checked:checked,purchases:purchases,summary:estimate?{low:estimate.low,typical:estimate.typical,high:estimate.high,positions:estimate.positions,savings:estimate.savings}:{},savedAt:new Date().toISOString()}}
+  async function loadAccountEstimate(){if(!sessionToken)return;try{var response=await fetch("/api/pip/users/me/preferences",{headers:requestHeaders()}),data=await response.json();if(!response.ok)throw new Error(data.message||data.error||"Could not load account estimate");var account=data.preferences&&data.preferences.buildEstimate;if(!account)return;if(account.checked)checked=Object.assign({},account.checked);if(account.purchases)purchases=Object.assign({},account.purchases);localStorage.setItem(key,JSON.stringify(checked));localStorage.setItem(purchaseKey,JSON.stringify(purchases));localStorage.setItem(estimateKey,JSON.stringify(account.options||{}));applySavedOptions(account.options||{});status.textContent="Your saved HydroPip account estimate is loaded."}catch(error){status.textContent="The device copy is ready. Account sync will retry when you return."}}
+  async function saveAccountEstimate(){localStorage.setItem(estimateKey,JSON.stringify(options()));if(!sessionToken){status.textContent="Estimate saved on this device. Sign in to keep it with your HydroPip account.";return}status.textContent="Saving estimate to your HydroPip account...";try{var response=await fetch("/api/pip/users/me/preferences",{method:"PATCH",headers:requestHeaders(),body:JSON.stringify({patch:{buildEstimate:savedEstimatePayload()}})}),data=await response.json();if(!response.ok)throw new Error(data.message||data.error||"Could not save account estimate");status.textContent="Estimate, checkmarks, and purchase notes saved to your HydroPip account and this device."}catch(error){status.textContent="Saved on this device. Account sync could not finish yet."}}
+  function qty(item,towers,tiers){if(item.quantityRule==="perTower")return towers;if(item.quantityRule==="twoPerTower")return Math.ceil(tiers/5*towers);if(item.quantityRule==="perTwoTowers")return Math.max(1,Math.ceil(towers/2));return Number(item.baseQuantity||1)}
+  function options(){var size=document.querySelector("#systemSize").value;var towers=size==="custom"?Number(document.querySelector("#towerCount").value):Number(size);var planterChoice=document.querySelector("#planterChoice").value;var tiers=Math.max(1,Math.min(30,Math.round(Number(document.querySelector("#tiersPerTower").value)||10)));var safeTowers=Math.max(1,Math.min(40,Math.round(towers||4)));var ownedTiers=planterChoice==="all"?safeTowers*tiers:planterChoice==="some"?Math.max(0,Math.round(Number(document.querySelector("#ownedPlanterTiers").value)||0)):0;return{towers:safeTowers,tiers:tiers,planterChoice:planterChoice,ownedPlanterTiers:Math.min(safeTowers*tiers,ownedTiers),reservoir:document.querySelector("#reservoirChoice").value,customReservoirPrice:Math.max(0,Number(document.querySelector("#customReservoirPrice").value)||0),support:document.querySelector("#supportChoice").value,optional:Array.from(optionalPicks.querySelectorAll("input:checked")).map(function(box){return box.value})}}
+  function selectedItems(opts){var excluded={};excluded[opts.reservoir==="new"?"ibc-used":"ibc-new"]=true;excluded[opts.support==="pvc"?"support-galvanized":"support-pvc"]=true;if(opts.reservoir==="owned"||opts.reservoir==="custom"){excluded["ibc-used"]=true;excluded["ibc-new"]=true}if(opts.support==="owned"){excluded["support-galvanized"]=true;excluded["support-pvc"]=true}return catalog.items.filter(function(item){return item.active&&!excluded[item.id]&&(item.required||opts.optional.indexOf(item.id)!==-1)})}
+  function estimateNow(){var opts=options(),totalTiers=opts.towers*opts.tiers;parts=selectedItems(opts).map(function(item){var quantity=item.id==="planter-order"?Math.ceil((totalTiers-opts.ownedPlanterTiers)/5):qty(item,opts.towers,opts.tiers),owned=!!(purchases[item.id]&&purchases[item.id].owned);return Object.assign({},item,{quantity:quantity,owned:owned,lowTotal:owned?0:quantity*item.lowPrice,typicalTotal:owned?0:quantity*item.typicalPrice,highTotal:owned?0:quantity*item.highPrice})});if(opts.reservoir==="custom")parts.push({id:"custom-reservoir",category:"reservoir",name:"Custom reservoir",description:"User-entered reservoir estimate. Verify safe materials and known prior contents.",required:true,unit:"reservoir",quantity:1,owned:opts.customReservoirPrice===0,lowPrice:opts.customReservoirPrice,typicalPrice:opts.customReservoirPrice,highPrice:opts.customReservoirPrice,lowTotal:opts.customReservoirPrice,typicalTotal:opts.customReservoirPrice,highTotal:opts.customReservoirPrice,url:""});function sum(list,key){return Math.round(list.reduce(function(total,item){return total+item[key]},0))}var required=parts.filter(function(item){return item.required}),optional=parts.filter(function(item){return!item.required}),positions=totalTiers*catalog.pocketsPerTier,planter=catalog.items.find(function(item){return item.id==="planter-order"}),planterSavings=planter?(Math.ceil(totalTiers/5)-Math.ceil((totalTiers-opts.ownedPlanterTiers)/5))*planter.typicalPrice:0,ownedReservoir=opts.reservoir==="owned"?catalog.items.find(function(item){return item.id==="ibc-used"}):null,ownedSupport=opts.support==="owned"?catalog.items.find(function(item){return item.id==="support-galvanized"}):null,selectionSavings=(ownedReservoir?ownedReservoir.typicalPrice:0)+(ownedSupport?ownedSupport.typicalPrice*opts.towers:0);estimate={opts:opts,low:sum(parts,"lowTotal"),typical:sum(parts,"typicalTotal"),high:sum(parts,"highTotal"),requiredTypical:sum(required,"typicalTotal"),optionalTypical:sum(optional,"typicalTotal"),positions:positions,savings:Math.round(parts.filter(function(item){return item.owned}).reduce(function(total,item){return total+item.quantity*(item.typicalPrice||0)},0)+planterSavings+selectionSavings)};renderEstimate();render()}
+  function renderEstimate(){var e=estimate;results.innerHTML='<p class="eyebrow">Planning estimate</p><div class="totals"><div class="total"><small>Low</small><strong>$'+e.low+'</strong></div><div class="total"><small>Typical</small><strong>$'+e.typical+'</strong></div><div class="total"><small>High</small><strong>$'+e.high+'</strong></div></div><div class="estimate-stats"><div><strong>'+e.opts.towers+' towers</strong>'+e.opts.tiers+' tiers each</div><div><strong>'+e.positions+' planting pockets</strong>'+catalog.pocketsPerTier+' pockets per tier</div><div><strong>$'+e.requiredTypical+' required</strong>$'+e.optionalTypical+' selected upgrades</div><div><strong>$'+e.savings+' owned savings</strong>$'+Math.round(e.typical/e.opts.towers)+' typical per tower</div></div><p class="estimate-note">A tier is one four-pocket planter component, not one plant. Estimated cost per planting pocket: $'+(e.typical/e.positions).toFixed(2)+'. '+esc(catalog.disclaimer)+'</p>'}
+  function displayCategory(item){if(item.category==="structure")return"structure";if(["reservoir","pumps","plumbing"].indexOf(item.category)!==-1)return"flow";if(item.category==="growing")return"care";if(item.category==="electrical")return"tools";return"optional"}
   function render(){
-    var shown=parts.filter(function(part){return active==="all"||part[1]===active});
+    var shown=parts.filter(function(part){return active==="all"||displayCategory(part)===active});
     var html="";
     var last="";
     shown.forEach(function(part){
-      if(part[1]!==last){last=part[1];html+='<h2 class="section-title">'+labels[last]+'</h2>'}
-      var partId=id(part[0]);
-      var done=!!checked[partId];
-      var local=part[6].indexOf("Home Depot")!==-1;
-      html+='<article class="part '+(done?"done":"")+'" data-category="'+part[1]+'"><input class="check" type="checkbox" data-id="'+partId+'" '+(done?"checked":"")+' aria-label="Mark '+part[0]+' collected"><div><span class="tag">'+part[2]+'</span><h3>'+part[0]+'</h3><p>'+part[3]+'</p><p class="detail">'+part[4]+'</p></div><div class="part-actions"><span class="source">'+(local?"Local pickup":"Affiliate link")+'</span><a class="link '+(local?"local":"")+'" href="'+part[5]+'" target="_blank" rel="noopener sponsored">'+part[6]+'</a></div></article>';
+      var category=displayCategory(part);if(category!==last){last=category;html+='<h2 class="section-title">'+labels[last]+'</h2>'}
+      var done=!!checked[part.id],record=purchases[part.id]||{},local=!part.url||part.url.indexOf("amazon.com")===-1;
+      html+='<article class="part '+(done?"done":"")+'" data-category="'+category+'"><input class="check" type="checkbox" data-id="'+part.id+'" '+(done?"checked":"")+' aria-label="Mark '+esc(part.name)+' collected"><div><span class="tag">'+(part.required?'Required':'Optional')+'</span><h3>'+esc(part.name)+'</h3><p>'+esc(part.description)+'</p><p class="detail">Quantity for this estimate: '+part.quantity+' '+esc(part.unit)+'</p><span class="part-cost">Typical line estimate: $'+Math.round(part.quantity*part.typicalPrice)+'</span><label class="owned-row"><input class="owned" type="checkbox" data-id="'+part.id+'" '+(record.owned?'checked':'')+'>I already own this</label><details class="purchase"><summary>Record purchase details</summary><div class="purchase-fields"><input class="paid" data-id="'+part.id+'" type="number" min="0" step=".01" value="'+esc(record.paid||'')+'" placeholder="Actual paid ($)" aria-label="Actual amount paid for '+esc(part.name)+'"><input class="date" data-id="'+part.id+'" type="date" value="'+esc(record.date||'')+'" aria-label="Purchase date for '+esc(part.name)+'"><input class="retailer" data-id="'+part.id+'" value="'+esc(record.retailer||'')+'" placeholder="Retailer or saved link" aria-label="Retailer or link for '+esc(part.name)+'"></div></details></div><div class="part-actions"><span class="source">'+(local?'Local / selected retailer':'Affiliate link')+'</span>'+(part.url?'<a class="link '+(local?'local':'')+'" href="'+part.url+'" target="_blank" rel="noopener sponsored">'+(local?'Open retailer':'View option')+'</a>':'<span class="link local">Source locally</span>')+'</div></article>';
     });
     grid.innerHTML=html;
     empty.style.display=shown.length?"none":"block";
@@ -114,7 +120,7 @@ body{touch-action:pan-y pinch-zoom}
   }
   function updateProgress(){
     var total=parts.length;
-    var done=parts.filter(function(part){return checked[id(part[0])]}).length;
+    var done=parts.filter(function(part){return checked[part.id]}).length;
     progress.textContent=done+" of "+total+" collected";
     bar.style.width=total?Math.round(done/total*100)+"%":"0%";
   }
@@ -127,13 +133,18 @@ body{touch-action:pan-y pinch-zoom}
   });
   grid.addEventListener("change",function(event){
     var box=event.target.closest(".check");
-    if(!box)return;
-    checked[box.dataset.id]=box.checked;
-    save();
-    box.closest(".part").classList.toggle("done",box.checked);
-    updateProgress();
+    if(box){checked[box.dataset.id]=box.checked;save();box.closest(".part").classList.toggle("done",box.checked);updateProgress();return}
+    var owned=event.target.closest(".owned");if(owned){purchases[owned.dataset.id]=Object.assign({},purchases[owned.dataset.id],{owned:owned.checked});localStorage.setItem(purchaseKey,JSON.stringify(purchases));estimateNow();return}
+    if(event.target.matches(".paid,.date,.retailer")){var id=event.target.dataset.id,record=purchases[id]||{};record[event.target.className]=event.target.value;purchases[id]=record;localStorage.setItem(purchaseKey,JSON.stringify(purchases))}
   });
-  render();
+  form.addEventListener("submit",function(event){event.preventDefault();estimateNow()});
+  document.querySelector("#systemSize").addEventListener("change",function(){document.querySelector("#customTowerLabel").hidden=this.value!=="custom";estimateNow()});
+  document.querySelector("#planterChoice").addEventListener("change",function(){document.querySelector("#ownedPlanterLabel").hidden=this.value!=="some";estimateNow()});
+  document.querySelector("#reservoirChoice").addEventListener("change",function(){document.querySelector("#customReservoirLabel").hidden=this.value!=="custom";estimateNow()});
+  form.addEventListener("change",function(event){if(["systemSize","planterChoice","reservoirChoice"].indexOf(event.target.id)===-1)estimateNow()});
+  document.querySelector("#saveEstimate").addEventListener("click",saveAccountEstimate);
+  window.addEventListener("message",function(event){var data=event.data||{};if(data.type!=="HYDROPIP_TRACK_SESSION")return;sessionToken=data.sessionToken||null;if(sessionToken)loadAccountEstimate()});
+  Promise.all([fetch('/data/build-items.json').then(function(r){return r.json()})]).then(function(data){catalog=data[0];optionalPicks.innerHTML=catalog.items.filter(function(item){return item.category==="optional"&&item.active}).map(function(item){return'<label><input type="checkbox" value="'+item.id+'"><span>'+esc(item.name)+'</span></label>'}).join('');applySavedOptions(saved);estimateNow();try{window.parent.postMessage({type:"HYDROPIP_TRACK_READY"},"*")}catch(error){}}).catch(function(){results.innerHTML='<p class="note">The build catalog could not load. Refresh the page or ask Pip for help.</p>'});
 })();
 </script>
 <script>

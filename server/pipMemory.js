@@ -428,6 +428,9 @@ export async function updateUserPreferences({ userId, patch = {} } = {}) {
   if (Object.prototype.hasOwnProperty.call(patch || {}, "accountAvatar")) {
     next.accountAvatar = normalizeAccountAvatar(patch.accountAvatar);
   }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "buildEstimate")) {
+    next.buildEstimate = normalizeBuildEstimate(patch.buildEstimate);
+  }
 
   if (usesPostgres()) {
     const pool = await readyPool();
@@ -1523,6 +1526,19 @@ export async function createProjectReading({ userId, projectId, reading = {}, su
 
   const saved = {
     id: makeId("read"),
+    batchStartDate: cleanOptionalText(reading.batchStartDate, 20),
+    startingReservoirVolume: normalizeOptionalNumber(reading.startingReservoirVolume),
+    nutrientStage: cleanOptionalText(reading.nutrientStage, 30),
+    masterblendGrams: normalizeOptionalNumber(reading.masterblendGrams),
+    calciumNitrateGrams: normalizeOptionalNumber(reading.calciumNitrateGrams),
+    magnesiumSulfateGrams: normalizeOptionalNumber(reading.magnesiumSulfateGrams),
+    cropsGrowing: cleanOptionalText(reading.cropsGrowing, 300),
+    dominantCropType: cleanOptionalText(reading.dominantCropType, 30),
+    plantDevelopmentStage: cleanOptionalText(reading.plantDevelopmentStage, 120),
+    currentTankLevel: cleanOptionalText(reading.currentTankLevel || reading.waterLevel, 80),
+    expectedRefillWindow: cleanOptionalText(reading.expectedRefillWindow, 80),
+    actualRefillDate: cleanOptionalText(reading.actualRefillDate, 20),
+    plantResponse: cleanOptionalText(reading.plantResponse, 1000),
     ph: normalizeOptionalNumber(reading.ph),
     ec: reading.ec ?? reading.tds ?? null,
     waterLevel: reading.waterLevel ?? null,
@@ -1877,7 +1893,62 @@ function normalizeUserPreferences(value) {
   const preferences = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
     workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder),
-    accountAvatar: normalizeAccountAvatar(preferences.accountAvatar)
+    accountAvatar: normalizeAccountAvatar(preferences.accountAvatar),
+    buildEstimate: normalizeBuildEstimate(preferences.buildEstimate)
+  };
+}
+
+function normalizeBuildEstimate(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const sourceOptions = value.options && typeof value.options === "object" ? value.options : {};
+  const clampInteger = (input, min, max, fallback) => {
+    const number = Math.round(Number(input));
+    return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
+  };
+  const cleanChoice = (input, allowed, fallback) => allowed.includes(String(input || "")) ? String(input) : fallback;
+  const checked = {};
+  for (const [rawId, state] of Object.entries(value.checked || {}).slice(0, 100)) {
+    const id = String(rawId || "").trim();
+    if (/^[a-z0-9-]{1,80}$/i.test(id) && state) checked[id] = true;
+  }
+  const purchases = {};
+  for (const [rawId, rawRecord] of Object.entries(value.purchases || {}).slice(0, 100)) {
+    const id = String(rawId || "").trim();
+    if (!/^[a-z0-9-]{1,80}$/i.test(id) || !rawRecord || typeof rawRecord !== "object") continue;
+    const paid = Number(rawRecord.paid);
+    purchases[id] = {
+      owned: Boolean(rawRecord.owned),
+      paid: Number.isFinite(paid) && paid >= 0 && paid <= 100000 ? Number(paid.toFixed(2)) : null,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(String(rawRecord.date || "")) ? String(rawRecord.date) : null,
+      retailer: cleanOptionalText(rawRecord.retailer, 500)
+    };
+  }
+  const optional = Array.isArray(sourceOptions.optional)
+    ? sourceOptions.optional.map((item) => String(item || "").trim()).filter((item) => /^[a-z0-9-]{1,80}$/i.test(item)).slice(0, 50)
+    : [];
+  const summary = value.summary && typeof value.summary === "object" ? value.summary : {};
+  return {
+    version: 2,
+    options: {
+      towers: clampInteger(sourceOptions.towers, 1, 40, 4),
+      tiers: clampInteger(sourceOptions.tiers, 1, 30, 10),
+      planterChoice: cleanChoice(sourceOptions.planterChoice, ["include", "some", "all"], "include"),
+      ownedPlanterTiers: clampInteger(sourceOptions.ownedPlanterTiers, 0, 1200, 0),
+      reservoir: cleanChoice(sourceOptions.reservoir, ["used", "new", "owned", "custom"], "used"),
+      customReservoirPrice: Math.max(0, Math.min(10000, Number(sourceOptions.customReservoirPrice) || 0)),
+      support: cleanChoice(sourceOptions.support, ["galvanized", "pvc", "owned"], "galvanized"),
+      optional
+    },
+    checked,
+    purchases,
+    summary: {
+      low: Math.max(0, Number(summary.low) || 0),
+      typical: Math.max(0, Number(summary.typical) || 0),
+      high: Math.max(0, Number(summary.high) || 0),
+      positions: Math.max(0, Number(summary.positions) || 0),
+      savings: Math.max(0, Number(summary.savings) || 0)
+    },
+    savedAt: /^\d{4}-\d{2}-\d{2}T/.test(String(value.savedAt || "")) ? String(value.savedAt) : nowIso()
   };
 }
 
@@ -1935,6 +2006,11 @@ function normalizeSystemProfile(profile = {}, type) {
     goals: Array.isArray(profile.goals) ? profile.goals.map(String).slice(0, 12) : [],
     medium: profile.medium || null,
     nutrientBrand: profile.nutrientBrand || null,
+    nutrientStage: cleanOptionalText(profile.nutrientStage, 30),
+    dominantCropType: cleanOptionalText(profile.dominantCropType, 30),
+    batchStartDate: cleanOptionalText(profile.batchStartDate, 20),
+    currentTankLevel: cleanOptionalText(profile.currentTankLevel, 80),
+    expectedRefillWindow: cleanOptionalText(profile.expectedRefillWindow, 80),
     indoorOutdoor: profile.indoorOutdoor || null,
     pumpSchedule: profile.pumpSchedule || null,
     notes: profile.notes ? String(profile.notes).slice(0, 2000) : ""
@@ -2393,8 +2469,8 @@ function standardReminderDefaults(profile = {}) {
     return date.toISOString();
   };
   const systemCare = [
-    { title: "Weekly HydroPip check-in", note: "hydropip_weekly_v2", category: "maintenance", dueAt: dueAt(2), repeat: { frequency: "weekly" }, notify: true },
-    { title: "Monthly HydroPip service", note: "hydropip_monthly_v2", category: "maintenance", dueAt: dueAt(2, 9, null, 30), repeat: { frequency: "monthly" }, notify: true }
+    { title: "Weekly tank, mixing circulation, and flow check", note: "hydropip_weekly_v2", category: "maintenance", dueAt: dueAt(2), repeat: { frequency: "weekly" }, notify: true },
+    { title: "Review plant stage, refill window, pumps, and hoses", note: "hydropip_monthly_v2", category: "nutrients", dueAt: dueAt(25), repeat: { frequency: "monthly" }, notify: true }
   ];
   if (!profile.plantingDate) return systemCare;
   const crops = cropSummary(profile.crops);

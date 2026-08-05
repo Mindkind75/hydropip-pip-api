@@ -1,8 +1,11 @@
 import wixWindowFrontend from "wix-window-frontend";
+import { currentMember } from "wix-members-frontend";
+import { getPipAccess } from "backend/pipAccess.web";
 
 const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260804c&embed=1";
 const TRACK_EMBED_IDS = ["#trackHtml", "#partsHtml", "#html1", "#html2", "#iFrame1"];
 let lastEmbedHeight = 0;
+let lastSessionSignature = "";
 
 $w.onReady(() => {
   collapseOuterHeader();
@@ -10,8 +13,13 @@ $w.onReady(() => {
   if (!embed) return;
 
   setFallbackHeight(embed);
-  embed.onMessage((event) => syncEmbedHeight(embed, event.data));
+  embed.onMessage(async (event) => {
+    const message = event.data || {};
+    if (message.type === "HYDROPIP_EMBED_HEIGHT") syncEmbedHeight(embed, message);
+    if (message.type === "HYDROPIP_TRACK_READY") await sendTrackSession(embed, true);
+  });
   embed.src = HYDROPIP_TRACK_SRC;
+  setTimeout(() => sendTrackSession(embed), 1200);
 });
 
 function collapseOuterHeader() {
@@ -57,4 +65,30 @@ function syncEmbedHeight(embed, message) {
 
   lastEmbedHeight = nextHeight;
   embed.height = nextHeight;
+}
+
+async function sendTrackSession(embed, force = false) {
+  let member = null;
+  try {
+    member = await currentMember.getMember({ fieldsets: ["FULL"] });
+  } catch (error) {
+    // Track My Build still keeps a device copy when no member is signed in.
+  }
+  let access = { active: false, plan: member ? "free_member" : "visitor", sessionToken: null };
+  if (member) {
+    try {
+      access = await getPipAccess();
+    } catch (error) {
+      // The device copy remains available if account sync is temporarily unavailable.
+    }
+  }
+  const signature = `${member?._id || "visitor"}:${access.plan}:${access.active}:${Boolean(access.sessionToken)}`;
+  if (!force && signature === lastSessionSignature) return;
+  lastSessionSignature = signature;
+  embed.postMessage({
+    type: "HYDROPIP_TRACK_SESSION",
+    member: member ? { id: member._id } : null,
+    subscription: { active: Boolean(access.active), plan: access.plan || (member ? "free_member" : "visitor") },
+    sessionToken: access.sessionToken || null
+  });
 }

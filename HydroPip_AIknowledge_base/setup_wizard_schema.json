@@ -53,6 +53,28 @@
       "required": true
     },
     {
+      "id": "nutrientStage",
+      "label": "Which nutrient batch matches current plant development?",
+      "type": "select",
+      "options": ["not started", "seeds", "growing", "fruiting"],
+      "default": "not started",
+      "required": false
+    },
+    {
+      "id": "dominantCropType",
+      "label": "What type of crop dominates this batch?",
+      "type": "select",
+      "options": ["mixed", "mostly leafy", "mostly fruiting"],
+      "default": "mixed",
+      "required": false
+    },
+    {
+      "id": "currentTankLevel",
+      "label": "Approximate current tank level",
+      "type": "text",
+      "required": false
+    },
+    {
       "id": "climateMode",
       "label": "Current weather/grow conditions",
       "type": "select",

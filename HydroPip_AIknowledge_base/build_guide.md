@@ -21,7 +21,17 @@ HydroPip is a real working timed-feed tower system. It is not a stock recirculat
 
 The working system uses one 275 gallon IBC tote as the nutrient reservoir. Two low-cost submersible pumps sit inside the IBC. The pumps are zip-tied together so they do not spin or drift.
 
-One pump circulates and mixes the IBC. Its hose rises inside the tank and returns water back into the reservoir. The second pump sends nutrient solution to the tower feed hose. The two pumps should be controlled separately with an outdoor two-outlet smart plug or timer.
+One pump circulates and mixes the IBC. Place it near the bottom, attach correctly sized flexible circulation hose, run the hose to the large top opening, bend it near the opening, and point the outlet back down into the reservoir. Secure the hose to the molded anchor loops beside the opening with a small bungee, rope, or reusable strap. Aim it for visible circulation without splashing outside. Keep this circulation hose separate from the main tower feed hose. It does not carry tower runoff, and no drilling or permanent IBC wall plumbing is required.
+
+The second pump sends nutrient solution to the tower feed hose. The two pumps should be controlled separately with an outdoor two-outlet smart plug or timer.
+
+Required mixing-pump circulation parts are the internal mixing pump, correctly sized flexible top-discharge hose, a hose clamp or pump adapter when required, and a small bungee/rope/reusable strap. An outlet elbow and pump prefilter are optional. Tower runoff is not plumbed back to the IBC.
+
+## Nutrient Batch Method
+
+The full 275-gallon IBC is one complete nutrient batch. Fill it, choose the recipe from actual plant development, mix completely, and let the system gradually consume it. Do not routinely keep the tank full or add another complete nutrient dose as the level falls. When nearly empty, inspect and refill with fresh water, then choose a new recipe for the plants' current stage.
+
+**One tank. One nutrient batch. Adjust at the next refill.**
 
 ## Feed Line Expansion
 

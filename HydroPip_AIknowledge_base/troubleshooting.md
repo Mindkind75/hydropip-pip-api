@@ -75,3 +75,30 @@ Common HydroPip checks:
 ## IBC Safety Concern
 
 Never assume a used IBC is safe. Ask what it contained before. Food-safe or known non-hazardous contents are preferred. Avoid unknown chemicals. Car wash soap totes can be a low-cost option only when prior contents are known and the tote is cleaned thoroughly.
+
+## Weak Mixing-Pump Circulation
+
+- Inspect the circulation hose for kinks or collapse.
+- Confirm the pump intake is clear and sufficiently submerged.
+- Clean the prefilter or intake screen.
+- Shorten unnecessary hose and match its diameter to the outlet.
+- Confirm the pump can handle the lift to the top opening.
+
+## Mixing Hose Falls Into The Reservoir
+
+- Reattach it to the molded loops beside the top opening.
+- Use a shorter bungee or tighter reusable strap.
+- Add a second attachment point.
+- Keep the outlet directed safely downward.
+
+## Mixing-Pump Discharge Splashes Outside
+
+- Point the outlet farther down or lower it slightly inside the opening.
+- Reduce adjustable pump flow.
+- Secure the hose firmly and keep the outlet inside the reservoir opening.
+
+## Only One Small Area Moves
+
+- Aim the top discharge diagonally downward for broader circulation.
+- Keep the return near the top rather than beside the pump.
+- Inspect the hose and pump for restricted flow.

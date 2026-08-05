@@ -5,11 +5,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const kbDir = path.join(rootDir, "HydroPip_AIknowledge_base");
+const dataDir = path.join(rootDir, "data");
 
 export const systemBrain = fs.readFileSync(path.join(kbDir, "pip_system_brain.md"), "utf8");
 export const schedulingRules = JSON.parse(fs.readFileSync(path.join(kbDir, "scheduling_rules.json"), "utf8"));
 export const zonePlantingCalendar = JSON.parse(fs.readFileSync(path.join(kbDir, "zone_planting_calendar.json"), "utf8"));
 export const setupWizardSchema = JSON.parse(fs.readFileSync(path.join(kbDir, "setup_wizard_schema.json"), "utf8"));
+export const hydropipSystem = JSON.parse(fs.readFileSync(path.join(dataDir, "hydropip-system.json"), "utf8"));
+export const buildCatalog = JSON.parse(fs.readFileSync(path.join(dataDir, "build-items.json"), "utf8"));
 
 export const buildSteps = [
   {
@@ -55,10 +58,13 @@ export const buildSteps = [
     id: "pumps",
     title: "Install the two IBC pumps",
     summary:
-      "Put two low-cost pumps in the 275-gallon IBC: one for circulation and one for timed tower feeding.",
+      "Put two pumps in the 275-gallon IBC: one uses a secured bottom-to-top circulation hose for mixing and one handles timed tower feeding.",
     checklist: [
       "Zip-tie the pumps together so they do not spin around.",
-      "Route one hose back into the IBC for circulation.",
+      "Attach correctly sized flexible hose to the mixing pump near the bottom.",
+      "Run the mixing hose to the large top opening, loop it, and point the outlet back down into the tank.",
+      "Secure the mixing hose to the molded loops beside the opening with a small bungee, rope, or reusable strap.",
+      "Aim the top discharge for visible tank-wide circulation without splashing outside; do not drill the IBC.",
       "Route the second pump to the tower feed hose.",
       "Put each pump on a separate outlet of the outdoor smart plug."
     ]
@@ -77,14 +83,15 @@ export const buildSteps = [
   }
 ];
 
-export const parts = [
-  { name: "Mr. Stacky four-pot planter sections with 1/2-inch center opening", quantity: "2 five-tier orders per tower", source: "Amazon", asin: "B007TFTXAC" },
-  { name: "275 gallon IBC tote", quantity: "1 per system", source: "Amazon or used local food-safe/non-hazardous tote", asin: "B0876C67GR" },
-  { name: "Submersible pumps", quantity: "2 per system", source: "Amazon", asin: "B07L54HB83" },
-  { name: "Outdoor smart plug", quantity: "1 two-outlet outdoor unit", source: "Amazon", asin: "B091FXH2FR" },
-  { name: "MasterBlend-style nutrient kit", quantity: "as needed", source: "Amazon", asin: "B0727VTWH5" },
-  { name: "Perlite and vermiculite", quantity: "50/50 reusable media blend", source: "Amazon or garden supplier" },
-  { name: "8-10 foot 1/2-inch galvanized steel pipe", quantity: "1 per tower", source: "Home Depot/local hardware", url: "https://www.homedepot.com/p/100537138" },
-  { name: "3/4-inch PVC tee", quantity: "1 per tower", source: "Home Depot/local hardware" },
-  { name: "Single-cell cinder block", quantity: "1 per tower", source: "Home Depot/local hardware" }
-];
+export const parts = buildCatalog.items.filter((item) => item.active).map((item) => ({
+  id: item.id,
+  name: item.name,
+  quantity: item.quantityRule,
+  source: item.url?.includes("amazon.com") ? "Amazon" : "Local or selected retailer",
+  url: item.url,
+  required: item.required,
+  category: item.category,
+  lowPrice: item.lowPrice,
+  typicalPrice: item.typicalPrice,
+  highPrice: item.highPrice
+}));

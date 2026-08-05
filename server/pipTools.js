@@ -1,4 +1,4 @@
-import { buildSteps, parts, schedulingRules, setupWizardSchema } from "./pipData.js";
+import { buildCatalog, buildSteps, hydropipSystem, parts, schedulingRules, setupWizardSchema } from "./pipData.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const affiliateLinks = {
@@ -52,12 +52,106 @@ export function recommendParts({ towerCount = 4 } = {}) {
     towerCount: count,
     parts: parts.map((part) => ({
       ...part,
-      suggestedQuantity:
-        part.name.includes("Four-pot") ? `${count * 2} orders total` :
-        part.name.includes("galvanized steel") || part.name.includes("PVC tee") || part.name.includes("cinder") ? `${count} total` :
-        part.quantity
+      suggestedQuantity: calculateItemQuantity(part, count, buildCatalog.standardTiersPerTower)
     }))
   };
+}
+
+export function calculateNutrients({ reservoirGallons = 275, stage, cropType = "mixed", dominantCropType = "leafy", startingNewBatch = false } = {}) {
+  const gallons = Number(reservoirGallons);
+  if (!Number.isFinite(gallons) || gallons <= 0 || gallons > 2000) {
+    return { error: "invalid_reservoir_volume", message: "Enter a reservoir size between 1 and 2,000 gallons." };
+  }
+  if (!startingNewBatch) {
+    return {
+      status: "fresh_batch_required",
+      message: `${hydropipSystem.batchMessage} Do not add a complete nutrient recipe to a partially depleted reservoir. If pump safety is at risk, add only enough plain water to protect the pump, then prepare a fresh batch when the reservoir is nearly empty.`
+    };
+  }
+  const key = hydropipSystem.stages[stage] ? stage : dominantCropType === "fruiting" ? "fruiting" : "growing";
+  const recipe = hydropipSystem.stages[key];
+  const scale = gallons / hydropipSystem.standardReservoirGallons;
+  return {
+    status: "ok",
+    reservoirGallons: gallons,
+    stage: key,
+    cropType,
+    dominantCropType,
+    abbreviation: recipe.abbreviation,
+    masterblendGrams: Math.round(recipe.masterblendGrams * scale),
+    calciumNitrateGrams: Math.round(recipe.calciumNitrateGrams * scale),
+    magnesiumSulfateGrams: Math.round(recipe.magnesiumSulfateGrams * scale),
+    reason: recipe.description,
+    mixingOrder: hydropipSystem.mixingOrder,
+    reminder: `${hydropipSystem.batchMessage} Select the next strength at refill based on actual plant development.`,
+    safetyNote: hydropipSystem.safetyNote
+  };
+}
+
+export function estimateBuild({ towerCount = 4, tiersPerTower = 10, reservoir = "used", support = "galvanized", ownedPlanterTiers = 0, customReservoirPrice = 0, ownedItemIds = [], optionalItemIds = [] } = {}) {
+  const towers = Math.max(1, Math.min(40, Math.round(Number(towerCount) || 4)));
+  const tiers = Math.max(1, Math.min(30, Math.round(Number(tiersPerTower) || 10)));
+  const totalTiers = towers * tiers;
+  const planterTiersOwned = Math.max(0, Math.min(totalTiers, Math.round(Number(ownedPlanterTiers) || 0)));
+  const owned = new Set((ownedItemIds || []).map(String));
+  const optional = new Set((optionalItemIds || []).map(String));
+  const excluded = new Set([
+    reservoir === "new" ? "ibc-used" : "ibc-new",
+    support === "pvc" ? "support-galvanized" : "support-pvc"
+  ]);
+  if (reservoir === "owned") { excluded.add("ibc-used"); excluded.add("ibc-new"); }
+  if (reservoir === "custom") { excluded.add("ibc-used"); excluded.add("ibc-new"); }
+  if (support === "owned") { excluded.add("support-galvanized"); excluded.add("support-pvc"); }
+  const items = buildCatalog.items.filter((item) => item.active && !excluded.has(item.id) && (item.required || optional.has(item.id))).map((item) => {
+    const quantity = item.id === "planter-order" ? Math.ceil((totalTiers - planterTiersOwned) / 5) : calculateItemQuantity(item, towers, tiers);
+    const isOwned = owned.has(item.id);
+    return {
+      ...item,
+      quantity,
+      alreadyOwned: isOwned,
+      lowTotal: isOwned ? 0 : quantity * item.lowPrice,
+      typicalTotal: isOwned ? 0 : quantity * item.typicalPrice,
+      highTotal: isOwned ? 0 : quantity * item.highPrice
+    };
+  });
+  if (reservoir === "custom") {
+    const price = Math.max(0, Number(customReservoirPrice) || 0);
+    items.push({ id: "custom-reservoir", category: "reservoir", name: "Custom reservoir", description: "User-supplied reservoir estimate; verify safe materials and known prior contents.", required: true, unit: "reservoir", quantity: 1, alreadyOwned: price === 0, lowTotal: price, typicalTotal: price, highTotal: price });
+  }
+  const required = items.filter((item) => item.required);
+  const upgrades = items.filter((item) => !item.required);
+  const sum = (list, key) => Math.round(list.reduce((total, item) => total + item[key], 0));
+  const total = { low: sum(items, "lowTotal"), typical: sum(items, "typicalTotal"), high: sum(items, "highTotal") };
+  const planter = buildCatalog.items.find((item) => item.id === "planter-order");
+  const planterSavings = planter ? (Math.ceil(totalTiers / 5) - Math.ceil((totalTiers - planterTiersOwned) / 5)) * planter.typicalPrice : 0;
+  const ownedReservoirSavings = reservoir === "owned" ? Number(buildCatalog.items.find((item) => item.id === "ibc-used")?.typicalPrice || 0) : 0;
+  const ownedSupportSavings = support === "owned" ? towers * Number(buildCatalog.items.find((item) => item.id === "support-galvanized")?.typicalPrice || 0) : 0;
+  const savings = Math.round(items.filter((item) => item.alreadyOwned).reduce((amount, item) => amount + item.quantity * (item.typicalPrice || 0), 0) + planterSavings + ownedReservoirSavings + ownedSupportSavings);
+  const plantingPositions = towers * tiers * buildCatalog.pocketsPerTier;
+  return {
+    towerCount: towers,
+    tiersPerTower: tiers,
+    planterTiersOwned,
+    pocketsPerTier: buildCatalog.pocketsPerTier,
+    plantingPositions,
+    items,
+    requiredSubtotal: { low: sum(required, "lowTotal"), typical: sum(required, "typicalTotal"), high: sum(required, "highTotal") },
+    optionalSubtotal: { low: sum(upgrades, "lowTotal"), typical: sum(upgrades, "typicalTotal"), high: sum(upgrades, "highTotal") },
+    total,
+    estimatedCostPerTower: Math.round(total.typical / towers),
+    estimatedCostPerTier: Math.round(total.typical / (towers * tiers)),
+    estimatedCostPerPlantingPosition: Number((total.typical / plantingPositions).toFixed(2)),
+    savingsFromOwnedItems: savings,
+    disclaimer: buildCatalog.disclaimer
+  };
+}
+
+function calculateItemQuantity(item, towers, tiersPerTower) {
+  const rule = item.quantityRule || item.quantity;
+  if (rule === "perTower") return towers;
+  if (rule === "twoPerTower") return Math.ceil((tiersPerTower / 5) * towers);
+  if (rule === "perTwoTowers") return Math.max(1, Math.ceil(towers / 2));
+  return Number(item.baseQuantity ?? 1);
 }
 
 export function createGrowPlan(input = {}) {
@@ -66,8 +160,8 @@ export function createGrowPlan(input = {}) {
   const tasks = [
     toReminder(start, 0, "Plant or transplant", "Confirm the feed line is flushed, towers are stable, and media is evenly moist.", "grow"),
     toReminder(start, 1, "First flow check", "Confirm every tower receives water and note runoff after a feed cycle.", "nutrients"),
-    { ...toReminder(start, 7, "Weekly pH, EC/TDS, flow, and plant check", "Circulate first, then check pH, EC/TDS, IBC level, tower flow, pests, and plant stress together.", "nutrients"), repeat: { frequency: "weekly" } },
-    { ...toReminder(start, 30, "Monthly HydroPip service", "Flush the main feed line, clean pump intakes, inspect hoses, calibrate meters, and check nutrient supply.", "maintenance"), repeat: { frequency: "monthly" } }
+    { ...toReminder(start, 7, "Weekly tank, flow, and plant check", "Check IBC level and pump intake, confirm the secured mixing-pump top discharge is circulating, inspect tower flow, and observe plants. Record pH if measured; EC/TDS is optional.", "nutrients"), repeat: { frequency: "weekly" } },
+    { ...toReminder(start, 25, "Review the next nutrient batch", "Estimate the refill window and choose the next nutrient stage from actual plant development. Do not routinely top off or re-dose the current batch.", "maintenance"), repeat: { frequency: "monthly" } }
   ];
 
   for (const task of schedulingRules.cropTasks[profile.crop] || []) {
@@ -114,6 +208,42 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
 
+  if (/\b(mixing pump|circulation pump|mixing hose|circulation hose|top discharge)\b/.test(q) && /\b(only one|small area|one area|weak circulation|barely moving|not circulating)\b/.test(q)) {
+    return `${contextLead}Broaden the mixing-pump circulation.\n- Reposition the secured hose outlet near the top and aim it diagonally downward, away from the closest wall.\n- Check the hose for kinks, the intake or prefilter for debris, pump submersion, hose diameter, and lift height.\n- The goal is visible movement through more of the tank, not just around the pump.`;
+  }
+  if (/\b(mixing hose|circulation hose|top discharge|mixing pump)\b/.test(q) && /\b(splash|splashing|outside|spray|spilling)\b/.test(q)) {
+    return `${contextLead}Keep the mixing discharge safely inside the IBC opening.\n- Point the outlet farther downward or lower it slightly below the opening.\n- Secure the hose firmly to the molded loops with a bungee or reusable strap.\n- Reduce adjustable pump flow if needed. No drilling is required.`;
+  }
+  if (/\b(mixing hose|circulation hose)\b/.test(q) && /\b(fall|fell|falls|dropped|loose)\b/.test(q)) {
+    return `${contextLead}Re-secure the mixing hose at the top opening.\n- Use the molded loops beside the opening with a shorter bungee or tighter reusable strap.\n- Add a second attachment point if needed.\n- Keep the outlet safely inside the opening and pointed downward.`;
+  }
+
+  const buildCostQuestion = /\b(cost|price|estimate|build.*cheaper|what.*still need)\b/.test(q) || (/\bhow much\b/.test(q) && /\b(build|system|tower|towers)\b/.test(q));
+  if (buildCostQuestion) {
+    const towerMatch = q.match(/\b(\d{1,2})[- ]?tower\b/);
+    const wordTowerMatch = q.match(/\b(one|two|three|four)[- ]tower\b/);
+    const wordTowers = { one: 1, two: 2, three: 3, four: 4 };
+    const towerCount = towerMatch ? Number(towerMatch[1]) : wordTowerMatch ? wordTowers[wordTowerMatch[1]] : 4;
+    const reservoir = /\b(already|own|have)\b.{0,30}\bibc\b|\bibc\b.{0,30}\b(already|own|have)\b/.test(q) ? "owned" : /\bnew ibc|new tote\b/.test(q) ? "new" : "used";
+    const estimate = estimateBuild({ towerCount, reservoir });
+    return `${contextLead}A ${estimate.towerCount}-tower HydroPip build currently estimates about $${estimate.total.low} low, $${estimate.total.typical} typical, and $${estimate.total.high} high with ${reservoir === "owned" ? "your IBC excluded" : `${reservoir} IBC pricing`}.\n- ${estimate.plantingPositions} planting pockets at ${estimate.tiersPerTower} four-pocket tiers per tower.\n- Open Track My Build for the itemized estimate and already-owned savings: https://www.hydropip.com/track-my-build`;
+  }
+
+  if (/\b(how much|amount|recipe|ratio|mix|add|dose|nutrient strength)\b/.test(q) && /\b(nutrient|masterblend|calcium nitrate|magnesium|epsom|reservoir|ibc|tank)\b/.test(q)) {
+    const gallonMatch = q.match(/\b(\d{1,4})\s*(?:gallon|gal)\b/);
+    const gallons = gallonMatch ? Number(gallonMatch[1]) : 275;
+    const partial = /\b(partial|partly|half|still has|not empty|topping|top off|level fell|water level fell)\b/.test(q);
+    if (partial) {
+      return `${contextLead}${hydropipSystem.batchMessage}\n- Do not add a complete recipe just because the level fell.\n- If the pump is at risk, add only enough plain water to protect it.\n- Start a new recipe when the reservoir is nearly empty, after reviewing plant stage.`;
+    }
+    const stage = /\b(seeds?|germinat\w*|very young|small seedlings?)\b/.test(q) ? "seeds" : /\b(flower\w*|fruit\w*|tomatoes?|peppers?|cucumbers?|squash|strawberr\w*|production|heavy growth)\b/.test(q) ? "fruiting" : /\b(growing|vegetative|established|true leaves|sprouts?|leafy|herbs?)\b/.test(q) ? "growing" : null;
+    if (!stage) {
+      return `${contextLead}${hydropipSystem.batchMessage} Is this a fresh batch, and are the plants seeds/small seedlings, established vegetative plants, or flowering/fruiting plants?`;
+    }
+    const result = calculateNutrients({ reservoirGallons: gallons, stage, startingNewBatch: true, dominantCropType: stage === "fruiting" ? "fruiting" : "leafy" });
+    return `${contextLead}For a fresh ${gallons}-gallon ${result.stage} batch, use ${result.masterblendGrams} g MasterBlend, ${result.calciumNitrateGrams} g calcium nitrate, and ${result.magnesiumSulfateGrams} g magnesium sulfate.\n- Dissolve magnesium sulfate, then MasterBlend, then calcium nitrate separately.\n- ${hydropipSystem.batchMessage}`;
+  }
+
   if (wantsHoseEndSize(q)) return hoseEndSizeAnswer(contextLead);
   if (wantsGardenHoseWasher(q)) return gardenHoseWasherAnswer(contextLead);
   if (wantsTowerFeedTubing(q) || wantsTubingPurchase(q)) return tubingSupplyAnswer(contextLead);
@@ -127,14 +257,17 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   if (wantsPart(q, ["punch", "awl", "hole tool", "poke hole", "punch hole", "hole in the hose"])) {
     return `${contextLead}Use a tubing punch or awl to make cleaner holes in the main hose.\n- Tubing punch/awl: ${affiliateLinks.tubingPunch}\n- Clean holes seal better around the small tower feed tubes.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
+  if (wantsPart(q, ["mixing pump hose", "mix pump hose", "circulation hose", "return hose", "mixing return"])) {
+    return `${contextLead}The internal mixing pump needs its own flexible circulation hose, separate from the tower feed hose and not a runoff-return line. Run it from the pump near the bottom to the top IBC opening, bend it near the opening, point it downward, and secure it to the molded anchor loops with a small bungee or reusable strap.\n- Hose: https://www.amazon.com/s?k=submersible+pump+flexible+return+hose&tag=hydrpip2002-20\n- Strap: https://www.amazon.com/s?k=small+bungee+cord+reusable+strap&tag=hydrpip2002-20\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  }
   if (wantsPart(q, ["pump", "pumps", "feed pump", "mixing pump", "circulation pump"])) {
-    return `${contextLead}Use two pumps in the IBC: one for circulation and one for feeding the towers.\n- Pump link: ${affiliateLinks.pumps}\n- Keep a spare on hand once plants are established.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}Use two pumps in the IBC: a feed pump for the towers and an internal mixing pump with a secured bottom-to-top circulation hose.\n- Pump link: ${affiliateLinks.pumps}\n- Keep the two hose roles separate. Tower runoff is not plumbed back to the IBC.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["smart plug", "timer", "kasa", "outdoor plug"])) {
     return `${contextLead}Use an outdoor two-outlet smart plug/timer so the mix pump and feed pump can be scheduled separately.\n- Smart plug: ${affiliateLinks.smartPlug}\n- Keep pump schedules short until runoff is measured.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["nutrient", "nutrients", "masterblend", "master blend"])) {
-    return `${contextLead}Use the MasterBlend-style nutrient kit for the IBC mix.\n- Nutrients: ${affiliateLinks.nutrients}\n- Circulate 45-60 minutes after mixing, then test pH and EC/TDS.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}Use the MasterBlend-style kit to make one complete reservoir batch. For 275 gallons: Seeds 300/300/150, Growing 400/400/200, Fruiting 600/600/300 grams (MasterBlend / calcium nitrate / magnesium sulfate). Select by plant development and change strength at the next refill.\n- Nutrients: ${affiliateLinks.nutrients}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["perlite", "vermiculite", "media", "medium", "grow medium", "growing medium"])) {
     return `${contextLead}Use a reusable 50/50 perlite and vermiculite blend in the tower pots.\n- Perlite: ${affiliateLinks.perlite || "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20"}\n- Vermiculite: ${affiliateLinks.vermiculite || "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20"}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
@@ -227,16 +360,16 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}HydroPip works best when plants get strong, consistent light without cooking the reservoir.\n- Greens usually like bright sun with heat management.\n- Add afternoon shade in brutal heat.\n- Keep the IBC covered so light does not feed algae.`;
   }
   if (/\b(mixing pump|circulation pump|circulate|mixing)\b/.test(q) && /\b(how often|after|nutrient|nutrients|run)\b/.test(q)) {
-    return `${contextLead}For the IBC mixing pump:\n- Run about 15 minutes every 3 daytime hours as a baseline.\n- After adding nutrients, circulate 45-60 minutes before testing.\n- Then check pH and EC/TDS before adjusting.`;
+    return `${contextLead}For the internal mixing pump:\n- Pull from near the bottom and discharge through a secured hose at the top opening.\n- Run before or around feed cycles; after a fresh nutrient mix, circulate until evenly blended.\n- Visible top discharge confirms operation. Tower runoff is not plumbed back to the IBC. pH is useful; EC/TDS is optional optimization.`;
   }
   if (/\b(ph|pH)\b/.test(question) && /\b(target|range|should|ideal|leafy|greens|lettuce)\b/.test(q)) {
-    return `${contextLead}For leafy greens, use pH as your first guardrail.\n- Aim around 5.8-6.3 as a practical HydroPip range.\n- Circulate 45-60 minutes after nutrients before trusting the reading.\n- Adjust slowly, then retest.`;
+    return `${contextLead}For leafy greens, use pH as your first guardrail.\n- Aim around 5.8-6.3 as a practical HydroPip range.\n- Circulate until the fresh batch is evenly blended before trusting the reading.\n- Adjust slowly, then retest. EC/TDS is optional optimization.`;
   }
   if (/\b(ec|tds|ppm|nutrient strength|leaf tips|tip burn|burned)\b/.test(q) && /\b(high|super high|burn|burned|tips|dilute|flush)\b/.test(q)) {
-    return `${contextLead}High EC plus burned tips usually means the mix is too strong.\n- Dilute with clean water and retest.\n- Check pH so nutrients are available.\n- Resume shorter feeds after runoff looks normal.\n\nEC/TDS meter: ${affiliateLinks.ecTdsMeter}`;
+    return `${contextLead}High EC plus burned tips can mean the current batch is too strong.\n- First confirm the reading and check pH.\n- If the batch is confirmed over-strength, carefully dilute with plain water and retest as a corrective exception, not a routine top-off.\n- Resume shorter feeds after runoff looks normal.\n\nEC/TDS meter: ${affiliateLinks.ecTdsMeter}`;
   }
   if (/\b(rainwater|rain water)\b/.test(q)) {
-    return `${contextLead}Rainwater can work, but test it first.\n- Filter debris and avoid contaminated roof runoff.\n- Check pH and EC/TDS before nutrients.\n- After nutrients circulate 45-60 minutes, test again before adjusting.`;
+    return `${contextLead}Rainwater can work, but test it first.\n- Filter debris and avoid contaminated roof runoff.\n- Check pH before nutrients; EC/TDS is optional.\n- After the fresh batch is evenly blended, test again before adjusting.`;
   }
   if (/\b(mosquito|mosquitoes|larvae|bugs in the tank)\b/.test(q)) {
     return `${contextLead}Keep mosquitoes out by covering access to standing water.\n- Cover IBC openings and light gaps.\n- Secure hoses through the lid.\n- Inspect after rain and flush debris.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
@@ -266,7 +399,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}I can definitely help plan it, but saving reminders/tracking is Pip Pro: ${proSignupUrl}\n\nFree Pip can still tell you what to do next for the HydroPip build and current grow.`;
   }
   if (q.includes("ibc") || q.includes("tank")) {
-    return `${contextLead}Use a 275-gallon IBC only if prior contents are known food-safe or non-hazardous.\n- One pump circulates the tank.\n- One pump feeds the towers.\n- Circulate 45-60 minutes after nutrients, then test pH/EC before adjusting.`;
+    return `${contextLead}Use a 275-gallon IBC only if prior contents are known food-safe or non-hazardous. Make one complete nutrient batch, let the level gradually fall, and prepare a fresh batch when nearly empty. The mixing pump discharges through a secured hose at the top; the second pump feeds the towers. ${hydropipSystem.batchMessage}`;
   }
   if (/\b(raised bed|raised beds|soil bed|move.*bed|transplant)\b/.test(q)) {
     return `${contextLead}Yes, that is a HydroPip advantage.\n- When you flip towers, mature plants do not have to be wasted.\n- Healthy larger plants can move into raised beds and keep producing.\n- Shake/recover the perlite-vermiculite media first, then replant the tower pockets.`;
@@ -357,7 +490,7 @@ function buildRecommendations(profile) {
   const recommendations = [
     `Starter feed rhythm: ${feedWindows} feed windows per day in ${profile.climateMode} conditions, using short cycles until runoff is measured.`,
     `IBC mixing baseline: ${schedulingRules.defaults.ibcCirculation.normal}.`,
-    "After adding nutrients, circulate the IBC for 45-60 minutes before trusting pH or EC/TDS readings."
+    "After adding nutrients, circulate the IBC until the fresh batch is evenly blended before trusting pH or optional EC/TDS readings."
   ];
 
   if (profile.runoffLevel === "none") {

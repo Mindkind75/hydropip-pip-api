@@ -1,57 +1,68 @@
 # HydroPip Feed, IBC, And Nutrient Guidance
 
-HydroPip uses timed feeding, not recirculating tower returns. The goal is to feed enough for plant needs and media moisture while minimizing waste.
+HydroPip uses timed feeding, not recirculating tower returns. The 275-gallon IBC is managed as one complete nutrient batch.
+
+> **One tank. One nutrient batch. Adjust at the next refill.**
+
+Start light for seeds, increase for active growth, and use the production blend when fruiting crops begin producing.
+
+## Complete-Batch Method
+
+1. Fill the IBC to approximately 275 gallons.
+2. Select the recipe from actual plant development.
+3. Mix one complete nutrient batch.
+4. Let the towers gradually consume the solution over approximately one month.
+5. Do not routinely top off the tank to keep it full or add another nutrient dose during the same batch.
+6. When the tank is nearly empty, inspect it, refill with fresh water, and make a completely new batch for the plants' current stage.
+
+If the level becomes too low for safe pump operation before refill time, add only enough plain water to protect the pump. This is an exception, not the normal method. Do not drain a mostly full reservoir merely because a fixed number of days passed.
+
+## Canonical 275-Gallon Recipes
+
+Ingredient amounts are always presented as MasterBlend base / calcium nitrate / magnesium sulfate (Epsom salt).
+
+- **Seeds and very young seedlings: 300 / 300 / 150 grams.** Use during germination and while seedlings remain small.
+- **Established sprouts and vegetative growth: 400 / 400 / 200 grams.** Use when most sprouts are established, have true leaves, and are actively growing.
+- **Heavy growth, flowering, and fruit production: 600 / 600 / 300 grams.** Use when mature fruiting crops are flowering or producing and nutrient demand is high.
+
+The progression is based on the garden, not the calendar. Slow germination may need another seed batch. Established sprouts move to the growing batch. Fruiting crops move to production when flowering or producing. For mixed crops, use the dominant stage and plants with the greatest demand.
+
+For reservoirs other than 275 gallons:
+
+`adjusted grams = 275-gallon recipe grams x actual gallons / 275`
+
+Round to a practical whole gram. Never add a complete recipe to a partially depleted reservoir unless the old solution was removed and a new batch is being prepared.
+
+## Starting A Fresh Batch
+
+1. Confirm the reservoir is reasonably clean and free of significant debris.
+2. Fill with approximately 275 gallons of water.
+3. Start the internal mixing pump.
+4. Add magnesium sulfate and allow it to dissolve.
+5. Add MasterBlend and mix thoroughly.
+6. Add calcium nitrate separately after the other ingredients are dissolved.
+7. Continue mixing until evenly blended.
+8. Verify both pumps and proper tower flow.
+9. Begin the normal automated feed schedule.
+
+Never premix concentrated MasterBlend and calcium nitrate together in the same small container. Measure accurately, store securely, and follow each product label.
+
+## During The Batch
+
+- Let the water level gradually fall.
+- Run the internal mixing pump before or around feed cycles to keep the solution distributed.
+- Monitor water level, pump operation, tower flow, pH if measured, and plant appearance.
+- EC/TDS is useful optional optimization, not a basic requirement.
+- Do not automatically replace nutrients when the water level falls.
+
+## End Of Batch
+
+When the IBC is nearly empty, stop the pumps; inspect the reservoir, pump intakes, feed hose, and mixing-pump circulation hose; remove visible debris; refill with fresh water; select the next strength from plant development; mix a completely fresh batch; and restart the normal schedules.
 
 ## Feed Schedule Starting Point
 
-Feed timing depends on crop, tower count, media moisture, temperature, wind, sun, feed duration, and observed runoff. Pip should not give a hard schedule without asking for those details.
+Feed timing depends on crop, tower count, media moisture, heat, wind, sun, pump duration, and observed runoff. Start with short daytime windows, measure one representative tower, and tune for light runoff during calibration and minimal excess after tuning.
 
-Practical starting points:
+## Internal Mixing Pump
 
-- Cool or mild conditions: start around 2 short daytime feed windows.
-- Warm conditions: start around 3 short daytime feed windows.
-- Hot, windy, or high-sun conditions: consider 4 to 6 shorter feed windows.
-- Measure one representative tower after a feed.
-- If there is no runoff and media dries between feeds, add a short feed window or increase duration slightly.
-- If runoff is steady or heavy, shorten feed duration before adding return plumbing.
-- The goal during calibration is light runoff. Once tuned, the goal is minimal excess.
-
-## IBC Circulation
-
-The circulation pump keeps the 275 gallon IBC mixed. A practical baseline is 15 minutes every 3 daytime hours plus one overnight mix. After adding powdered nutrients, circulate continuously for 45 to 60 minutes before trusting pH or EC/TDS readings.
-
-In hot weather, increase observation frequency. If readings drift, odor appears, or the tank seems stratified, circulate more often.
-
-## Nutrient Mixing
-
-HydroPip currently uses MasterBlend-style powdered nutrients. Pip should ask for reservoir size, crop, crop stage, nutrient recipe, pH, and EC/TDS before giving strong nutrient adjustment advice.
-
-Basic nutrient workflow:
-
-1. Fill or top off the IBC with clean water.
-2. Add nutrients according to the product instructions or the grower's recorded recipe.
-3. Circulate the IBC for 45 to 60 minutes.
-4. Measure pH.
-5. Measure EC/TDS.
-6. Adjust slowly if needed.
-7. Record date, amount added, pH, EC/TDS, crop stage, tank level, and plant condition.
-
-## pH And EC/TDS Guardrails
-
-For many leafy greens and herbs, a practical starter pH range is about 5.8 to 6.3. Some crops can tolerate different ranges, so Pip should avoid universal claims. If pH is low or high, circulate first, retest, then adjust in small steps.
-
-EC/TDS depends heavily on crop and stage. Seedlings need gentler feed than mature fruiting plants. Pip should ask for crop and stage before suggesting nutrient strength changes.
-
-## Runoff Interpretation
-
-No runoff can mean the cycle is too short, the media is too dry, the feed line is clogged, or the tower is not receiving enough flow. Heavy runoff can mean the feed cycle is too long, the media is saturated, or the diffuser is not spreading water well.
-
-Pip should ask:
-
-- How many towers are running?
-- What crop and stage?
-- How many minutes does the feed pump run?
-- How often does it run?
-- What is the weather or grow environment?
-- Is runoff none, light, steady, or heavy?
-- What are current pH and EC/TDS?
+Place the mixing pump near the bottom. Attach correctly sized flexible hose, run it to the large top IBC opening, bend it near the opening, and point the outlet back down into the tank. Secure it to the molded anchor loops beside the opening with a small bungee, rope, or reusable strap. The top discharge should create visible broad circulation without splashing outside. This circulation hose is separate from the tower feed hose and is not a tower-runoff return line. No drilling or permanent IBC wall plumbing is required.

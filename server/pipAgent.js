@@ -1,6 +1,6 @@
-import { systemBrain } from "./pipData.js";
+import { buildCatalog, hydropipSystem, systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
-import { createGrowPlan, createReminder, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
+import { calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
 import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 import { combineOpenAiUsage, pipAiDisabled } from "./pipUsage.js";
@@ -10,6 +10,8 @@ let clientPromise;
 const toolMap = {
   get_build_step: getBuildStep,
   recommend_parts: recommendParts,
+  calculate_nutrients: calculateNutrients,
+  estimate_build: estimateBuild,
   create_grow_plan: createGrowPlan,
   create_reminder: createReminder,
   manage_calendar: (args) => args,
@@ -83,6 +85,42 @@ const tools = [
         }
       },
       required: ["reminder"],
+      additionalProperties: false
+    }
+  },
+  {
+    type: "function",
+    name: "calculate_nutrients",
+    description: "Calculate one complete fresh HydroPip nutrient batch from the canonical recipes. Never use for routine top-offs.",
+    parameters: {
+      type: "object",
+      properties: {
+        reservoirGallons: { type: "number" },
+        stage: { type: "string", enum: ["seeds", "growing", "fruiting"] },
+        cropType: { type: "string" },
+        dominantCropType: { type: "string", enum: ["leafy", "fruiting", "mixed"] },
+        startingNewBatch: { type: "boolean" }
+      },
+      required: ["reservoirGallons", "stage", "startingNewBatch"],
+      additionalProperties: false
+    }
+  },
+  {
+    type: "function",
+    name: "estimate_build",
+    description: "Calculate an itemized HydroPip build estimate from the same centralized catalog used by Track My Build.",
+    parameters: {
+      type: "object",
+      properties: {
+        towerCount: { type: "number" },
+        tiersPerTower: { type: "number" },
+        reservoir: { type: "string", enum: ["used", "new", "owned", "custom"] },
+        support: { type: "string", enum: ["galvanized", "pvc", "owned"] },
+        ownedPlanterTiers: { type: "number" },
+        customReservoirPrice: { type: "number" },
+        ownedItemIds: { type: "array", items: { type: "string" } },
+        optionalItemIds: { type: "array", items: { type: "string" } }
+      },
       additionalProperties: false
     }
   },
@@ -352,12 +390,17 @@ export async function askPip({ message, image, profile, subscription, history = 
       "When the user gives a weekday and time for a weekly reminder, include weekday, dueTime, repeat frequency weekly, and the user's timezone. Compute or supply a first dueDate when possible. Use saved profile values instead of asking for facts Pip already has.",
       "Use retrieved HydroPip knowledge only when it directly answers the current intent. Ignore retrieved notes that are about a different topic. For crop timing and plant questions, combine relevant saved profile details with sound hydroponic and horticultural knowledge.",
       "HydroPip is a real timed-feed runoff tower system, not a recirculating tower kit. Do not recommend return plumbing, drain plumbing, recycling tower runoff, filters for returning runoff, or generic recirculating tower layouts unless the user explicitly asks to compare alternatives.",
-      "For the physical build, describe the actual HydroPip parts: an 8-10 foot, 1/2-inch galvanized steel support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one circulation pump, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media. Never describe the structural support as flexible plumbing or PVC. Keep roughly 5 feet above grade; recommend 10 feet for deeper anchoring in exposed or windier locations.",
+      `HydroPip nutrient truth: ${hydropipSystem.batchMessage} A full reservoir is one complete batch. Do not routinely keep it full, top it off, re-dose it, replace nutrients as the level falls, or drain a mostly full tank on a calendar date. If pump safety is at risk, plain water only in the minimum amount needed is an exception. Prepare the next complete batch when nearly empty and select strength from actual plant development.`,
+      "For a fresh 275-gallon batch use only these canonical presets: Seeds 300 g MasterBlend / 300 g calcium nitrate / 150 g magnesium sulfate; Growing 400/400/200; Fruiting 600/600/300. For other volumes call calculate_nutrients. Ask whether this is a fresh batch, the volume, plant stage, and whether leafy or fruiting crops dominate before recommending a recipe.",
+      "Fresh-batch mixing order is magnesium sulfate first, MasterBlend second, and calcium nitrate separately last after the others dissolve. Never tell users to premix concentrated MasterBlend and calcium nitrate in the same small container. pH is useful basic monitoring; EC/TDS is optional optimization, not a requirement for basic HydroPip operation.",
+      "For the physical build, describe the actual HydroPip parts: an 8-10 foot, 1/2-inch galvanized steel support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one internal mixing pump with its own top-discharge circulation hose, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media. Never describe the structural support as flexible plumbing or PVC. Keep roughly 5 feet above grade; recommend 10 feet for deeper anchoring in exposed or windier locations.",
+      `Mixing-pump installation truth: ${hydropipSystem.mixingPump.plainLanguage} This circulation hose is separate from the tower feed hose and does not carry tower runoff. Do not omit or leave it unsecured, and do not require drilling or permanent IBC wall plumbing.`,
       "Whenever driving, anchoring, pounding, or installing a support pipe is discussed, first tell the user to call 811 or visit https://call811.com/, wait for utility markings, and identify private irrigation, septic, electrical, and water lines. Do not imply that driving is safe until the location is confirmed clear.",
       "Behave like a capable ChatGPT-style hydroponic grow buddy, not a menu bot. Answer the user's actual question with practical hydroponic reasoning whenever it is about growing food, HydroPip, gardening, seedlings, pests, nutrients, pH/EC, pumps, water, weather, layout, harvesting, or parts.",
       "Never answer a clear hydroponic or HydroPip question with a generic menu such as 'tell me the step or part you are stuck on.' If the question is vague, make the best likely inference, give the next useful action, then ask one focused follow-up.",
       "Free mode should be genuinely useful for building and operating the HydroPip system. Keep trust first, then commerce: when parts, supplies, testing tools, seeds, nutrients, media, pumps, hoses, timers, covers, or replacements are relevant, naturally include the matching HydroPip Amazon affiliate link.",
       "For any shopping or 'what do I need' question, infer the most likely HydroPip part from the user's wording and conversation context. If there are two likely meanings, give the best guess first and name the alternate briefly with its link.",
+      `For build-cost questions call estimate_build and use the centralized ${buildCatalog.lastPriceReviewDate} catalog. Do not invent a generic total that conflicts with the calculator. Ask or infer tower count, tiers, IBC ownership, support choice, owned components, and optional upgrades.`,
       "HydroPip scale, space, and variation questions are allowed in free mode when they are still based on the HydroPip timed-feed tower design. Answer practical questions such as shorter towers, fewer towers, tower spacing, footprint, partial builds, height limits, expansion, and whether a layout will fit. Do not punt these to a generic follow-up unless a key measurement is missing.",
       "For shorter towers: explain that the system can be scaled down, but shorter towers reduce pocket count and may change stability, support height, pump head pressure, feed timing, and runoff behavior. Keep the center support pipe driven securely, keep the top hose guide removable, and recalibrate feed duration by runoff. If the user says five-pot-high, clarify that HydroPip uses four-pot stackable sections; five stack sections equals 20 planting pockets per tower. Two five-section towers are a reasonable small test if they are stable and easy to service.",
       "When a user asks for a part link, include the matching HydroPip Amazon affiliate URL directly. Use these known links when relevant: approved Mr. Stacky planters with a 1/2-inch center support opening https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20; rigid 1/4-inch tower feed tubing https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20; pumps https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20; smart plug https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20; nutrients https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20; vermiculite https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20; perlite https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20; pH meter https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20; pH calibration solution https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20; EC/TDS meter https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20; EC/TDS calibration solution https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20; pH Up/Down https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20; seeds https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20; yellow sticky traps https://www.amazon.com/s?k=yellow+sticky+traps+for+plants&tag=hydrpip2002-20; food-safe pest controls https://www.amazon.com/s?k=food+safe+garden+pest+control+vegetables&tag=hydrpip2002-20; IBC cover https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20; IBC tote reference https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20; end-of-hose shutoff/flush valve https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20; hose connector adapters for extensions https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20. Include the disclosure 'As an Amazon Associate I earn from qualifying purchases.' when sharing direct Amazon links.",
@@ -955,6 +998,7 @@ export function classifyQuestionIntent(message, { image = false, history = [] } 
   if (/\b(what|which|when|should|can)\b.*\b(plant|grow|sow|transplant|crop|variety|varieties)\b|\b(this time of year|right now|this season|crop rotation|succession planting)\b/.test(normalized)) return "crop_selection";
   if (/\b(yellow|pale|wilt|droop|spot|spots|holes|chewed|bug|bugs|pest|pests|aphid|gnat|mildew|mold|rot|roots?|disease|symptom)\b/.test(normalized)) return "plant_health";
   if (/\b(ph|ec|tds|ppm|nutrient|nutrients|masterblend|feed timing|feeding|runoff|water temperature)\b/.test(normalized)) return "feeding_nutrients";
+  if (/\b(cost|price|estimate|how much.*build|build.*cheaper|already own|what.*still need)\b/.test(normalized)) return "parts_shopping";
   if (/\b(link|amazon|buy|purchase|order|where (?:can|do|should) i (?:find|get)|what part|which part|need the|parts? list)\b/.test(normalized)) return "parts_shopping";
   if (/\b(build|install|assemble|anchor|stack|plumb|pipe|tower setup|first step|next step|fit my space|footprint)\b/.test(normalized)) return "hydropip_build";
   return "hydroponic_guidance";
@@ -966,7 +1010,11 @@ function toolsForQuestion(intent, message) {
     requested.add("get_build_step");
     requested.add("recommend_parts");
   }
-  if (intent === "parts_shopping") requested.add("recommend_parts");
+  if (intent === "parts_shopping") {
+    requested.add("recommend_parts");
+    requested.add("estimate_build");
+  }
+  if (intent === "feeding_nutrients") requested.add("calculate_nutrients");
   if (intent === "reminder_action") {
     requested.add("create_reminder");
     requested.add("manage_calendar");
@@ -1042,6 +1090,11 @@ function formatAnswerContext(context = {}) {
     ["Goals", Array.isArray(profile.goals) ? profile.goals.join(", ") : profile.goals],
     ["Medium", profile.medium],
     ["Nutrients", profile.nutrientBrand],
+    ["Current nutrient stage", profile.nutrientStage],
+    ["Dominant crop type", profile.dominantCropType],
+    ["Current batch start", profile.batchStartDate],
+    ["Approximate tank level", profile.currentTankLevel],
+    ["Expected refill window", profile.expectedRefillWindow],
     ["Pump schedule", profile.pumpSchedule],
     ["User notes", profile.notes],
     ["Zone Seasonal Planting Reference", formatZonePlantingGuidance(context.seasonalPlanting)]

@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "standardReservoirGallons": 275,
+  "batchMessage": "One tank. One nutrient batch. Adjust at the next refill.",
+  "stageMessage": "Start light for seeds, increase for active growth, and use the production blend when fruiting crops begin producing.",
+  "ingredientOrder": [
+    "MasterBlend base fertilizer",
+    "Calcium nitrate",
+    "Magnesium sulfate (Epsom salt)"
+  ],
+  "mixingOrder": [
+    "Confirm the reservoir is reasonably clean and free of significant debris.",
+    "Fill the IBC with approximately 275 gallons of water.",
+    "Start the internal mixing pump.",
+    "Add magnesium sulfate and allow it to dissolve.",
+    "Add MasterBlend and mix thoroughly.",
+    "Add calcium nitrate separately after the other ingredients are dissolved.",
+    "Continue running the mixing pump until the solution is evenly blended.",
+    "Verify pump operation and proper tower flow.",
+    "Begin the normal automated feed schedule."
+  ],
+  "stages": {
+    "seeds": {
+      "label": "Seeds and very young seedlings",
+      "shortLabel": "Seeds",
+      "abbreviation": "300 / 300 / 150",
+      "masterblendGrams": 300,
+      "calciumNitrateGrams": 300,
+      "magnesiumSulfateGrams": 150,
+      "description": "HydroPip's light starting mixture provides young plants with nutrients without beginning with an unnecessarily heavy concentration.",
+      "useWhen": ["Seeds were recently planted", "Germination is occurring", "Plants only recently sprouted", "Seedlings are small"]
+    },
+    "growing": {
+      "label": "Established sprouts and vegetative growth",
+      "shortLabel": "Growing",
+      "abbreviation": "400 / 400 / 200",
+      "masterblendGrams": 400,
+      "calciumNitrateGrams": 400,
+      "magnesiumSulfateGrams": 200,
+      "description": "HydroPip's normal growing mixture increases nutrient availability as established plants grow and nutrient demand rises.",
+      "useWhen": ["Most seeds have sprouted", "Seedlings have several true leaves", "Leafy greens and herbs are actively growing", "The garden is in vegetative growth"]
+    },
+    "fruiting": {
+      "label": "Heavy growth, flowering, and fruit production",
+      "shortLabel": "Fruiting",
+      "abbreviation": "600 / 600 / 300",
+      "masterblendGrams": 600,
+      "calciumNitrateGrams": 600,
+      "magnesiumSulfateGrams": 300,
+      "description": "HydroPip's heavier production mixture supports mature plants and fruiting crops with higher nutrient demand.",
+      "useWhen": ["Fruiting crops are flowering", "Fruit or vegetables are actively forming", "Large mature plants are consuming heavily", "The system contains many fruiting plants"]
+    }
+  },
+  "normalOperation": [
+    "Fill the IBC to approximately 275 gallons and mix one complete batch for the plants' current stage.",
+    "Allow the system to gradually consume the solution over approximately one month.",
+    "Do not routinely refill the tank to keep it full or add another full nutrient dose during the same batch.",
+    "Monitor pH, plant appearance, water level, pump operation, and tower flow. EC is an optional optimization for basic HydroPip operation.",
+    "If the level becomes too low for safe pump operation, add only enough plain water to protect the pump; this is an exception, not the normal method.",
+    "When the tank is nearly empty, inspect it, refill with fresh water, and create a new batch selected by actual plant development."
+  ],
+  "endOfBatch": [
+    "Stop the pumps.",
+    "Inspect the reservoir and remove visible sediment or debris.",
+    "Inspect and clean pump intakes or filters if needed.",
+    "Inspect the tower feed hose and the separate mixing-pump circulation hose.",
+    "Refill the IBC with fresh water.",
+    "Review the plants' current growth stage and select the next recipe.",
+    "Mix a completely fresh batch and restart the normal mixing and feed schedule."
+  ],
+  "mixingPump": {
+    "plainLanguage": "Connect a hose to the internal mixing pump and run it up to the IBC's top opening. Loop the hose near the opening and point the outlet back down into the tank. Use a bungee, rope, or reusable strap connected to the molded loops beside the opening to hold the hose in place. Water discharged from the hose should create strong circulation without splashing outside the tank.",
+    "steps": [
+      "Place the internal mixing pump near the bottom of the IBC.",
+      "Attach correctly sized flexible hose to the pump outlet.",
+      "Run the hose upward to the large access opening at the top of the IBC.",
+      "Loop the hose near the opening and point the outlet back down into the reservoir.",
+      "Secure the hose to the molded loops beside the opening with a small bungee, rope, or reusable strap.",
+      "Aim the top discharge so it creates visible circulation through the tank without splashing outside.",
+      "Keep the assembly removable; no drilling or permanent IBC wall plumbing is required."
+    ],
+    "why": ["Pulls solution from low in the IBC and discharges it near the top", "Circulates more of the tank", "Helps dissolve and distribute nutrients", "Provides visible proof that the mixing pump is running", "Remains easy to remove and clean", "Avoids permanently altering the IBC"]
+  },
+  "mixingPumpTroubleshooting": {
+    "weakCirculation": ["Inspect the hose for kinks or collapse", "Confirm the intake is clear and the pump is submerged", "Clean the prefilter or intake screen", "Shorten unnecessary hose", "Match hose diameter to the pump outlet", "Confirm adequate pump flow for the lift height"],
+    "hoseFalls": ["Reattach it to the molded loops beside the top opening", "Use a shorter bungee or tighter strap", "Add a second attachment point", "Keep the outlet directed safely downward"],
+    "splashing": ["Point the outlet farther downward", "Lower it slightly inside the opening", "Reduce adjustable flow", "Secure the hose firmly", "Keep the outlet inside the reservoir opening"],
+    "localizedMovement": ["Reposition the outlet for broader circulation", "Aim diagonally downward instead of at the nearest wall", "Keep the discharge near the top rather than beside the pump", "Inspect the hose and pump for restricted flow"]
+  },
+  "suggestedReminders": [
+    "Check tank level and pump intake.",
+    "Confirm the mixing-pump hose is secure.",
+    "Inspect circulation at the mixing pump's top-discharge hose.",
+    "Review plant growth before the next nutrient batch.",
+    "Your reservoir may be approaching refill time.",
+    "Choose the next nutrient strength based on current plant development.",
+    "Inspect pumps, filters, and hoses before refilling."
+  ],
+  "safetyNote": "Measure nutrients accurately, store them securely, and handle each product according to its label. Never premix concentrated MasterBlend and calcium nitrate together in the same small container."
+}

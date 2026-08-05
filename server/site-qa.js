@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const files = ["home.html", "join.html", "how-it-works.html", "field-guide.html", "print-build-guide.html", "print-parts-guide.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
+const files = ["home.html", "join.html", "how-it-works.html", "field-guide.html", "nutrient-calculator.html", "print-build-guide.html", "print-parts-guide.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
 const bannedCopy = [/HydroSync/i, /My Site 2/i, /concept render/i, /\brebuild\b/i];
 
 for (const file of files) {
@@ -88,6 +88,20 @@ const partsChecklistHtml = fs.readFileSync(new URL("../parts-checklist.html", im
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-print-checklist.png", import.meta.url)), true, "The transparent Print checklist Pip is missing");
 assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/, "Track My Build should guide members toward the Print button");
 assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
+assert.match(partsChecklistHtml, /\/data\/build-items\.json/, "Track My Build should load its prices from the centralized build catalog");
+const nutrientCalculatorHtml = fs.readFileSync(new URL("../nutrient-calculator.html", import.meta.url), "utf8");
+assert.match(nutrientCalculatorHtml, /\/data\/hydropip-system\.json/, "The nutrient calculator should load the centralized HydroPip nutrient method");
+assert.match(nutrientCalculatorHtml, /starting a new batch with fresh water/i, "The nutrient calculator must ask whether this is a fresh batch");
+assert.match(nutrientCalculatorHtml, /Do not add a complete recipe to a partially depleted tank/, "The nutrient calculator must block full dosing into a partial batch");
+const systemConfig = JSON.parse(fs.readFileSync(new URL("../data/hydropip-system.json", import.meta.url), "utf8"));
+assert.deepEqual([systemConfig.stages.seeds.masterblendGrams, systemConfig.stages.seeds.calciumNitrateGrams, systemConfig.stages.seeds.magnesiumSulfateGrams], [300, 300, 150], "The seed recipe should remain 300 / 300 / 150");
+assert.deepEqual([systemConfig.stages.growing.masterblendGrams, systemConfig.stages.growing.calciumNitrateGrams, systemConfig.stages.growing.magnesiumSulfateGrams], [400, 400, 200], "The growing recipe should remain 400 / 400 / 200");
+assert.deepEqual([systemConfig.stages.fruiting.masterblendGrams, systemConfig.stages.fruiting.calciumNitrateGrams, systemConfig.stages.fruiting.magnesiumSulfateGrams], [600, 600, 300], "The production recipe should remain 600 / 600 / 300");
+const buildConfig = JSON.parse(fs.readFileSync(new URL("../data/build-items.json", import.meta.url), "utf8"));
+for (const requiredId of ["mixing-pump", "mix-return-hose", "mix-hose-adapter", "mix-hose-strap", "main-feed-hose"]) {
+  assert.equal(buildConfig.items.some((item) => item.id === requiredId && item.active), true, `Build catalog is missing ${requiredId}`);
+}
+assert.notEqual(buildConfig.items.find((item) => item.id === "mix-return-hose").id, buildConfig.items.find((item) => item.id === "main-feed-hose").id, "Mixing circulation and tower feed hoses must remain distinct");
 const notebookVisualGuideCount = (pipHtml.match(/class=["'][^"']*notebook-guide[^"']*["']/g) || []).length
   + (pipHtml.match(/class=["'][^"']*account-brand-panel[^"']*["']/g) || []).length;
 assert.equal(notebookVisualGuideCount, 8, "Every main Pip Pro notebook section should have a visual guide");
@@ -203,7 +217,7 @@ for (const section of ["system-map", "quick-start", "care", "red-flags", "turnov
   assert.match(fieldGuideHtml, new RegExp(`id=["']${section}["']`), `Field Guide is missing its ${section} section`);
 }
 assert.match(fieldGuideHtml, /call 811/i, "Field Guide should put utility safety before support installation");
-assert.match(fieldGuideHtml, /does not route tower runoff back into the IBC/i, "Field Guide should explain the timed-feed runoff model");
+assert.match(fieldGuideHtml, /tower runoff does not return to the IBC/i, "Field Guide should explain the timed-feed runoff model");
 assert.match(fieldGuideHtml, /\/print-build-guide\.html/, "Field Guide should open the dedicated printable build guide");
 assert.match(fieldGuideHtml, /hydropip-system-map-v2\.png/, "Field Guide should use the accurate Pip-style system map");
 assert.doesNotMatch(fieldGuideHtml, /class=["']systemStage["']/, "Field Guide should not render the old CSS tower diagram");
@@ -222,7 +236,7 @@ const printBuildHtml = fs.readFileSync(new URL("../print-build-guide.html", impo
 const printPartsHtml = fs.readFileSync(new URL("../print-parts-guide.html", import.meta.url), "utf8");
 assert.match(printBuildHtml, /Page 4 of 4/, "The print build guide should contain four designed pages");
 assert.match(printBuildHtml, /window\.print/, "The print build guide needs a print control");
-assert.equal((printPartsHtml.match(/data-part=/g) || []).length, 25, "The printable parts guide should cover all 25 initial build items");
+assert.equal((printPartsHtml.match(/data-part=/g) || []).length, 28, "The printable parts guide should cover all 28 initial build items");
 assert.match(printPartsHtml, /hydropipMemberPartsChecklist/, "The printable parts guide should carry over saved checklist progress");
 assert.equal(fs.existsSync(new URL("../assets/website/field-guide/hydropip-system-map-v2.png", import.meta.url)), true, "The illustrated HydroPip system map is missing");
 for (const linkedFile of ["home.html", "pip.html", "track-start.html", "parts-checklist.html"]) {
@@ -230,7 +244,7 @@ for (const linkedFile of ["home.html", "pip.html", "track-start.html", "parts-ch
   assert.match(linkedHtml, /field-guide/, `${linkedFile} should make the Field Guide available`);
 }
 
-for (const productFile of ["home.html", "pip.html", "parts-checklist.html", "server/pipAgent.js", "server/pipData.js", "server/pipTools.js"]) {
+for (const productFile of ["home.html", "pip.html", "server/pipAgent.js", "server/pipTools.js", "data/build-items.json"]) {
   const productSource = fs.readFileSync(new URL(`../${productFile}`, import.meta.url), "utf8");
   assert.doesNotMatch(productSource, /B007TFTW3U/, `${productFile} still references the unavailable planter ASIN`);
   assert.match(productSource, /B007TFTXAC/, `${productFile} is missing the approved 1\/2-inch-center planter ASIN`);

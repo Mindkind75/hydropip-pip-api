@@ -11,9 +11,9 @@
       "hot": 5
     },
     "ibcCirculation": {
-      "normal": "15 minutes every 3 hours during daytime plus one overnight mix",
-      "afterNutrients": "45-60 minutes continuously after adding nutrients",
-      "hotWeather": "15 minutes every 1-2 daylight hours if readings or odor suggest stratification"
+      "normal": "Run before or around feed cycles so the secured top-discharge hose keeps the batch distributed",
+      "afterNutrients": "Run continuously until the fresh batch is evenly blended",
+      "hotWeather": "Increase observation and mixing frequency if plant response, odor, or visible circulation indicates a need"
     }
   },
   "baseTasks": [
@@ -31,15 +31,15 @@
     },
     {
       "repeatEveryDays": 2,
-      "title": "pH check",
+      "title": "Tank, mixing circulation, and pH check",
       "category": "testing",
-      "note": "Circulate the IBC first, then test pH and adjust slowly only if needed."
+      "note": "Check tank level, pump intake, and the secured mixing-pump top discharge. Record pH if measured; do not routinely top off or re-dose the batch."
     },
     {
       "repeatEveryDays": 7,
-      "title": "EC/TDS and tank-level check",
+      "title": "Plant development and refill-window check",
       "category": "testing",
-      "note": "Record nutrient strength, water level, plant condition, and refill needs."
+      "note": "Review water level and plant development. EC/TDS is optional. Prepare the next strength only when the tank is nearly empty and a fresh batch will be mixed."
     },
     {
       "repeatEveryDays": 14,
@@ -66,7 +66,7 @@
       { "offsetDays": 30, "title": "Runner trim", "note": "Remove runners if fruit production is the priority." }
     ],
     "tomato": [
-      { "offsetDays": 12, "title": "Nutrient strength check", "note": "Tomatoes often need stronger feed after growth accelerates." },
+      { "offsetDays": 12, "title": "Review tomato development", "note": "At the next fresh refill, choose the growing or fruiting recipe from actual flowering and production." },
       { "offsetDays": 21, "title": "Prune lower growth", "note": "Remove weak lower leaves and add support." }
     ],
     "peppers": [
