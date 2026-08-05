@@ -5,21 +5,74 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pip Training Dashboard</title>
   <style>
-    :root{--ink:#13211d;--muted:#5d6c66;--leaf:#1f7a4f;--deep:#0f4f37;--mint:#dff1e5;--paper:#f7f5ef;--line:rgba(19,33,29,.14);--gold:#b97a18;--bad:#9d3027;--panel:#fff}
-    *{box-sizing:border-box}body{margin:0;background:#eef7f0;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    .shell{min-height:100vh;display:grid;grid-template-columns:300px minmax(0,1fr)}
-    aside{padding:24px 18px;background:var(--deep);color:#fff}aside h1{margin:0 0 8px;font-size:2.15rem;line-height:.96}aside p{margin:0 0 18px;color:#d7e9de;line-height:1.45}.controls{display:grid;gap:12px}.field{display:grid;gap:6px;font-size:.82rem;font-weight:900}.field span{color:#d7e9de}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit}input,select{min-height:42px;padding:8px 10px}textarea{min-height:86px;padding:10px;resize:vertical}button{min-height:42px;padding:9px 13px;border:0;border-radius:7px;background:var(--leaf);color:#fff;font-weight:950;cursor:pointer}button.secondary{background:#24483b}button.light{background:#fff;color:var(--deep)}button.warn{background:var(--gold)}button:disabled{background:#718179;cursor:default}
-    main{min-width:0;padding:22px}.top{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:14px}.top h2{margin:0;font-size:clamp(1.8rem,4vw,3rem);line-height:1}.status{min-height:22px;color:var(--deep);font-weight:850}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.stat{padding:13px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.stat strong{display:block;font-size:1.45rem}.stat small{color:var(--muted);font-weight:850}
-    .grid{display:grid;grid-template-columns:minmax(280px,420px) minmax(0,1fr);gap:14px;align-items:start}.queue,.workbench{min-height:calc(100vh - 156px);border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.92);box-shadow:0 18px 44px rgba(19,33,29,.1);overflow:hidden}.queue-head,.work-head{padding:14px;border-bottom:1px solid var(--line);background:#fff}.queue-list{display:grid;gap:8px;padding:12px;max-height:calc(100vh - 220px);overflow:auto}.queue-item{display:grid;gap:6px;width:100%;padding:11px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);text-align:left}.queue-item.active{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(31,122,79,.14)}.queue-item strong{line-height:1.25}.queue-item small{color:var(--muted);font-weight:800}.badges{display:flex;gap:5px;flex-wrap:wrap}.badge{display:inline-flex;align-items:center;min-height:24px;padding:3px 7px;border-radius:999px;background:var(--mint);color:var(--deep);font-size:.72rem;font-weight:950;text-transform:capitalize}.badge.high{background:#fff2cf;color:var(--gold)}.badge.urgent{background:#ffe1dc;color:var(--bad)}
-    .workbench{display:grid;grid-template-rows:auto minmax(0,1fr)}.work-body{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;padding:14px;overflow:auto}.card{border:1px solid var(--line);border-radius:8px;background:#fff;padding:14px}.card h3{margin:0 0 10px}.question{margin:0 0 10px;font-size:1.1rem;font-weight:950;line-height:1.35}.answer,.meta{white-space:pre-wrap;color:var(--muted);line-height:1.45}.meta{max-height:230px;overflow:auto;padding:10px;border:1px solid var(--line);border-radius:7px;background:#f9fbf9;font-size:.82rem}.training{display:grid;gap:10px}.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.empty{padding:28px;text-align:center;color:var(--muted)}
-    @media(max-width:980px){.shell{grid-template-columns:1fr}aside{position:static}.grid,.work-body,.stats{grid-template-columns:1fr}.queue,.workbench{min-height:auto}.queue-list{max-height:360px}}
+    :root {
+      --ink:#13211d; --muted:#5d6c66; --leaf:#1f7a4f; --deep:#0f4f37;
+      --mint:#dff1e5; --paper:#f7f5ef; --line:rgba(19,33,29,.14);
+      --gold:#b97a18; --bad:#9d3027; --panel:#fff;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#eef7f0; color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .shell { min-height:100vh; display:grid; grid-template-columns:300px minmax(0,1fr); }
+    aside { padding:24px 18px; background:var(--deep); color:#fff; }
+    aside h1 { margin:0 0 8px; font-size:2.15rem; line-height:.96; }
+    aside p { margin:0 0 18px; color:#d7e9de; line-height:1.45; }
+    .controls,.training,.main-col,.recommendations { display:grid; gap:12px; }
+    .field { display:grid; gap:6px; font-size:.82rem; font-weight:900; }
+    .field span { color:#d7e9de; }
+    .training .field span { color:var(--deep); }
+    input,select,textarea { width:100%; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); font:inherit; }
+    input,select { min-height:42px; padding:8px 10px; }
+    textarea { min-height:86px; padding:10px; resize:vertical; }
+    button { min-height:42px; padding:9px 13px; border:0; border-radius:7px; background:var(--leaf); color:#fff; font-weight:950; cursor:pointer; }
+    button.secondary { background:#24483b; }
+    button.light { background:#fff; color:var(--deep); }
+    button.option { display:grid; gap:5px; width:100%; padding:10px; border:1px solid var(--line); background:#fff; color:var(--ink); text-align:left; }
+    button.option strong { color:var(--deep); }
+    button.option small { color:var(--muted); font-weight:800; line-height:1.35; }
+    button:disabled { background:#718179; cursor:default; }
+    main { min-width:0; padding:22px; }
+    .top { display:flex; align-items:end; justify-content:space-between; gap:14px; margin-bottom:14px; }
+    .top h2 { margin:0; font-size:clamp(1.8rem,4vw,3rem); line-height:1; }
+    .status { min-height:22px; color:var(--deep); font-weight:850; }
+    .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:14px; }
+    .stat,.card,.queue,.workbench { border:1px solid var(--line); border-radius:8px; background:var(--panel); }
+    .stat { padding:13px; }
+    .stat strong { display:block; font-size:1.45rem; }
+    .stat small { color:var(--muted); font-weight:850; }
+    .grid { display:grid; grid-template-columns:minmax(280px,420px) minmax(0,1fr); gap:14px; align-items:start; }
+    .queue,.workbench { min-height:calc(100vh - 156px); box-shadow:0 18px 44px rgba(19,33,29,.1); overflow:hidden; }
+    .queue-head,.work-head { padding:14px; border-bottom:1px solid var(--line); background:#fff; }
+    .queue-list { display:grid; gap:8px; padding:12px; max-height:calc(100vh - 220px); overflow:auto; }
+    .queue-item { display:grid; gap:6px; width:100%; padding:11px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); text-align:left; }
+    .queue-item.active { border-color:var(--leaf); box-shadow:0 0 0 3px rgba(31,122,79,.14); }
+    .queue-item strong { line-height:1.25; }
+    .queue-item small { color:var(--muted); font-weight:800; }
+    .badges { display:flex; gap:5px; flex-wrap:wrap; }
+    .badge { display:inline-flex; align-items:center; min-height:24px; padding:3px 7px; border-radius:999px; background:var(--mint); color:var(--deep); font-size:.72rem; font-weight:950; text-transform:capitalize; }
+    .badge.high { background:#fff2cf; color:var(--gold); }
+    .badge.urgent { background:#ffe1dc; color:var(--bad); }
+    .workbench { display:grid; grid-template-rows:auto minmax(0,1fr); }
+    .work-body { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:14px; padding:14px; overflow:auto; }
+    .card { padding:14px; }
+    .card h3 { margin:0 0 10px; }
+    .question { margin:0 0 10px; font-size:1.1rem; font-weight:950; line-height:1.35; }
+    .answer,.meta { white-space:pre-wrap; color:var(--muted); line-height:1.45; }
+    .meta { max-height:230px; overflow:auto; padding:10px; border:1px solid var(--line); border-radius:7px; background:#f9fbf9; font-size:.82rem; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .empty { padding:28px; text-align:center; color:var(--muted); }
+    @media(max-width:980px) {
+      .shell,.grid,.work-body,.stats { grid-template-columns:1fr; }
+      .queue,.workbench { min-height:auto; }
+      .queue-list { max-height:360px; }
+    }
   </style>
 </head>
 <body>
   <div class="shell">
     <aside>
       <h1>Pip Training</h1>
-      <p>Review stuck answers, approve the better response, and decide what should change.</p>
+      <p>Pick a suggested fix, approve the training note, and let safe updates apply themselves.</p>
       <div class="controls">
         <label class="field"><span>Admin key</span><input id="adminKey" type="password" autocomplete="off" placeholder="PIP_ADMIN_KEY"></label>
         <label class="field"><span>Status</span><select id="statusFilter"><option value="new">New</option><option value="reviewing">Reviewing</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="">All</option></select></label>
@@ -28,9 +81,7 @@
       </div>
     </aside>
     <main>
-      <div class="top">
-        <div><h2>Review Queue</h2><p class="status" id="statusText"></p></div>
-      </div>
+      <div class="top"><div><h2>Review Queue</h2><p class="status" id="statusText"></p></div></div>
       <section class="stats" id="stats"></section>
       <section class="grid">
         <div class="queue">
@@ -44,20 +95,299 @@
       </section>
     </main>
   </div>
+
   <script>
-    const keyInput=document.getElementById("adminKey"),statusFilter=document.getElementById("statusFilter"),limitFilter=document.getElementById("limitFilter"),loadButton=document.getElementById("loadButton"),statusText=document.getElementById("statusText"),stats=document.getElementById("stats"),queueList=document.getElementById("queueList"),workBody=document.getElementById("workBody"),workTitle=document.getElementById("workTitle");
-    let items=[],selectedId=null;const savedKey=localStorage.getItem("pipReviewAdminKey");if(savedKey)keyInput.value=savedKey;loadButton.addEventListener("click",loadDashboard);
-    async function loadDashboard(){const key=keyInput.value.trim();if(!key){statusText.textContent="Enter the admin key first.";return}localStorage.setItem("pipReviewAdminKey",key);statusText.textContent="Loading...";try{const params=new URLSearchParams();if(statusFilter.value)params.set("status",statusFilter.value);params.set("limit",limitFilter.value);const response=await fetch("/api/pip/admin/review-items?"+params.toString(),{headers:{"X-Pip-Admin-Key":key}});if(!response.ok)throw new Error("Review API returned "+response.status);const data=await response.json();items=data.reviewItems||[];selectedId=items[0]?.id||null;render()}catch(error){statusText.textContent=error.message}}
-    function render(){statusText.textContent=items.length?items.length+" item"+(items.length===1?"":"s")+" loaded.":"No items in this view.";renderStats();renderQueue();renderWorkbench(items.find((item)=>item.id===selectedId))}
-    function renderStats(){const groups={new:0,reviewing:0,reviewed:0,resolved:0};items.forEach((item)=>{groups[item.status]=Number(groups[item.status]||0)+1});stats.innerHTML=["new","reviewing","reviewed","resolved"].map((key)=>`<div class="stat"><strong>${groups[key]||0}</strong><small>${key}</small></div>`).join("")}
-    function renderQueue(){queueList.innerHTML=items.length?"":'<div class="empty">Nothing waiting here.</div>';items.forEach((item)=>{const button=document.createElement("button");button.className="queue-item"+(item.id===selectedId?" active":"");button.type="button";button.innerHTML=`<div class="badges"><span class="badge">${escapeHtml(item.status||"new")}</span><span class="badge ${escapeHtml(item.priority||"normal")}">${escapeHtml(item.priority||"normal")}</span></div><strong></strong><small>${escapeHtml(item.reason||"needs_review")} | ${item.createdAt?new Date(item.createdAt).toLocaleString():""}</small>`;button.querySelector("strong").textContent=item.question||"(No question saved)";button.addEventListener("click",()=>{selectedId=item.id;render()});queueList.appendChild(button)})}
-    function renderWorkbench(item){if(!item){workTitle.textContent="Training workbench";workBody.innerHTML='<div class="empty">Select a question to review.</div>';return}workTitle.textContent="Review "+item.id;workBody.innerHTML=`<section class="card"><h3>User Question</h3><p class="question"></p><h3>Pip Attempt</h3><p class="answer"></p><h3>Context</h3><pre class="meta"></pre></section><aside class="card training"><h3>Training Helper</h3><p>Knowledge-base and product-link approvals apply automatically. Tool, prompt, and calendar fixes become implementation tasks.</p><label class="field"><span>Issue type</span><select id="issueType"><option value="knowledge_gap">Knowledge gap</option><option value="bad_intent">Misunderstood intent</option><option value="missing_context">Needed follow-up question</option><option value="tool_gap">Tool/action gap</option><option value="bad_affiliate">Wrong product/link</option><option value="calendar_error">Calendar/reminder error</option><option value="no_change">No change needed</option></select></label><label class="field"><span>Approved ideal answer</span><textarea id="idealAnswer" placeholder="Write the answer Pip should give next time."></textarea></label><label class="field"><span>Training update</span><select id="trainingUpdate"><option value="knowledge_base">Auto-apply: knowledge base</option><option value="affiliate_fix">Auto-apply: product/link rule</option><option value="prompt_rule">Manual: prompt/routing rule</option><option value="tool_fix">Manual: create or fix a tool</option><option value="calendar_fix">Manual: calendar workflow</option><option value="no_change">No change</option></select></label><div class="two"><label class="field"><span>Status</span><select id="nextStatus"><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="reviewing">Reviewing</option><option value="new">New</option></select></label><label class="field"><span>Priority</span><select id="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></label></div><label class="field"><span>Internal note</span><textarea id="internalNote" placeholder="Why this matters, edge cases, or where to update Pip."></textarea></label><div class="actions"><button id="saveReview" type="button">Approve Training Note</button><button id="markReviewing" type="button" class="secondary">Mark Reviewing</button></div></aside>`;workBody.querySelector(".question").textContent=item.question||"(No question saved)";workBody.querySelector(".answer").textContent=item.answer||"No answer was saved.";workBody.querySelector(".meta").textContent=JSON.stringify(item.context||{},null,2);const existing=parseResolution(item.resolution);document.getElementById("issueType").value=existing.issueType||"knowledge_gap";document.getElementById("idealAnswer").value=existing.idealAnswer||"";document.getElementById("trainingUpdate").value=existing.trainingUpdate||"knowledge_base";document.getElementById("nextStatus").value=item.status==="new"?"reviewed":item.status||"reviewed";document.getElementById("priority").value=item.priority||"normal";document.getElementById("internalNote").value=existing.internalNote||"";document.getElementById("saveReview").addEventListener("click",()=>saveItem(item.id));document.getElementById("markReviewing").addEventListener("click",()=>quickStatus(item.id,"reviewing"))}
-    async function saveItem(id){const payload={issueType:value("issueType"),idealAnswer:value("idealAnswer"),trainingUpdate:value("trainingUpdate"),internalNote:value("internalNote"),approvedAt:new Date().toISOString()};await patchItem(id,{status:value("nextStatus"),priority:value("priority"),resolution:JSON.stringify(payload,null,2)})}
-    async function quickStatus(id,status){await patchItem(id,{status})}
-    async function patchItem(id,patch){const button=document.activeElement;if(button)button.disabled=true;try{const response=await fetch("/api/pip/admin/review-items/"+encodeURIComponent(id),{method:"PATCH",headers:{"Content-Type":"application/json","X-Pip-Admin-Key":keyInput.value.trim()},body:JSON.stringify({patch})});if(!response.ok)throw new Error("Save returned "+response.status);const data=await response.json();statusText.textContent=data.appliedTraining&&data.appliedTraining.status==="applied"?"Saved and applied to Pip knowledge.":data.appliedTraining&&data.appliedTraining.status==="manual_required"?"Saved. Manual implementation required.":"Saved.";await loadDashboard()}catch(error){statusText.textContent=error.message}finally{if(button)button.disabled=false}}
-    function value(id){return document.getElementById(id).value.trim()}
-    function parseResolution(text){try{return JSON.parse(text||"{}")}catch(_error){return{internalNote:text||""}}}
-    function escapeHtml(value){return String(value||"").replace(/[&<>"']/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]))}
+    const keyInput = document.getElementById("adminKey");
+    const statusFilter = document.getElementById("statusFilter");
+    const limitFilter = document.getElementById("limitFilter");
+    const loadButton = document.getElementById("loadButton");
+    const statusText = document.getElementById("statusText");
+    const stats = document.getElementById("stats");
+    const queueList = document.getElementById("queueList");
+    const workBody = document.getElementById("workBody");
+    const workTitle = document.getElementById("workTitle");
+    let items = [];
+    let selectedId = null;
+
+    const savedKey = localStorage.getItem("pipReviewAdminKey");
+    if (savedKey) keyInput.value = savedKey;
+    loadButton.addEventListener("click", loadDashboard);
+
+    async function loadDashboard() {
+      const key = keyInput.value.trim();
+      if (!key) { statusText.textContent = "Enter the admin key first."; return; }
+      localStorage.setItem("pipReviewAdminKey", key);
+      statusText.textContent = "Loading...";
+      try {
+        const params = new URLSearchParams();
+        if (statusFilter.value) params.set("status", statusFilter.value);
+        params.set("limit", limitFilter.value);
+        const response = await fetch("/api/pip/admin/review-items?" + params.toString(), { headers: { "X-Pip-Admin-Key": key } });
+        if (!response.ok) throw new Error("Review API returned " + response.status);
+        const data = await response.json();
+        items = data.reviewItems || [];
+        selectedId = items.some((item) => item.id === selectedId) ? selectedId : items[0]?.id || null;
+        render();
+      } catch (error) {
+        statusText.textContent = error.message;
+      }
+    }
+
+    function render() {
+      statusText.textContent = items.length ? items.length + " item" + (items.length === 1 ? "" : "s") + " loaded." : "No items in this view.";
+      renderStats();
+      renderQueue();
+      renderWorkbench(items.find((item) => item.id === selectedId));
+    }
+
+    function renderStats() {
+      const groups = { new:0, reviewing:0, reviewed:0, resolved:0 };
+      items.forEach((item) => { groups[item.status] = Number(groups[item.status] || 0) + 1; });
+      stats.innerHTML = ["new","reviewing","reviewed","resolved"].map((key) => `<div class="stat"><strong>${groups[key] || 0}</strong><small>${key}</small></div>`).join("");
+    }
+
+    function renderQueue() {
+      queueList.innerHTML = items.length ? "" : '<div class="empty">Nothing waiting here.</div>';
+      items.forEach((item) => {
+        const button = document.createElement("button");
+        button.className = "queue-item" + (item.id === selectedId ? " active" : "");
+        button.type = "button";
+        button.innerHTML = `<div class="badges"><span class="badge">${escapeHtml(item.status || "new")}</span><span class="badge ${escapeHtml(item.priority || "normal")}">${escapeHtml(item.priority || "normal")}</span></div><strong></strong><small>${escapeHtml(item.reason || "needs_review")} | ${item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}</small>`;
+        button.querySelector("strong").textContent = item.question || "(No question saved)";
+        button.addEventListener("click", () => { selectedId = item.id; render(); });
+        queueList.appendChild(button);
+      });
+    }
+
+    function renderWorkbench(item) {
+      if (!item) {
+        workTitle.textContent = "Training workbench";
+        workBody.innerHTML = '<div class="empty">Select a question to review.</div>';
+        return;
+      }
+      workTitle.textContent = "Review " + item.id;
+      workBody.innerHTML = `
+        <div class="main-col">
+          <section class="card">
+            <h3>User Question</h3><p class="question"></p>
+            <h3>Pip Attempt</h3><p class="answer"></p>
+            <h3>Context</h3><pre class="meta"></pre>
+          </section>
+          <section class="card recommendations">
+            <h3>Recommended Fixes</h3>
+            <div id="recommendations"></div>
+          </section>
+        </div>
+        <aside class="card training">
+          <h3>Training Helper</h3>
+          <p>Pick a recommendation, edit if needed, then approve. Knowledge-base and product-link approvals auto-apply.</p>
+          <label class="field"><span>Issue type</span><select id="issueType"><option value="knowledge_gap">Knowledge gap</option><option value="bad_intent">Misunderstood intent</option><option value="missing_context">Needed follow-up question</option><option value="tool_gap">Tool/action gap</option><option value="bad_affiliate">Wrong product/link</option><option value="calendar_error">Calendar/reminder error</option><option value="no_change">No change needed</option></select></label>
+          <label class="field"><span>Approved ideal answer</span><textarea id="idealAnswer" placeholder="Write the answer Pip should give next time."></textarea></label>
+          <label class="field"><span>Training update</span><select id="trainingUpdate"><option value="knowledge_base">Auto-apply: knowledge base</option><option value="affiliate_fix">Auto-apply: product/link rule</option><option value="prompt_rule">Manual: prompt/routing rule</option><option value="tool_fix">Manual: create or fix a tool</option><option value="calendar_fix">Manual: calendar workflow</option><option value="no_change">No change</option></select></label>
+          <div class="two"><label class="field"><span>Status</span><select id="nextStatus"><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="reviewing">Reviewing</option><option value="new">New</option></select></label><label class="field"><span>Priority</span><select id="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></label></div>
+          <label class="field"><span>Internal note</span><textarea id="internalNote" placeholder="Why this matters, edge cases, or where to update Pip."></textarea></label>
+          <div class="actions"><button id="saveReview" type="button">Approve Training Note</button><button id="markReviewing" type="button" class="secondary">Mark Reviewing</button></div>
+        </aside>`;
+
+      workBody.querySelector(".question").textContent = item.question || "(No question saved)";
+      workBody.querySelector(".answer").textContent = item.answer || "No answer was saved.";
+      workBody.querySelector(".meta").textContent = JSON.stringify(item.context || {}, null, 2);
+
+      const existing = parseResolution(item.resolution);
+      setForm(existing.issueType || inferIssueType(item), existing.idealAnswer || "", existing.trainingUpdate || inferTrainingUpdate(item), item.status === "new" ? "reviewed" : item.status || "reviewed", item.priority || "normal", existing.internalNote || "");
+      renderRecommendations(item);
+      document.getElementById("saveReview").addEventListener("click", () => saveItem(item.id));
+      document.getElementById("markReviewing").addEventListener("click", () => quickStatus(item.id, "reviewing"));
+    }
+
+    function renderRecommendations(item) {
+      const host = document.getElementById("recommendations");
+      host.innerHTML = "";
+      recommendationsFor(item).forEach((option) => {
+        const button = document.createElement("button");
+        button.className = "option";
+        button.type = "button";
+        button.innerHTML = `<strong>${escapeHtml(option.title)}</strong><small>${escapeHtml(option.summary)}</small>`;
+        button.addEventListener("click", () => setForm(option.issueType, option.idealAnswer, option.trainingUpdate, option.status, option.priority, option.internalNote));
+        host.appendChild(button);
+      });
+    }
+
+    function recommendationsFor(item) {
+      const q = String(item.question || "").toLowerCase();
+      if (/calendar|reminder|clear|delete|remove|tuesday|schedule/.test(q)) {
+        return [
+          {
+            title: "Confirm cleanup with keep/remove list",
+            summary: "Best for risky calendar edits with exceptions.",
+            issueType: "calendar_error",
+            trainingUpdate: "calendar_fix",
+            status: "reviewing",
+            priority: "high",
+            idealAnswer: "Yes. I can keep the Tuesday checks and remove the other HydroPip calendar reminders.\n\nReview this cleanup before I change the calendar:\n- Keep: Tuesday HydroPip Quick Check\n- Remove: all other HydroPip maintenance, pruning, refill, and check-in reminders\n\nAfter you confirm, I will update the Pip Calendar.",
+            internalNote: "Calendar cleanup requests with exceptions need a safe confirmation step. Pip should identify what will be kept and what will be removed before deleting anything. If the tool cannot support exclude rules, this needs implementation."
+          },
+          genericClarify(item),
+          genericManual(item)
+        ];
+      }
+      if (/lettuce|edge burn|heat|burn|leaf tips|ec|ph|runoff/.test(q)) {
+        return [
+          {
+            title: "Ask for readings, then triage",
+            summary: "Best for plant-health questions missing critical measurements.",
+            issueType: "missing_context",
+            trainingUpdate: "knowledge_base",
+            status: "resolved",
+            priority: "normal",
+            idealAnswer: "Edge burn after a heat wave is usually heat/transpiration stress, high EC, inconsistent moisture, or pH/EC drift, but I need a few readings before I blame one cause.\n\nPlease send:\n- pH\n- EC/TDS\n- feed duration and how often the pump runs\n- whether you are getting light runoff\n- whether the IBC water got hot\n\nIf you do not have readings yet, add afternoon shade, confirm every tower is dripping, top off with clean water if the reservoir is low, and check for light runoff at one tower before increasing nutrients.",
+            internalNote: "For plant-health questions with missing measurements, Pip should ask for critical readings first. If the user cannot provide them after 2-3 follow-ups, give a best-effort triage answer framed as likely causes, not a certain diagnosis."
+          },
+          {
+            title: "Best-effort safe answer now",
+            summary: "Use when the user cannot provide readings.",
+            issueType: "missing_context",
+            trainingUpdate: "knowledge_base",
+            status: "resolved",
+            priority: "normal",
+            idealAnswer: "Based only on edge burn after a heat wave, treat it as likely heat and water-delivery stress until readings prove otherwise.\n\n- Add afternoon shade and keep the IBC shaded/cool.\n- Confirm each tower drips evenly and the media is not drying out between feeds.\n- Top off low reservoir water with clean water before adding nutrients.\n- Check pH and EC/TDS as soon as possible; high EC can make heat burn worse.",
+            internalNote: "When no readings are available after follow-up, give safe triage steps and avoid nutrient changes unless pH/EC confirms them."
+          },
+          genericClarify(item)
+        ];
+      }
+      if (/gasket|washer|hose|adapter|connector|part|amazon|link/.test(q)) {
+        return [
+          {
+            title: "Approve product/link answer",
+            summary: "Best for simple parts questions with a known approved link.",
+            issueType: "bad_affiliate",
+            trainingUpdate: "affiliate_fix",
+            status: "resolved",
+            priority: "normal",
+            idealAnswer: "That is a standard garden hose washer/gasket. For the HydroPip hose-end shutoff/flush valve or regular garden-hose fittings, use standard 3/4-inch garden hose washers.\n\n- Replacement gasket: https://www.amazon.com/dp/B0F1TRNY2K?tag=hydrpip2002-20\n- Put one washer inside the female hose fitting, hand-tighten, then check for leaks.\n- If it still leaks, inspect the threads or replace the whole shutoff/flush valve.\n\nAs an Amazon Associate I earn from qualifying purchases.",
+            internalNote: "Teach Pip that hose-end gasket questions usually mean standard 3/4-inch garden hose washers/gaskets. Use the approved Amazon link with HydroPip affiliate tag."
+          },
+          genericClarify(item),
+          genericManual(item)
+        ];
+      }
+      return [genericClarify(item), genericKnowledge(item), genericManual(item)];
+    }
+
+    function genericClarify(item) {
+      return {
+        title: "Ask one focused follow-up",
+        summary: "Use when Pip needs a missing fact before answering.",
+        issueType: "missing_context",
+        trainingUpdate: "knowledge_base",
+        status: "reviewed",
+        priority: item.priority || "normal",
+        idealAnswer: "I need one more detail before I can answer confidently: what exact part, reading, crop, or symptom are you seeing? Send the most specific detail you have and I will narrow it down.",
+        internalNote: "Pip should ask one focused follow-up when the current request is answerable but missing a key fact."
+      };
+    }
+
+    function genericKnowledge(item) {
+      return {
+        title: "Add ideal answer to knowledge",
+        summary: "Use when this is a reusable HydroPip answer.",
+        issueType: "knowledge_gap",
+        trainingUpdate: "knowledge_base",
+        status: "resolved",
+        priority: item.priority || "normal",
+        idealAnswer: "",
+        internalNote: "Approved answer should be reusable, concise, and framed with any safety limits or missing assumptions."
+      };
+    }
+
+    function genericManual(item) {
+      return {
+        title: "Create implementation task",
+        summary: "Use when this needs code, tool, calendar, or prompt changes.",
+        issueType: "tool_gap",
+        trainingUpdate: "tool_fix",
+        status: "reviewing",
+        priority: "high",
+        idealAnswer: "I need HydroPip team review before changing this workflow. I have saved the request for implementation.",
+        internalNote: "Manual implementation required. Define expected behavior, edge cases, and the exact tool or workflow that needs to change."
+      };
+    }
+
+    function setForm(issueType, idealAnswer, trainingUpdate, status, priority, internalNote) {
+      document.getElementById("issueType").value = issueType || "knowledge_gap";
+      document.getElementById("idealAnswer").value = idealAnswer || "";
+      document.getElementById("trainingUpdate").value = trainingUpdate || "knowledge_base";
+      document.getElementById("nextStatus").value = status || "reviewed";
+      document.getElementById("priority").value = priority || "normal";
+      document.getElementById("internalNote").value = internalNote || "";
+    }
+
+    function inferIssueType(item) {
+      const text = `${item.question || ""} ${item.reason || ""}`.toLowerCase();
+      if (/calendar|reminder|schedule/.test(text)) return "calendar_error";
+      if (/context|reading|ph|ec|runoff/.test(text)) return "missing_context";
+      if (/link|product|affiliate|gasket|washer/.test(text)) return "bad_affiliate";
+      if (/tool/.test(text)) return "tool_gap";
+      return "knowledge_gap";
+    }
+
+    function inferTrainingUpdate(item) {
+      const issue = inferIssueType(item);
+      if (issue === "calendar_error") return "calendar_fix";
+      if (issue === "tool_gap") return "tool_fix";
+      if (issue === "bad_affiliate") return "affiliate_fix";
+      return "knowledge_base";
+    }
+
+    async function saveItem(id) {
+      const payload = {
+        issueType: value("issueType"),
+        idealAnswer: value("idealAnswer"),
+        trainingUpdate: value("trainingUpdate"),
+        internalNote: value("internalNote"),
+        approvedAt: new Date().toISOString()
+      };
+      await patchItem(id, { status:value("nextStatus"), priority:value("priority"), resolution:JSON.stringify(payload, null, 2) });
+    }
+
+    async function quickStatus(id, status) {
+      await patchItem(id, { status });
+    }
+
+    async function patchItem(id, patch) {
+      const button = document.activeElement;
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch("/api/pip/admin/review-items/" + encodeURIComponent(id), {
+          method:"PATCH",
+          headers:{ "Content-Type":"application/json", "X-Pip-Admin-Key":keyInput.value.trim() },
+          body:JSON.stringify({ patch })
+        });
+        if (!response.ok) throw new Error("Save returned " + response.status);
+        const data = await response.json();
+        statusText.textContent = data.appliedTraining && data.appliedTraining.status === "applied"
+          ? "Saved and applied to Pip knowledge."
+          : data.appliedTraining && data.appliedTraining.status === "manual_required"
+          ? "Saved. Manual implementation required."
+          : "Saved.";
+        await loadDashboard();
+      } catch (error) {
+        statusText.textContent = error.message;
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    function value(id) {
+      return document.getElementById(id).value.trim();
+    }
+    function parseResolution(text) {
+      try { return JSON.parse(text || "{}"); } catch (_error) { return { internalNote:text || "" }; }
+    }
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
+    }
   </script>
 </body>
 </html>
