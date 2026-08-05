@@ -8,7 +8,22 @@
 <meta name="robots" content="noindex,nofollow">
 <link rel="canonical" href="https://www.hydropip.com/">
 <script>
-(function(){var s=window.screen||{};document.documentElement.classList.toggle("deviceMobile",location.search.indexOf("forceMobile=1")!==-1||Math.min(s.width||innerWidth,s.height||innerHeight)<=760||/Mobi|Android|iPhone|iPod/i.test(navigator.userAgent))})();
+(function(){
+  var root=document.documentElement;
+  var forceMobile=location.search.indexOf("forceMobile=1")!==-1;
+  var forceLandscape=location.search.indexOf("forceLandscape=1")!==-1;
+  var handheld=forceLandscape||/Mobi|Android|iPhone|iPod/i.test(navigator.userAgent)||Math.min((window.screen&&screen.width)||innerWidth,(window.screen&&screen.height)||innerHeight)<=760;
+  function syncDeviceLayout(){
+    var width=window.innerWidth||document.documentElement.clientWidth;
+    var height=window.innerHeight||document.documentElement.clientHeight;
+    var landscape=!forceMobile&&(forceLandscape||(handheld&&width>height&&width>=640));
+    root.classList.toggle("deviceLandscape",landscape);
+    root.classList.toggle("deviceMobile",forceMobile||(handheld&&!landscape));
+  }
+  syncDeviceLayout();
+  window.addEventListener("resize",syncDeviceLayout);
+  window.addEventListener("orientationchange",syncDeviceLayout);
+})();
 </script>
 <style>
 :root{--ink:#13211d;--muted:#52645e;--leaf:#1f7a4f;--deep:#0f4f37;--mint:#eaf3ed;--cream:#f7f5ef;--gold:#f1b84f;--water:#dff2f5;--line:rgba(20,33,29,.14);--panel:#fff;--shadow:0 18px 48px rgba(20,33,29,.12)}
@@ -42,7 +57,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .btn.primary{background:var(--leaf);border-color:var(--leaf);color:#fff;box-shadow:0 12px 30px rgba(31,122,79,.24)}
 .btn.gold{background:var(--gold);border-color:var(--gold);color:var(--ink)}
 .btn.dark{background:var(--deep);border-color:var(--deep);color:#fff}.band.deep .btn:not(.gold){color:var(--ink)}
-.photoFeature{position:relative;min-height:580px;border:1px solid var(--line);border-radius:8px;background:#0f2119;box-shadow:var(--shadow);overflow:hidden}
+.photoFeature{position:relative;min-height:580px;margin:0;border:1px solid var(--line);border-radius:8px;background:#0f2119;box-shadow:var(--shadow);overflow:hidden}
 .photoFeature img,.photoCard img{display:block;width:100%;height:100%;object-fit:cover}
 .featureSplit{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr}
 .featureSplit img{min-width:0;min-height:100%}
@@ -144,6 +159,10 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .deviceMobile .photoFeature{min-height:500px}
 .deviceMobile .card,.deviceMobile .step,.deviceMobile .part,.deviceMobile .pipPanel,.deviceMobile .signupPanel{padding:18px}
 .deviceMobile .turnoverGrid{grid-template-columns:1fr}.deviceMobile .turnoverVisual,.deviceMobile .turnoverVisual img{min-height:480px}.deviceMobile .turnoverCaption{left:12px;right:12px;bottom:12px;padding:14px}
+.deviceLandscape .topbar{position:sticky;top:0;min-height:62px;padding:6px 18px;gap:10px}.deviceLandscape .brand{font-size:.9rem}.deviceLandscape .brand img{width:46px;height:46px}.deviceLandscape .brand small{font-size:.68rem}.deviceLandscape .headerTools{min-width:0;gap:5px}.deviceLandscape .menuBtn{display:none}.deviceLandscape .nav{position:static;display:flex;min-width:0;padding:0;border:0;background:transparent;box-shadow:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.deviceLandscape .nav::-webkit-scrollbar{display:none}.deviceLandscape .nav a{flex:0 0 auto;padding:7px 8px;font-size:.78rem}.deviceLandscape .memberTrigger{min-height:40px;padding:4px 6px}.deviceLandscape .memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.deviceLandscape .hero{grid-template-columns:minmax(0,1.08fr) minmax(260px,.78fr);gap:24px;align-items:center;min-height:calc(100vh - 62px);padding:24px 30px 32px}.deviceLandscape .hero h1{font-size:3rem;line-height:.96}.deviceLandscape .heroText p:not(.eyebrow){font-size:.96rem;line-height:1.48}.deviceLandscape .heroGuide{grid-template-columns:64px minmax(0,1fr);max-width:620px;margin:16px 0;padding:10px 12px}.deviceLandscape .heroGuide img{width:64px;height:64px}.deviceLandscape .heroGuide strong{font-size:.92rem}.deviceLandscape .heroGuide p{font-size:.82rem!important}.deviceLandscape .photoFeature.singlePhoto>img{aspect-ratio:16/10}.deviceLandscape .photoFeature{min-height:0}.deviceLandscape .photoCaption{padding:13px}.deviceLandscape .photoCaption>strong{font-size:1.2rem}.deviceLandscape .photoCaption span{font-size:.84rem}.deviceLandscape .statGrid div{padding:8px}.deviceLandscape .statGrid small{font-size:.68rem}.deviceLandscape .statGrid b{font-size:.82rem}
+.deviceLandscape .band{padding:46px 30px}.deviceLandscape .howIntro{grid-template-columns:minmax(0,1fr) minmax(240px,.42fr);gap:22px}.deviceLandscape .howOverview{grid-template-columns:minmax(280px,.82fr) minmax(0,1.18fr)}.deviceLandscape .howPhoto,.deviceLandscape .howPhoto img{min-height:400px}.deviceLandscape .howStep{min-height:160px;padding:18px}.deviceLandscape .pipShowcase{grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:32px}.deviceLandscape .pipTiers{grid-template-columns:repeat(3,minmax(0,1fr))}.deviceLandscape .pipMemory{grid-template-columns:170px minmax(0,1fr)}.deviceLandscape .pipMemory img{width:170px;max-height:230px}.deviceLandscape .finalCta{grid-template-columns:1fr auto}.deviceLandscape .actions .btn,.deviceLandscape .miniActions .btn{width:auto;min-height:42px;padding:9px 13px}
+@media(max-width:760px) and (orientation:landscape){.deviceLandscape .topbar{padding-left:12px;padding-right:12px}.deviceLandscape .nav a{padding:6px;font-size:.72rem}.deviceLandscape .nav a:nth-child(1),.deviceLandscape .nav a:nth-child(5){display:none}.deviceLandscape .hero{grid-template-columns:minmax(0,1fr) 240px;padding-left:20px;padding-right:20px}.deviceLandscape .hero h1{font-size:2.25rem}.deviceLandscape .heroGuide{display:none}.deviceLandscape .band{padding-left:20px;padding-right:20px}.deviceLandscape .howOverview{grid-template-columns:260px minmax(0,1fr)}.deviceLandscape .howStep{min-height:150px;padding:14px}.deviceLandscape .pipShowcase{grid-template-columns:minmax(0,1fr) 270px}}
 .pipLockup img{border-radius:0;background:transparent;filter:drop-shadow(0 12px 14px rgba(19,54,39,.18));animation:pipFloat 3.6s ease-in-out infinite}
 @keyframes pipFloat{0%,100%{transform:translateY(0) scale(1.08)}50%{transform:translateY(-7px) scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.pipLockup img{animation:none;transform:scale(1.08)}}

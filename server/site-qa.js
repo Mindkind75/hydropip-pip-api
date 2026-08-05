@@ -157,6 +157,9 @@ assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower tu
 assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
 assert.match(homeHtml, /field-guide/, "Home should link to the HydroPip Field Guide");
 assert.match(homeHtml, /pipFloat/, "The Meet Pip conversion moment should give the mascot restrained motion");
+assert.match(homeHtml, /deviceLandscape/, "Home should provide an automatic landscape presentation layout for phones and casting");
+assert.match(homeHtml, /orientationchange/, "Home should react when a phone rotates between portrait and landscape");
+assert.match(homeHtml, /root\.classList\.toggle\("deviceMobile",forceMobile\|\|\(handheld&&!landscape\)\)/, "Landscape phones should not remain locked to the portrait mobile layout");
 assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real food\./, "Home should provide a concise How It Works overview");
 assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
 assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
