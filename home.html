@@ -85,6 +85,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .pipPanel{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18)}
 .pipPanel p{margin-bottom:0}
 .pipShowcase{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,400px);gap:clamp(28px,5vw,70px);align-items:center}.pipPoster{margin:0;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:#fff;overflow:hidden;box-shadow:0 22px 54px rgba(0,0,0,.24)}.pipPoster img{display:block;width:100%;aspect-ratio:2/3;object-fit:cover}.pipPoster figcaption{padding:14px 16px;background:#fff;color:var(--deep);font-weight:900;line-height:1.4}.pipTiers{margin-top:24px}
+.pipMemory{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(24px,4vw,52px);align-items:center;margin-top:38px;padding-top:34px;border-top:1px solid rgba(255,255,255,.2)}.pipMemory img{display:block;width:220px;max-height:290px;object-fit:contain;filter:drop-shadow(0 16px 22px rgba(0,0,0,.24))}.pipMemory h3{margin:0 0 9px;color:#fff;font-size:clamp(1.65rem,3vw,2.45rem)}.pipMemory p:not(.eyebrow){max-width:760px;margin:0 0 18px;color:rgba(255,255,255,.84)}
 .signupPanel{background:linear-gradient(135deg,#fff,#eff8ef)}
 .signupPanel ul{margin:0 0 20px;padding-left:20px}
 .photoGrid{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:22px}
@@ -116,6 +117,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding:28px clamp(18px,4vw,54px);border-top:1px solid var(--line);background:#17221c;color:rgba(255,255,255,.78);font-weight:900}.footerLinks{display:flex;flex-wrap:wrap;gap:10px 16px}.footer a{color:#fff;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:1000px){.hero,.split,.grid3,.grid4,.storyLine,.partsGrid,.finalCta,.turnoverGrid{grid-template-columns:1fr}.photoGrid{grid-template-columns:1fr 1fr}.photoCard.big{grid-column:span 2}.photoFeature{min-height:520px}.center{text-align:left;margin-left:0}}
 @media(max-width:1000px){.pipShowcase{grid-template-columns:1fr}.pipPoster{width:min(100%,520px);margin:0 auto}}
+@media(max-width:700px){.pipMemory{grid-template-columns:110px minmax(0,1fr);gap:16px;margin-top:28px;padding-top:26px}.pipMemory img{width:110px;max-height:160px}.pipMemory h3{font-size:1.45rem}.pipMemory .actions{grid-column:1/-1}}
 @media(max-width:720px){.topbar{position:relative;top:auto;align-items:center}.headerTools{gap:6px}.menuBtn{display:grid;place-items:center;flex:0 0 auto}.memberTrigger{min-width:56px;min-height:44px;padding:5px 7px}.memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.memberPopover{right:50px}.nav{display:none;position:absolute;left:14px;right:14px;top:76px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:var(--shadow)}.nav.open{display:grid;grid-template-columns:1fr 1fr}.nav a{text-align:center}.hero{min-height:auto;padding:30px 18px 44px}.photoFeature{min-height:500px}.band{padding:58px 18px}.photoGrid,.photoCard.big,.pipLockup{grid-template-columns:1fr}.photoCard.big{grid-column:auto}.actions .btn,.miniActions .btn,.part a{width:100%}h1{font-size:clamp(2.55rem,14vw,4rem)}}
 @media(max-width:430px){.nav.open{grid-template-columns:1fr}.brand{font-size:.95rem}.brand img{width:50px;height:50px}.photoCaption{left:12px;right:12px;bottom:12px;gap:9px;padding:13px}.photoCaption>strong{font-size:1.25rem}.photoCaption span{font-size:.92rem;line-height:1.38}.statGrid div{padding:8px 6px}.statGrid small{font-size:.65rem}.statGrid b{font-size:.82rem}.photoFeature{min-height:500px}.card,.step,.part,.pipPanel,.signupPanel{padding:18px}}
 .deviceMobile .featureSplit{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
@@ -312,6 +314,15 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
         <article class="pipPanel"><h3>Free Pip</h3><p>Build walkthroughs, parts guidance, first schedule advice, and HydroPip troubleshooting.</p></article>
         <article class="pipPanel"><h3>Pip Pro</h3><p>Keep crop schedules, in-app reminders, grow logs, project history, and personalized planning together.</p></article>
         <article class="pipPanel"><h3>Any hydro system</h3><p>Pip Pro can support DWC, NFT, Dutch buckets, Kratky, drip systems, greenhouse systems, and custom DIY layouts.</p></article>
+      </div>
+      <div class="pipMemory">
+        <img src="/assets/marketing/pip-history-poster.webp" alt="Pip presenting the grow history saved with Pip Pro" loading="lazy">
+        <div>
+          <p class="eyebrow">Pip Pro remembers</p>
+          <h3>Your next grow starts with what Pip already knows.</h3>
+          <p>Keep your grow profile, conversations, schedules, readings, fixes, and harvest notes connected to the right system. Pip can use that history to give you a more useful next answer instead of making you start over.</p>
+          <div class="actions"><a class="btn gold" href="https://www.hydropip.com/pip?pro=1" target="_top">See Pip Pro</a></div>
+        </div>
       </div>
     </div>
   </section>

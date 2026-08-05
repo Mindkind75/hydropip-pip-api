@@ -46,7 +46,9 @@ for (const asset of ["pip-take-a-pic-illustration.jpg", "pip-planning-illustrati
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-photo-guidance-poster.jpg", import.meta.url)), true, "The social photo-guidance poster should remain in the marketing library");
 assert.match(marketingHomeHtml, /pip-photo-guidance-poster\.jpg/, "The homepage should use the Pip photo-guidance poster");
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster.webp", import.meta.url)), true, "The corrected Pip history poster should exist");
-assert.match(pipHtml, /pip-history-poster\.webp/, "The Pro history notebook should use the corrected Pip history poster");
+assert.match(marketingHomeHtml, /pip-history-poster\.webp/, "The homepage should explain Pip Pro grow memory with the corrected history poster");
+assert.doesNotMatch(pipHtml, /class=["']history-feature["']/, "The Pro history notebook should prioritize saved activity over a large marketing block");
+assert.match(pipHtml, /class=["']history-layout["']/, "The Pro history notebook should use the compact working layout");
 assert.match(pipHtml, /pip-history-wide-concept\.jpg/, "The Pro sales page should explain saved grow memory visually");
 assert.doesNotMatch(pipHtml, /pip-history-poster-concept\.jpg/, "The history poster with outdated branding must not appear on the live Pip page");
 for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", "grow-log.png", "history.png"]) {
@@ -64,7 +66,7 @@ const partsChecklistHtml = fs.readFileSync(new URL("../parts-checklist.html", im
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-print-checklist.png", import.meta.url)), true, "The transparent Print checklist Pip is missing");
 assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/, "Track My Build should guide members toward the Print button");
 assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
-assert.equal((pipHtml.match(/class=["']notebook-guide["']/g) || []).length, 8, "Every main Pip Pro notebook section should have a visual guide");
+assert.equal((pipHtml.match(/class=["'][^"']*notebook-guide[^"']*["']/g) || []).length, 8, "Every main Pip Pro notebook section should have a visual guide");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
