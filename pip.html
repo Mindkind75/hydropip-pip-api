@@ -210,7 +210,8 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   var proMode = pipQuery.get("pro") === "1";
   var requestedProjectType = pipQuery.get("project");
   var requestedProjectId = pipQuery.get("projectId");
-  var requestedAvatarPicker = pipQuery.get("avatar") === "1";
+  var requestedAvatarPicker = pipQuery.get("avatar") === "1" || pipQuery.get("pro") === "avatar";
+  var requestedSignup = pipQuery.get("pro") === "signup";
   if(proMode){document.body.classList.add("pro-mode");document.title="Pip Pro | HydroPip Systems"}
   var mascot = "/assets/branding/pip-head-transparent.png";
   var leadKey = "hydropipPipLeadEmail";
@@ -710,6 +711,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
     pipSession.subscription=data.subscription||{active:false,plan:pipSession.member?"free_member":"visitor"};
     renderMemberMenus();
     await loadAccountPreferences();
+    if(requestedSignup){requestedSignup=false;if(!hasLead()){requestAccount("signup");return}}
     if(requestedAvatarPicker&&hasLead()){requestedAvatarPicker=false;openAvatarPicker()}
     if(proMode)revealProPage();
     await loadPhotoAllowance();
