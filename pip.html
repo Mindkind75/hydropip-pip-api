@@ -485,7 +485,10 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
           if(operation==="add"){
             result=await proRequest("/api/pip/projects/"+encodeURIComponent(projectId)+"/reminders/batch",{method:"POST",body:JSON.stringify({reminders:reminders,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})});
           }else{
-            result=await proRequest("/api/pip/projects/"+encodeURIComponent(projectId)+"/reminders/actions",{method:"POST",body:JSON.stringify({operation:operation,reminderIds:action.reminderIds||[],reminders:reminders,patch:action.patch||{}})});
+            var patch=Object.assign({},action.patch||{});
+            if(patch.dueDate&&patch.dueTime&&!patch.dueAt)patch.dueAt=new Date(patch.dueDate+"T"+patch.dueTime+":00").toISOString();
+            delete patch.dueTime;
+            result=await proRequest("/api/pip/projects/"+encodeURIComponent(projectId)+"/reminders/actions",{method:"POST",body:JSON.stringify({operation:operation,reminderIds:action.reminderIds||[],reminders:reminders,patch:patch})});
           }
           if(operation==="delete"||operation==="delete_all")button.textContent=(result.deletedCount||0)+" reminder"+((result.deletedCount||0)===1?"":"s")+" deleted";
           else if(operation==="replace_all")button.textContent=(result.addedCount||0)+" reminders loaded";

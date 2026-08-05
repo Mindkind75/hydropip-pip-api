@@ -563,7 +563,18 @@ const loadedCalendar = await applyProjectReminderAction({
   subscription: { active: true }
 });
 assert.equal(loadedCalendar.addedCount, 2);
-assert.equal((await listProjectReminders({ userId: "test-user", projectId: calendarActionProject.project.id })).length, 2);
+const loadedCalendarItems = await listProjectReminders({ userId: "test-user", projectId: calendarActionProject.project.id });
+assert.equal(loadedCalendarItems.length, 2);
+const updatedCalendar = await applyProjectReminderAction({
+  userId: "test-user",
+  projectId: calendarActionProject.project.id,
+  operation: "update",
+  reminderIds: [loadedCalendarItems[1].id],
+  patch: { dueAt: "2026-08-11T20:00:00.000Z" },
+  subscription: { active: true }
+});
+assert.equal(updatedCalendar.updatedCount, 1);
+assert.equal(updatedCalendar.updated[0].dueAt, "2026-08-11T20:00:00.000Z");
 
 const savedReminder = await createProjectReminder({
   userId: "test-user",
