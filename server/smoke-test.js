@@ -289,10 +289,13 @@ assert.equal(defaultPreferences.workspaceTabOrder[0], "profile");
 assert.equal(defaultPreferences.workspaceTabOrder.includes("chat"), true);
 const savedPreferences = await updateUserPreferences({
   userId: "test-user",
-  patch: { workspaceTabOrder: ["chat", "planner", "planner", "invalid", "profile"] }
+  patch: { workspaceTabOrder: ["chat", "planner", "planner", "invalid", "profile"], accountAvatar: "/assets/branding/pip-head-transparent.png" }
 });
 assert.deepEqual(savedPreferences.workspaceTabOrder.slice(0, 3), ["chat", "planner", "profile"]);
 assert.equal(savedPreferences.workspaceTabOrder.includes("calendar"), true);
+assert.equal(savedPreferences.accountAvatar, "/assets/branding/pip-head-transparent.png");
+const rejectedAvatarPreferences = await updateUserPreferences({ userId: "test-user", patch: { accountAvatar: "javascript:alert(1)" } });
+assert.equal(rejectedAvatarPreferences.accountAvatar, null);
 
 const freeProject = await createProject({
   user: { id: "test-user", email: "test@example.com" },

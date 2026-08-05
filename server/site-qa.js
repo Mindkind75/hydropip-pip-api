@@ -50,7 +50,11 @@ assert.match(marketingHomeHtml, /pip-history-poster-transparent\.png/, "The home
 assert.match(marketingHomeHtml, /class="navField"[^>]*>Field Guide<\/a>/, "The homepage should distinguish the Field Guide in primary navigation");
 assert.match(marketingHomeHtml, /class="navTrack"[^>]*>Track My Build<\/a>/, "The homepage should make Track My Build a primary navigation path");
 assert.match(marketingHomeHtml, /class="navPip"[^>]*>Ask Pip<\/a>/, "The homepage should name the Pip destination as Ask Pip");
-assert.match(marketingHomeHtml, /class="navPro"[^>]*>[\s\S]*class="navProBadge">PRO<\/span>/, "The homepage should give Pip Pro a premium navigation treatment");
+assert.match(marketingHomeHtml, /class="navPro"[^>]*><span>Pip<\/span><span class="navProBadge">PRO<\/span>/, "The homepage should give Pip Pro a premium navigation treatment without repeating Pro");
+assert.match(marketingHomeHtml, /hydropipAccountAvatar/, "The homepage account circle should support the saved HydroPip profile picture");
+assert.match(pipHtml, /id="pipAvatarDialog"/, "Pip should provide a profile-picture picker");
+assert.match(pipHtml, /role="radiogroup"[\s\S]*role="radio"/, "Built-in Pip profile pictures should be exposed as selectable radio options");
+assert.match(pipHtml, /id="pipAvatarUpload"[^>]*accept="image\/jpeg,image\/png,image\/webp"/, "Members should be able to upload a supported profile image");
 assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Build<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Build link");
 assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Parts<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Parts link");
 assert.doesNotMatch(pipHtml, /class=["']history-feature["']/, "The Pro history notebook should prioritize saved activity over a large marketing block");

@@ -425,6 +425,9 @@ export async function updateUserPreferences({ userId, patch = {} } = {}) {
   if (Object.prototype.hasOwnProperty.call(patch || {}, "workspaceTabOrder")) {
     next.workspaceTabOrder = normalizeWorkspaceTabOrder(patch.workspaceTabOrder);
   }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "accountAvatar")) {
+    next.accountAvatar = normalizeAccountAvatar(patch.accountAvatar);
+  }
 
   if (usesPostgres()) {
     const pool = await readyPool();
@@ -1872,7 +1875,24 @@ function normalizeWorkspaceTabOrder(value) {
 
 function normalizeUserPreferences(value) {
   const preferences = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  return { workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder) };
+  return {
+    workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder),
+    accountAvatar: normalizeAccountAvatar(preferences.accountAvatar)
+  };
+}
+
+function normalizeAccountAvatar(value) {
+  const avatar = String(value || "").trim();
+  if (!avatar) return null;
+  const builtIn = new Set([
+    "/assets/branding/pip-head-transparent.png",
+    "/assets/marketing/pro-tabs/profile.png",
+    "/assets/marketing/pro-tabs/planner.png",
+    "/assets/marketing/pro-tabs/seeds.png"
+  ]);
+  if (builtIn.has(avatar)) return avatar;
+  if (avatar.length <= 250000 && /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(avatar)) return avatar;
+  return null;
 }
 
 function requireUserId(userId) {
