@@ -170,7 +170,7 @@ assert.match(pipHtml, /\.workspace-tabs\{overflow-y:hidden;overscroll-behavior-i
 assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real food\./, "Home should provide a concise How It Works overview");
 assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
 assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
-assert.match(homeHtml, /Pip is beside you from the first question\./, "Pip should be prominent in the opening homepage story");
+assert.match(homeHtml, /Pip walks with you from parts to first harvest\./, "Pip should be prominent in the opening homepage story");
 assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Parts<\//, "Home Parts navigation should retain the complete checklist destination");
 assert.doesNotMatch(homeHtml, /href=["']#[^"']*["']/, "The embedded Home page must not use iframe-local hash links that cannot scroll the Wix parent page");
 assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/field-guide["'][^>]*>How it works<\//, "Home How It Works navigation should open the complete guide");
