@@ -88,7 +88,10 @@ const partsChecklistHtml = fs.readFileSync(new URL("../parts-checklist.html", im
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-print-checklist.png", import.meta.url)), true, "The transparent Print checklist Pip is missing");
 assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/, "Track My Build should guide members toward the Print button");
 assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
-assert.equal((pipHtml.match(/class=["'][^"']*notebook-guide[^"']*["']/g) || []).length, 8, "Every main Pip Pro notebook section should have a visual guide");
+const notebookVisualGuideCount = (pipHtml.match(/class=["'][^"']*notebook-guide[^"']*["']/g) || []).length
+  + (pipHtml.match(/class=["'][^"']*account-brand-panel[^"']*["']/g) || []).length;
+assert.equal(notebookVisualGuideCount, 8, "Every main Pip Pro notebook section should have a visual guide");
+assert.match(pipHtml, /account-brand-panel[\s\S]*pip-pro-workspace-transparent\.png/, "The branded account hub should feature Pip");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
