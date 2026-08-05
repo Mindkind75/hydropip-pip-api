@@ -45,8 +45,8 @@ for (const asset of ["pip-take-a-pic-illustration.jpg", "pip-planning-illustrati
 }
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-photo-guidance-poster.jpg", import.meta.url)), true, "The social photo-guidance poster should remain in the marketing library");
 assert.match(marketingHomeHtml, /pip-photo-guidance-poster\.jpg/, "The homepage should use the Pip photo-guidance poster");
-assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster.webp", import.meta.url)), true, "The corrected Pip history poster should exist");
-assert.match(marketingHomeHtml, /pip-history-poster\.webp/, "The homepage should explain Pip Pro grow memory with the corrected history poster");
+assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster-transparent.png", import.meta.url)), true, "The transparent Pip history poster should exist");
+assert.match(marketingHomeHtml, /pip-history-poster-transparent\.png/, "The homepage should explain Pip Pro grow memory with the transparent history poster");
 assert.doesNotMatch(pipHtml, /class=["']history-feature["']/, "The Pro history notebook should prioritize saved activity over a large marketing block");
 assert.match(pipHtml, /class=["']history-layout["']/, "The Pro history notebook should use the compact working layout");
 assert.match(pipHtml, /pip-history-wide-concept\.jpg/, "The Pro sales page should explain saved grow memory visually");
