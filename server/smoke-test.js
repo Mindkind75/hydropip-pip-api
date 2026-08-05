@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import path from "node:path";
-import { askPip, assessAnswerRelevance, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
+import { askPip, assessAnswerRelevance, buildDirectCalendarConfirmation, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
 import {
+  applyProjectReminderAction,
   appendProjectMessage,
   claimBuildPhotoCheck,
   createProject,
@@ -81,6 +82,29 @@ assert.equal(linkedCompact.includes("As an Amazon Associate I earn from qualifyi
 assert.equal(linkedCompact.split(/\s+/).filter(Boolean).length <= 100, true);
 assert.equal(classifyQuestionIntent("Got the towers set. What should I plant this time of year?"), "crop_selection");
 assert.equal(classifyQuestionIntent("Where can I buy the small tower tubing?"), "parts_shopping");
+assert.equal(classifyQuestionIntent("Delete all", { history: [{ role: "assistant", content: "I found four calendar reminders." }] }), "reminder_action");
+const calendarClearConfirmation = buildDirectCalendarConfirmation({
+  message: "Delete all",
+  history: [{ role: "assistant", content: "Your Pip Calendar has four reminders." }],
+  projectContext: { reminderCount: 4, activeReminders: [{ title: "Weekly check" }], project: { systemProfile: {} } }
+});
+assert.equal(calendarClearConfirmation.actions[0].operation, "delete_all");
+assert.match(calendarClearConfirmation.actions[0].label, /Delete all 4 reminders/);
+const calendarAvailabilityPrompt = buildDirectCalendarConfirmation({
+  message: "I finished my build. Can you load my calendar?",
+  projectContext: { reminderCount: 0, activeReminders: [], project: { systemProfile: { towerCount: 4, reservoirGallons: 275 } } }
+});
+assert.match(calendarAvailabilityPrompt.answer, /What one or two days/);
+assert.equal(calendarAvailabilityPrompt.actions.length, 0);
+const calendarStarterConfirmation = buildDirectCalendarConfirmation({
+  message: "Sunday at 9 AM and Tuesday at 3 PM",
+  history: [{ role: "assistant", content: "What one or two days are easiest for garden checks, and what time works on each day?" }],
+  projectContext: { reminderCount: 0, activeReminders: [], project: { systemProfile: { towerCount: 4, reservoirGallons: 275, timeZone: "America/New_York" } } }
+});
+assert.equal(calendarStarterConfirmation.actions[0].operation, "add");
+assert.equal(calendarStarterConfirmation.actions[0].label, "Load my calendar");
+assert.equal(calendarStarterConfirmation.actions[0].reminders.length, 3);
+assert.equal(calendarStarterConfirmation.actions[0].reminders[1].dueTime, "15:00");
 assert.equal(
   assessAnswerRelevance(
     "Got the towers set. What should I plant this time of year?",
@@ -501,6 +525,45 @@ const paidProject = await createProject({
   subscription: { active: true, plan: "pip_pro" }
 });
 assert.equal(paidProject.status, "created");
+
+const calendarActionProject = await createProject({
+  user: { id: "test-user" },
+  type: "crop_schedule",
+  systemProfile: { towerCount: 4, reservoirGallons: 275 },
+  subscription: { active: true, plan: "pip_pro" }
+});
+await createProjectReminder({
+  userId: "test-user",
+  projectId: calendarActionProject.project.id,
+  reminder: { title: "Old weekly check", dueDate: "2026-08-09", repeat: { frequency: "weekly" } },
+  subscription: { active: true }
+});
+await createProjectReminder({
+  userId: "test-user",
+  projectId: calendarActionProject.project.id,
+  reminder: { title: "Old monthly service", dueDate: "2026-08-10", repeat: { frequency: "monthly" } },
+  subscription: { active: true }
+});
+const clearedCalendar = await applyProjectReminderAction({
+  userId: "test-user",
+  projectId: calendarActionProject.project.id,
+  operation: "delete_all",
+  subscription: { active: true }
+});
+assert.equal(clearedCalendar.deletedCount, 2);
+assert.equal((await listProjectReminders({ userId: "test-user", projectId: calendarActionProject.project.id })).length, 0);
+const loadedCalendar = await applyProjectReminderAction({
+  userId: "test-user",
+  projectId: calendarActionProject.project.id,
+  operation: "replace_all",
+  reminders: [
+    { title: "Sunday full check", dueDate: "2026-08-09", dueAt: "2026-08-09T13:00:00.000Z", repeat: { frequency: "weekly" } },
+    { title: "Tuesday quick check", dueDate: "2026-08-11", dueAt: "2026-08-11T19:00:00.000Z", repeat: { frequency: "weekly" } }
+  ],
+  subscription: { active: true }
+});
+assert.equal(loadedCalendar.addedCount, 2);
+assert.equal((await listProjectReminders({ userId: "test-user", projectId: calendarActionProject.project.id })).length, 2);
 
 const savedReminder = await createProjectReminder({
   userId: "test-user",

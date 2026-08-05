@@ -12,6 +12,7 @@ const toolMap = {
   recommend_parts: recommendParts,
   create_grow_plan: createGrowPlan,
   create_reminder: createReminder,
+  manage_calendar: (args) => args,
   flag_review_item: (args) => ({ status: "queued", ...args }),
   get_wizard_schema: getWizardSchema
 };
@@ -87,6 +88,52 @@ const tools = [
   },
   {
     type: "function",
+    name: "manage_calendar",
+    description: "Prepare a Pip Calendar change for user confirmation. Use for multiple additions, updates, rescheduling, selected deletion, clearing the planner, or replacing the current schedule. This tool never changes data until the user presses the confirmation button.",
+    parameters: {
+      type: "object",
+      properties: {
+        operation: { type: "string", enum: ["add", "update", "delete", "delete_all", "replace_all"] },
+        reminderIds: { type: "array", items: { type: "string" } },
+        targetTitles: { type: "array", items: { type: "string" } },
+        reminders: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              note: { type: "string" },
+              category: { type: "string", enum: ["grow", "maintenance", "nutrients", "harvest"] },
+              dueDate: { type: ["string", "null"], description: "First local occurrence in YYYY-MM-DD format" },
+              dueTime: { type: ["string", "null"], description: "Local 24-hour HH:MM time" },
+              weekday: { type: ["string", "null"], enum: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", null] },
+              repeat: { type: ["object", "null"], additionalProperties: true },
+              timezone: { type: ["string", "null"] }
+            },
+            required: ["title"],
+            additionalProperties: false
+          }
+        },
+        patch: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            note: { type: "string" },
+            category: { type: "string", enum: ["grow", "maintenance", "nutrients", "harvest"] },
+            dueDate: { type: ["string", "null"] },
+            dueTime: { type: ["string", "null"] },
+            repeat: { type: ["object", "null"], additionalProperties: true },
+            timezone: { type: ["string", "null"] }
+          },
+          additionalProperties: false
+        }
+      },
+      required: ["operation"],
+      additionalProperties: false
+    }
+  },
+  {
+    type: "function",
     name: "get_wizard_schema",
     description: "Return the setup wizard questions Pip needs before building a grow profile.",
     parameters: { type: "object", properties: {}, additionalProperties: false }
@@ -123,7 +170,7 @@ export async function askPip({ message, image, profile, subscription, history = 
   const recentHistory = normalizeHistory(history);
   const userId = String(user?.id || user?.email || "").trim();
   const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId, conversationId }) : null;
-  const questionIntent = classifyQuestionIntent(trimmed, { image: Boolean(imageInput) });
+  const questionIntent = classifyQuestionIntent(trimmed, { image: Boolean(imageInput), history: recentHistory });
   const rawRetrieval = retrieveHydroPipContext(trimmed, { limit: 10 });
   const retrieval = selectIntentContext(rawRetrieval, questionIntent);
   const retrievedContext = formatContextForPrompt(retrieval);
@@ -215,10 +262,31 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
   }
 
+  const directCalendar = subscription?.active
+    ? buildDirectCalendarConfirmation({ message: trimmed, history: recentHistory, projectContext })
+    : null;
+  if (directCalendar) {
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: directCalendar.answer,
+      mode: "calendar_confirmation",
+      sources: []
+    });
+    return {
+      answer: directCalendar.answer,
+      mode: "calendar_confirmation",
+      sources: [],
+      projectMemory,
+      actions: directCalendar.actions
+    };
+  }
+
   const deterministicQuestion = questionIntent === "hydroponic_guidance" && isVagueFollowUp(trimmed)
     ? withRecentContext(trimmed, recentHistory)
     : trimmed;
-  const directAnswer = imageInput || (subscription?.active && wantsCalendarChange(trimmed)) ? null : highConfidenceAnswer(deterministicQuestion, retrieval);
+  const directAnswer = imageInput || (subscription?.active && ["reminder_action", "crop_plan_action"].includes(questionIntent)) ? null : highConfidenceAnswer(deterministicQuestion, retrieval);
   if (directAnswer) {
     const answer = compactAnswer(directAnswer, trimmed, retrieval);
     await rememberProjectMessage(projectContext, {
@@ -280,7 +348,8 @@ export async function askPip({ message, image, profile, subscription, history = 
       "Use the saved grow profile whenever it contains relevant details. Do not ask for zone, location, area type, system stage, tower count, reservoir size, crops, medium, nutrients, or goals when that value is already present.",
       "Start with a direct answer to the current question. Conversation history is useful for references and follow-ups, but an older topic must never override a clear new question.",
       "Use HydroPip tools only when one is available for the current intent. Do not call a parts or build tool for crop-selection, seasonal, plant-health, or general growing questions.",
-      "For a Pip Pro user who asks to create, add, save, or schedule a reminder, call create_reminder. For a Pip Pro user who asks Pip to build or add a crop schedule, call create_grow_plan. Collect missing dates or crop details with one focused question before proposing the action. Express user-supplied reminder times as dueTime in local 24-hour HH:MM form; do not convert them to UTC.",
+      "For Pip Pro calendar changes, use a calendar tool instead of describing an imaginary action. Use create_reminder for one new reminder. Use manage_calendar for multiple reminders, edits, rescheduling, selected deletion, clearing all tasks, or replacing the current schedule. Use create_grow_plan for a crop schedule. Every tool result becomes an on-screen confirmation button; never tell the user to press a button unless a confirmation action is actually returned.",
+      "When the user gives a weekday and time for a weekly reminder, include weekday, dueTime, repeat frequency weekly, and the user's timezone. Compute or supply a first dueDate when possible. Use saved profile values instead of asking for facts Pip already has.",
       "Use retrieved HydroPip knowledge only when it directly answers the current intent. Ignore retrieved notes that are about a different topic. For crop timing and plant questions, combine relevant saved profile details with sound hydroponic and horticultural knowledge.",
       "HydroPip is a real timed-feed runoff tower system, not a recirculating tower kit. Do not recommend return plumbing, drain plumbing, recycling tower runoff, filters for returning runoff, or generic recirculating tower layouts unless the user explicitly asks to compare alternatives.",
       "For the physical build, describe the actual HydroPip parts: an 8-10 foot, 1/2-inch galvanized steel support pipe, single-cell cinder block base, stackable four-pot sections, PVC tee hose guide, main feed hose, small feed tubes, diffuser pieces, 275 gallon IBC, one circulation pump, one feed pump, outdoor two-outlet smart plug, and reusable 50/50 perlite/vermiculite media. Never describe the structural support as flexible plumbing or PVC. Keep roughly 5 feet above grade; recommend 10 feet for deeper anchoring in exposed or windier locations.",
@@ -302,7 +371,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
       `Free-member photo checks are only for inspecting the HydroPip physical build, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
-      "When create_reminder or create_grow_plan returns confirmation_required, say the task or schedule is ready to review and use the on-screen confirmation button. Never say it is saved until the user confirms it.",
+      "When create_reminder, create_grow_plan, or manage_calendar returns confirmation_required, say the change is ready to review and use the on-screen confirmation button. Never say it is saved, deleted, updated, queued for staff, or completed until the user confirms it and the server reports success.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action.",
       "For seasonal crop questions, use the supplied Zone Seasonal Planting Reference as the default answer source. Do not ask for today's temperature or perform a live weather lookup by default. Ask about current conditions only when the user reports unusual heat, frost, storms, or a crop near a temperature limit.",
@@ -331,11 +400,20 @@ export async function askPip({ message, image, profile, subscription, history = 
     if (!handler) continue;
     const args = item.arguments ? JSON.parse(item.arguments) : {};
     let result;
-    if (item.name === "create_reminder") {
+    if (item.name === "manage_calendar") {
+      result = prepareCalendarToolAction({
+        args,
+        projectContext,
+        currentDate: answerContext.currentDate,
+        timeZone: answerContext.timeZone
+      });
+      if (result.action) actions.push(result.action);
+    } else if (item.name === "create_reminder") {
       result = createReminder({ user, reminder: args.reminder, subscription });
       if (result.status === "queued" && projectContext) {
-        result = { status: "confirmation_required", message: "Review this reminder before adding it to the Pip Calendar.", reminder: result.reminder };
-        actions.push({ type: "create_reminders", label: "Add to Calendar", reminders: [result.reminder] });
+        const reminder = normalizeCalendarReminder(result.reminder, answerContext.currentDate, answerContext.timeZone);
+        result = { status: "confirmation_required", message: "Review this reminder before adding it to the Pip Calendar.", reminder };
+        actions.push({ type: "calendar_change", operation: "add", label: "Add to Calendar", reminders: [reminder] });
       } else if (result.status === "queued") {
         result = { status: "project_required", message: "Open or create a grow before adding this reminder." };
       }
@@ -362,8 +440,9 @@ export async function askPip({ message, image, profile, subscription, history = 
     } else {
       result = handler(args);
       if (item.name === "create_grow_plan" && subscription?.active && projectContext && Array.isArray(result.reminders) && result.reminders.length) {
-        result = { ...result, status: "confirmation_required", message: "Review this schedule before adding it to the Pip Calendar." };
-        actions.push({ type: "create_reminders", label: `Add ${result.reminders.length} tasks to Calendar`, reminders: result.reminders });
+        const reminders = result.reminders.map((reminder) => normalizeCalendarReminder(reminder, answerContext.currentDate, answerContext.timeZone));
+        result = { ...result, reminders, status: "confirmation_required", message: "Review this schedule before adding it to the Pip Calendar." };
+        actions.push({ type: "calendar_change", operation: "add", label: `Add ${reminders.length} tasks to Calendar`, reminders });
       }
     }
     toolResults.push({
@@ -406,9 +485,12 @@ export async function askPip({ message, image, profile, subscription, history = 
 
   if (actions.length) {
     const taskCount = actions.reduce((total, action) => total + (action.reminders?.length || 0), 0);
-    const answer = taskCount === 1
-      ? "I prepared that reminder for your grow. Review it below, then tap Add to Calendar."
-      : `I prepared a ${taskCount}-task schedule for your grow. Review it below, then tap Add to Calendar.`;
+    const destructiveAction = actions.find((action) => ["delete", "delete_all", "replace_all", "update"].includes(action.operation));
+    const answer = destructiveAction
+      ? "I prepared that Calendar change. Review it below, then use the confirmation button to apply it."
+      : taskCount === 1
+        ? "I prepared that reminder for your grow. Review it below, then tap Add to Calendar."
+        : `I prepared a ${taskCount}-task schedule for your grow. Review it below, then tap Add to Calendar.`;
     const sources = retrieval.matches.map((match) => ({ source: match.source, title: match.title, score: match.score }));
     await rememberProjectMessage(projectContext, {
       userId,
@@ -441,7 +523,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
       "If a tool result says a review item was queued, tell the user Pip needs HydroPip team review before giving a confident answer. Ask for any one critical missing detail if useful.",
-      "A confirmation_required reminder or schedule is not saved yet. Tell the user to review and press the confirmation button shown below your reply.",
+      "A confirmation_required calendar change is not applied yet. Tell the user to review and press the confirmation button shown below the reply. Never mention a confirmation button unless the response contains an action.",
       "When a confirmation action is shown, keep the reply under 35 words and do not repeat raw ISO timestamps or the full task list; the review card carries those details.",
       "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions.",
       "When the original user input includes a photo, use this compact order: one sentence naming the most useful concrete visible observation; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Do not imply that you saw a detail that is not visible."
@@ -530,7 +612,227 @@ function wantsTracking(message) {
 }
 
 function wantsCalendarChange(message) {
-  return /\b(add|create|make|build|save|set|schedule|remind|plan)\b/i.test(message) && /\b(calendar|schedule|reminder|task|planting plan|crop plan)\b/i.test(message);
+  return /\b(add|create|make|build|save|set|schedule|remind|plan|delete|remove|clear|change|update|edit|reschedule|replace)\b/i.test(message) && /\b(calendar|planner|schedule|reminder|task|planting plan|crop plan)\b/i.test(message);
+}
+
+function calendarContextInHistory(history = []) {
+  return history.slice(-6).some((item) => /\b(calendar|planner|schedule|reminder|task)\b/i.test(String(item?.content || "")));
+}
+
+function isCalendarFollowUp(message, history = []) {
+  const normalized = String(message || "").trim().toLowerCase();
+  if (!calendarContextInHistory(history)) return false;
+  return /^(?:yes[, ]*)?(?:please )?(?:delete|remove|clear|replace|update|change|reschedule|add|save|confirm|do it|all|delete all|clear all)\b/.test(normalized);
+}
+
+function isClearAllCalendarRequest(message, history = []) {
+  const normalized = String(message || "").trim().toLowerCase();
+  const explicit = /\b(?:delete|remove|clear|wipe|empty)\b.*\b(?:all|everything|calendar|planner|schedule|reminders?|tasks?)\b|\b(?:delete|remove|clear|wipe|empty)\s+(?:my\s+)?(?:calendar|planner|schedule)\b/.test(normalized);
+  const followUp = calendarContextInHistory(history) && /^(?:yes[, ]*)?(?:please )?(?:delete|remove|clear|wipe)\s*(?:all|everything)?[.! ]*$/.test(normalized);
+  return explicit || followUp;
+}
+
+export function buildDirectCalendarConfirmation({ message, history = [], projectContext } = {}) {
+  if (!projectContext) return null;
+  const onboarding = calendarOnboardingRequest(message, history);
+  if (onboarding) {
+    const slots = parseAvailabilitySlots(message);
+    const count = Number(projectContext.reminderCount ?? projectContext.activeReminders?.length ?? 0);
+    if (!slots.length) {
+      const existing = count
+        ? `I found ${count} existing reminder${count === 1 ? "" : "s"}. Tell me whether to replace them or keep them. `
+        : "";
+      return {
+        answer: `${existing}What one or two days are easiest for garden checks, and what time works on each day? Example: Sunday at 9 AM and Tuesday at 3 PM.`,
+        actions: []
+      };
+    }
+    const historyAskedMode = history.slice(-4).some((item) => /replace them or keep them/i.test(String(item?.content || "")));
+    const replace = /\b(replace|clear|start over|wipe)\b/i.test(message);
+    const keep = /\b(add|keep)\b/i.test(message);
+    if (count && historyAskedMode && !replace && !keep) {
+      return {
+        answer: `I have your preferred times. Should I replace the ${count} existing reminders, or keep them and add the starter plan?`,
+        actions: []
+      };
+    }
+    const reminders = starterCalendarReminders({
+      profile: projectContext.project?.systemProfile || {},
+      slots,
+      currentDate: new Date().toISOString().slice(0, 10)
+    });
+    const operation = replace ? "replace_all" : "add";
+    return {
+      answer: `I built a ${reminders.length}-item starter calendar around your availability and saved grow profile. Review it below, then confirm.`,
+      actions: [{
+        type: "calendar_change",
+        operation,
+        label: operation === "replace_all" ? `Replace calendar with ${reminders.length} reminders` : "Load my calendar",
+        reminders,
+        preview: reminders.map((item) => item.title),
+        count
+      }]
+    };
+  }
+
+  if (!isClearAllCalendarRequest(message, history)) return null;
+  const count = Number(projectContext.reminderCount ?? projectContext.activeReminders?.length ?? 0);
+  if (!count) {
+    return { answer: "Your Pip Calendar is already clear.", actions: [] };
+  }
+  const preview = (projectContext.activeReminders || []).slice(0, 5).map((item) => item.title);
+  return {
+    answer: `I found ${count} reminder${count === 1 ? "" : "s"} in this grow. Review the change below, then confirm the deletion.`,
+    actions: [{
+      type: "calendar_change",
+      operation: "delete_all",
+      label: `Delete all ${count} reminder${count === 1 ? "" : "s"}`,
+      preview,
+      count
+    }]
+  };
+}
+
+function calendarOnboardingRequest(message, history = []) {
+  const normalized = String(message || "").toLowerCase();
+  const direct = /\b(?:finished|completed|done with)\b.*\bbuild\b.*\b(?:load|fill|populate|set up|setup|create|build)\b.*\b(?:calendar|planner|schedule)\b|\b(?:load|fill|populate|set up|setup)\b.*\b(?:my )?(?:calendar|planner)\b/.test(normalized);
+  const followUp = history.slice(-4).some((item) => /what one or two days are easiest|preferred times|replace them or keep them/i.test(String(item?.content || "")));
+  return direct || (followUp && parseAvailabilitySlots(message).length > 0);
+}
+
+function parseAvailabilitySlots(message) {
+  const text = String(message || "");
+  const slots = [];
+  const pattern = /\b(Sun(?:day)?s?|Mon(?:day)?s?|Tue(?:s(?:day)?)?s?|Wed(?:nesday)?s?|Thu(?:rsday)?s?|Fri(?:day)?s?|Sat(?:urday)?s?)\b(?:\s*(?:at|@|around|,)?\s*)(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/gi;
+  let match;
+  while ((match = pattern.exec(text))) {
+    let hour = Number(match[2]);
+    const minute = Number(match[3] || 0);
+    const meridiem = String(match[4] || "").toLowerCase();
+    if (meridiem.startsWith("p") && hour < 12) hour += 12;
+    if (meridiem.startsWith("a") && hour === 12) hour = 0;
+    if (hour > 23 || minute > 59) continue;
+    slots.push({
+      weekday: normalizeWeekday(match[1]),
+      dueTime: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+    });
+  }
+  return slots.filter((slot, index) => slot.weekday && slots.findIndex((item) => item.weekday === slot.weekday && item.dueTime === slot.dueTime) === index).slice(0, 2);
+}
+
+function normalizeWeekday(value) {
+  const key = String(value || "").toLowerCase().replace(/s$/, "").slice(0, 3);
+  return { sun: "Sunday", mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday" }[key] || null;
+}
+
+function starterCalendarReminders({ profile = {}, slots = [], currentDate } = {}) {
+  const timezone = profile.timeZone || null;
+  const towerCount = Number(profile.towerCount || 0);
+  const reservoir = Number(profile.reservoirGallons || 0);
+  const systemLabel = [towerCount ? `${towerCount} towers` : null, reservoir ? `${reservoir}-gallon reservoir` : null].filter(Boolean).join(" and ") || "saved HydroPip grow";
+  const first = slots[0] || { weekday: "Sunday", dueTime: "09:00" };
+  const reminders = [
+    {
+      title: "Weekly HydroPip grow check",
+      note: `For ${systemLabel}: check reservoir level, pH/EC, pump operation, feed delivery, media moisture/runoff, pests, pruning, and harvest needs.`,
+      category: "maintenance",
+      dueDate: nextWeekdayDate(currentDate, first.weekday),
+      dueTime: first.dueTime,
+      repeat: { frequency: "weekly" },
+      timezone
+    }
+  ];
+  if (slots[1]) {
+    reminders.push({
+      title: "Quick HydroPip follow-up",
+      note: "Confirm pumps and feed delivery, spot-check media/runoff, inspect problem plants, and record anything that changed since the full check.",
+      category: "maintenance",
+      dueDate: nextWeekdayDate(currentDate, slots[1].weekday),
+      dueTime: slots[1].dueTime,
+      repeat: { frequency: "weekly" },
+      timezone
+    });
+  }
+  reminders.push({
+    title: "Monthly HydroPip system service",
+    note: "Flush the main line, inspect pumps and tubing, clean accessible debris, calibrate pH/EC meters, inspect the IBC cover, and review nutrient supplies.",
+    category: "maintenance",
+    dueDate: nextWeekdayDate(currentDate, first.weekday),
+    dueTime: first.dueTime,
+    repeat: { frequency: "monthly" },
+    timezone
+  });
+  return reminders;
+}
+
+function normalizeCalendarReminder(reminder = {}, currentDate, timeZone) {
+  const normalized = {
+    title: String(reminder.title || "HydroPip reminder").slice(0, 180),
+    note: String(reminder.note || "").slice(0, 1200),
+    category: ["grow", "maintenance", "nutrients", "harvest"].includes(reminder.category) ? reminder.category : "grow",
+    dueDate: reminder.dueDate || reminder.date || null,
+    dueTime: reminder.dueTime || null,
+    repeat: reminder.repeat?.frequency ? { frequency: reminder.repeat.frequency } : null,
+    timezone: reminder.timezone || (timeZone !== "unknown" ? timeZone : null)
+  };
+  if (!normalized.dueDate && reminder.weekday) {
+    normalized.dueDate = nextWeekdayDate(currentDate, reminder.weekday);
+  }
+  return normalized;
+}
+
+function nextWeekdayDate(currentDate, weekday) {
+  const names = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const target = names.indexOf(String(weekday || "").toLowerCase());
+  const date = new Date(`${currentDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`);
+  if (target < 0 || Number.isNaN(date.getTime())) return null;
+  let delta = (target - date.getUTCDay() + 7) % 7;
+  if (delta === 0) delta = 7;
+  date.setUTCDate(date.getUTCDate() + delta);
+  return date.toISOString().slice(0, 10);
+}
+
+function prepareCalendarToolAction({ args = {}, projectContext, currentDate, timeZone } = {}) {
+  if (!projectContext) return { status: "project_required", message: "Open or create a grow before changing the Calendar." };
+  const operation = args.operation;
+  const active = projectContext.activeReminders || [];
+  const requestedIds = new Set((args.reminderIds || []).map(String));
+  const requestedTitles = (args.targetTitles || []).map((title) => String(title).trim().toLowerCase());
+  const matched = active.filter((item) => requestedIds.has(item.id) || requestedTitles.some((title) => String(item.title || "").toLowerCase().includes(title)));
+  const reminders = (args.reminders || []).map((item) => normalizeCalendarReminder(item, currentDate, timeZone));
+  const reminderIds = operation === "delete_all" || operation === "replace_all" ? [] : matched.map((item) => item.id);
+  if (["delete", "update"].includes(operation) && !reminderIds.length) {
+    return { status: "target_required", message: "Name the reminder you want Pip to change." };
+  }
+  if (["add", "replace_all"].includes(operation) && !reminders.length) {
+    return { status: "reminders_required", message: "Tell Pip which reminders should be added." };
+  }
+  const count = operation === "delete_all" || operation === "replace_all"
+    ? Number(projectContext.reminderCount ?? active.length)
+    : reminderIds.length || reminders.length;
+  const labels = {
+    add: `Add ${reminders.length} reminder${reminders.length === 1 ? "" : "s"}`,
+    update: `Update ${count} reminder${count === 1 ? "" : "s"}`,
+    delete: `Delete ${count} reminder${count === 1 ? "" : "s"}`,
+    delete_all: `Delete all ${count} reminder${count === 1 ? "" : "s"}`,
+    replace_all: `Replace ${count} reminder${count === 1 ? "" : "s"} with ${reminders.length}`
+  };
+  return {
+    status: "confirmation_required",
+    message: "Review this Calendar change before applying it.",
+    action: {
+      type: "calendar_change",
+      operation,
+      label: labels[operation] || "Confirm Calendar change",
+      reminderIds,
+      reminders,
+      patch: args.patch || {},
+      preview: operation === "delete_all" || operation === "replace_all"
+        ? active.slice(0, 5).map((item) => item.title)
+        : matched.slice(0, 5).map((item) => item.title),
+      count
+    }
+  };
 }
 
 function wantsDetailedInfo(message) {
@@ -646,10 +948,10 @@ function isClearlyOffTopic(message) {
   return /\b(politics|president|stock market|crypto|bitcoin|football|baseball|nba|betting|gambling|wager|wagers|betting picks|sports picks|movie|recipe|dating|homework|essay|code|javascript|python|weather|news|celebrity|song|lyrics)\b/.test(normalized);
 }
 
-export function classifyQuestionIntent(message, { image = false } = {}) {
+export function classifyQuestionIntent(message, { image = false, history = [] } = {}) {
   const normalized = String(message || "").toLowerCase();
   if (image) return "photo_diagnosis";
-  if (wantsCalendarChange(normalized)) return /\b(remind|reminder|task|calendar)\b/.test(normalized) ? "reminder_action" : "crop_plan_action";
+  if (wantsCalendarChange(normalized) || isCalendarFollowUp(normalized, history)) return /\b(crop plan|planting plan)\b/.test(normalized) ? "crop_plan_action" : "reminder_action";
   if (/\b(what|which|when|should|can)\b.*\b(plant|grow|sow|transplant|crop|variety|varieties)\b|\b(this time of year|right now|this season|crop rotation|succession planting)\b/.test(normalized)) return "crop_selection";
   if (/\b(yellow|pale|wilt|droop|spot|spots|holes|chewed|bug|bugs|pest|pests|aphid|gnat|mildew|mold|rot|roots?|disease|symptom)\b/.test(normalized)) return "plant_health";
   if (/\b(ph|ec|tds|ppm|nutrient|nutrients|masterblend|feed timing|feeding|runoff|water temperature)\b/.test(normalized)) return "feeding_nutrients";
@@ -665,7 +967,10 @@ function toolsForQuestion(intent, message) {
     requested.add("recommend_parts");
   }
   if (intent === "parts_shopping") requested.add("recommend_parts");
-  if (intent === "reminder_action") requested.add("create_reminder");
+  if (intent === "reminder_action") {
+    requested.add("create_reminder");
+    requested.add("manage_calendar");
+  }
   if (intent === "crop_plan_action") requested.add("create_grow_plan");
   if (/\b(setup wizard|profile questions|what information do you need)\b/i.test(message)) requested.add("get_wizard_schema");
   return tools.filter((tool) => requested.has(tool.name));
@@ -706,7 +1011,7 @@ function buildAnswerContext({ profile, projectContext, subscription, questionInt
     membership: subscription?.active ? "pip_pro" : "free",
     conversationTitle: projectContext?.conversation?.title || null,
     profile: profile || {},
-    activeReminderCount: projectContext?.activeReminders?.length || 0,
+    activeReminderCount: projectContext?.reminderCount ?? projectContext?.activeReminders?.length ?? 0,
     recentReadingCount: projectContext?.recentReadings?.length || 0,
     seasonalPlanting: getZonePlantingGuidance({
       growZone: profile?.growZone,
@@ -858,6 +1163,7 @@ function compactProjectContext(projectContext) {
     project: projectContext.project,
     conversation: projectContext.conversation,
     activeReminders: projectContext.activeReminders,
+    reminderCount: projectContext.reminderCount,
     recentReadings: projectContext.recentReadings,
     recentMessages: projectContext.recentMessages.map(({ role, content, createdAt }) => ({ role, content, createdAt }))
   };

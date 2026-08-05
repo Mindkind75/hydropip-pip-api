@@ -23,6 +23,7 @@ import {
   createProjectSeed,
   createBetaFeedback,
   createReviewItem,
+  applyProjectReminderAction,
   cancelAiUsageReservation,
   claimBuildPhotoCheck,
   completeAiUsage,
@@ -619,6 +620,32 @@ app.post("/api/pip/projects/:projectId/reminders/batch", async (req, res, next) 
       }
     }
     res.status(201).json({ status: "saved", added, addedCount: added.length, skippedCount: skipped });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/projects/:projectId/reminders/actions", async (req, res, next) => {
+  try {
+    const operation = String(req.body?.operation || "");
+    if (!['add', 'update', 'delete', 'delete_all', 'replace_all'].includes(operation)) {
+      res.status(400).json({ error: "invalid_reminder_action", message: "Choose a valid Pip Calendar action." });
+      return;
+    }
+    const result = await applyProjectReminderAction({
+      userId: req.pipUser.id,
+      projectId: req.params.projectId,
+      operation,
+      reminderIds: req.body?.reminderIds,
+      reminders: req.body?.reminders,
+      patch: req.body?.patch,
+      subscription: req.pipSubscription
+    });
+    if (!result) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    res.status(result.status === "subscription_required" ? 402 : result.status === "invalid_operation" ? 400 : 200).json(result);
   } catch (error) {
     next(error);
   }

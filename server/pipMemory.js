@@ -1334,6 +1334,72 @@ export async function deleteProjectReminder({ userId, projectId, reminderId, sub
   return { status: state.reminders[projectId].length < before ? "deleted" : "not_found" };
 }
 
+export async function applyProjectReminderAction({
+  userId,
+  projectId,
+  operation,
+  reminderIds = [],
+  reminders = [],
+  patch = {},
+  subscription = {}
+} = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  if (!subscription?.active) return subscriptionRequired("Managing the Pip Calendar requires Pip Pro.");
+
+  const current = await listProjectReminders({ userId, projectId });
+  const currentIds = new Set((current || []).map((item) => item.id));
+  const requestedIds = [...new Set((reminderIds || []).map(String))].filter((id) => currentIds.has(id));
+  const allIds = (current || []).map((item) => item.id);
+
+  if (operation === "delete" || operation === "delete_all" || operation === "replace_all") {
+    const idsToDelete = operation === "delete" ? requestedIds : allIds;
+    let deletedCount = 0;
+    for (const reminderId of idsToDelete) {
+      const result = await deleteProjectReminder({ userId, projectId, reminderId, subscription });
+      if (result?.status === "deleted") deletedCount += 1;
+    }
+
+    if (operation !== "replace_all") {
+      return { status: "deleted", operation, deletedCount };
+    }
+
+    const added = [];
+    for (const reminder of (reminders || []).slice(0, 40)) {
+      const result = await createProjectReminder({ userId, projectId, reminder, subscription });
+      if (result?.reminder) added.push(result.reminder);
+    }
+    return {
+      status: "replaced",
+      operation,
+      deletedCount,
+      added,
+      addedCount: added.length
+    };
+  }
+
+  if (operation === "update") {
+    const idsToUpdate = requestedIds.slice(0, 40);
+    const updated = [];
+    for (const reminderId of idsToUpdate) {
+      const result = await updateProjectReminder({ userId, projectId, reminderId, patch, subscription });
+      if (result?.reminder) updated.push(result.reminder);
+    }
+    return { status: "updated", operation, updated, updatedCount: updated.length };
+  }
+
+  if (operation === "add") {
+    const added = [];
+    for (const reminder of (reminders || []).slice(0, 40)) {
+      const result = await createProjectReminder({ userId, projectId, reminder, subscription });
+      if (result?.reminder) added.push(result.reminder);
+    }
+    return { status: "saved", operation, added, addedCount: added.length };
+  }
+
+  return { status: "invalid_operation" };
+}
+
 export async function seedProjectDefaults({ userId, projectId, subscription = {} } = {}) {
   const project = await getProject({ userId, projectId });
   if (!project) return null;
@@ -1498,6 +1564,7 @@ export async function buildProjectContext({ userId, projectId, conversationId } 
     conversation,
     recentMessages: messages,
     activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
+    reminderCount: (reminders || []).length,
     recentReadings: (readings || []).slice(-10)
   };
 }

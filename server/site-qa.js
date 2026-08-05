@@ -128,6 +128,8 @@ assert.match(pipHtml, /Include this question and Pip's reply/, "Chat context sha
 assert.doesNotMatch(pipHtml, /Add to Home Screen|pipInstallNudge|requestInstall|webcal:|\/api\/pip\/users\/me\/calendar/, "Pip should stay in-app without legacy install or external-calendar flows");
 assert.match(pipHtml, /Ready for your Calendar/, "Pip chat should present reviewable calendar actions");
 assert.match(pipHtml, /\/reminders\/batch/, "Pip chat calendar actions should save through the authenticated batch endpoint");
+assert.match(pipHtml, /Confirm Calendar change/, "Destructive Pip Calendar requests should display a real confirmation card");
+assert.match(pipHtml, /\/reminders\/actions/, "Pip chat should execute confirmed update, replace, and delete actions through the authenticated endpoint");
 assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");
 for (const id of ["proInviteLink", "proCopyInvite", "proShareInvite", "proInviteShareChoices", "proInviteText", "proInviteEmail", "proInviteFacebook"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `Pip Invite is missing ${id}`);
@@ -257,6 +259,9 @@ assert.doesNotMatch(agentSource, /previous_response_id:\s*response\.id/, "Pip ca
 assert.match(agentSource, /Never spend the whole reply describing the photo/, "Photo replies must reserve space for the user's next action");
 assert.match(agentSource, /confirmation_required/, "Pip should require confirmation before adding AI-created calendar tasks");
 assert.match(agentSource, /wantsCalendarChange/, "Pip Pro calendar requests should bypass static answers and reach AI tools");
+assert.match(agentSource, /manage_calendar/, "Pip should support add, update, replace, and delete calendar tools");
+assert.match(agentSource, /buildDirectCalendarConfirmation/, "Clear-all and starter-calendar requests should have deterministic confirmation behavior");
+assert.match(agentSource, /Load my calendar/, "Pip should offer a one-tap starter calendar action after collecting availability");
 
 const indexSource = fs.readFileSync(new URL("./index.js", import.meta.url), "utf8");
 assert.match(indexSource, /claimBuildPhotoCheck/, "Build Check limits must be enforced by the server");
@@ -267,10 +272,12 @@ assert.match(indexSource, /completeAiUsage/, "Successful OpenAI calls must final
 assert.match(indexSource, /cancelAiUsageReservation/, "Failed OpenAI calls must release usage reservations");
 assert.match(indexSource, /pip_daily_limit_reached/, "Daily AI limit responses must use a stable error code");
 assert.match(indexSource, /reminders\/batch/, "Pip should expose a protected batch endpoint for confirmed AI schedules");
+assert.match(indexSource, /reminders\/actions/, "Pip should expose an authenticated calendar action endpoint");
 
 const memorySource = fs.readFileSync(new URL("./pipMemory.js", import.meta.url), "utf8");
 assert.match(memorySource, /create table if not exists pip_usage_events/, "Postgres must persist Pip AI usage events");
 assert.match(memorySource, /create table if not exists pip_credit_ledger/, "Postgres must keep an auditable Pip Credit ledger");
+assert.match(memorySource, /applyProjectReminderAction/, "Pip memory should apply confirmed calendar actions server-side");
 assert.doesNotMatch(memorySource, /pip_usage_events[\s\S]{0,800}\bprompt\b/i, "Usage events must not add a raw prompt column");
 
 console.log("HydroPip site QA passed");
