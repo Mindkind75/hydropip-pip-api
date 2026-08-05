@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import { askPip, assessAnswerRelevance, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
 import {
   appendProjectMessage,
@@ -10,6 +11,7 @@ import {
   createProjectSeed,
   createBetaApplication,
   createBetaFeedback,
+  createReviewItem,
   cancelAiUsageReservation,
   completeAiUsage,
   deleteUserData,
@@ -29,6 +31,7 @@ import {
   listBetaApplications,
   listBetaFeedback,
   listBetaTesterProgress,
+  listReviewItems,
   resetMemoryForTests,
   refundBuildPhotoCheck,
   reserveAiUsage,
@@ -40,6 +43,7 @@ import {
   updateBetaExperience,
   updateBetaApplicationReview,
   updateBetaFeedbackReview,
+  updateReviewItem,
   updateProject,
   updateUserPreferences,
   upsertUser
@@ -52,6 +56,7 @@ import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyL
 import { getZonePlantingGuidance } from "./plantingCalendar.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
+process.env.PIP_APPROVED_TRAINING_FILE ||= path.join(process.cwd(), "server", ".data", "approved-training-test.md");
 
 assert.equal(normalizeImageInput({ dataUrl: "data:image/jpeg;base64,/9j/2Q==" }).mimeType, "image/jpeg");
 assert.throws(() => normalizeImageInput({ dataUrl: "data:image/svg+xml;base64,PHN2Zz4=" }), /JPEG, PNG, or WebP/);
@@ -355,6 +360,29 @@ assert.equal(feedbackList.length, 1);
 const reviewedFeedback = await updateBetaFeedbackReview({ id: privateFeedback.id, status: "reviewing", priority: "high", adminNotes: "Reproduce fitting question" });
 assert.equal(reviewedFeedback.reviewStatus, "reviewing");
 assert.equal(reviewedFeedback.priority, "high");
+const reviewItem = await createReviewItem({
+  userId: "test-user",
+  projectId: freeProject.project.id,
+  question: "What gasket fits the hose-end shutoff valve?",
+  answer: "Pip was unsure.",
+  reason: "missing_knowledge",
+  context: { priority: "normal" }
+});
+assert.equal(reviewItem.status, "queued");
+assert.equal((await listReviewItems({ status: "new" })).some((item) => item.id === reviewItem.reviewItem.id), true);
+const appliedReview = await updateReviewItem({
+  id: reviewItem.reviewItem.id,
+  patch: {
+    status: "reviewed",
+    resolution: JSON.stringify({
+      issueType: "bad_affiliate",
+      idealAnswer: "Use standard 3/4-inch garden hose washers for the HydroPip hose-end shutoff valve.",
+      trainingUpdate: "knowledge_base",
+      internalNote: "Safe product knowledge auto-apply test."
+    })
+  }
+});
+assert.equal(appliedReview.appliedTraining.status, "applied");
 const testerProgress = await listBetaTesterProgress({});
 assert.equal(testerProgress.some((tester) => tester.id === "test-user" && tester.completed >= 3), true);
 

@@ -76,6 +76,10 @@ export function getKnowledgeIndex() {
   return cachedIndex;
 }
 
+export function resetKnowledgeIndex() {
+  cachedIndex = null;
+}
+
 export function formatContextForPrompt(searchResult) {
   if (!searchResult.matches.length) {
     return "No directly relevant HydroPip knowledge-base note was found. Use the authoritative saved profile and sound hydroponic or horticultural reasoning; ask one focused follow-up only if a necessary fact is missing.";

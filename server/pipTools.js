@@ -2,6 +2,7 @@ import { buildSteps, parts, schedulingRules, setupWizardSchema } from "./pipData
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const affiliateLinks = {
+  gardenHoseWashers: "https://www.amazon.com/dp/B0F1TRNY2K?tag=hydrpip2002-20",
   hoseEndValve: "https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20",
   hoseAdapters: "https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20",
   mainHose: "https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20",
@@ -114,6 +115,7 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   const contextLead = buildContextLead(retrieval);
 
   if (wantsHoseEndSize(q)) return hoseEndSizeAnswer(contextLead);
+  if (wantsGardenHoseWasher(q)) return gardenHoseWasherAnswer(contextLead);
   if (wantsTowerFeedTubing(q) || wantsTubingPurchase(q)) return tubingSupplyAnswer(contextLead);
   if (wantsHoseEnd(q)) return hoseEndSupplyAnswer(contextLead);
   if ((/\b(pipe|post)\b/.test(q) && /\b(support|supports|tower|center|galvanized|metal)\b/.test(q)) || wantsPart(q, ["support pipe", "center pipe", "tower pipe", "galvanized pipe", "galvanized steel", "metal post", "support post"])) {
@@ -328,8 +330,17 @@ function hoseEndSupplyAnswer(contextLead = "") {
   return `${contextLead}Use two pieces at the end of the main feed hose.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Hose adapters for future extensions: ${affiliateLinks.hoseAdapters}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
 }
 
+function wantsGardenHoseWasher(q) {
+  return /\b(gasket|washer|rubber washer|hose washer|seal|o[- ]?ring|oring|leakproof washer)\b/.test(q) &&
+    /\b(garden hose|hose end|female hose|shutoff|flush valve|adapter|connector|leak|drip)\b/.test(q);
+}
+
 function hoseEndSizeAnswer(contextLead = "") {
   return `${contextLead}Use standard 3/4-inch garden-hose-thread (GHT) hardware at the hose end; that thread size is separate from the hose's inside diameter.\n- Shutoff/flush valve: ${affiliateLinks.hoseEndValve}\n- Extension adapters: ${affiliateLinks.hoseAdapters}\n- Confirm your hose has standard garden-hose ends before ordering.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+}
+
+function gardenHoseWasherAnswer(contextLead = "") {
+  return `${contextLead}That is a standard garden hose washer/gasket. For the HydroPip hose-end shutoff/flush valve or regular garden-hose fittings, use standard 3/4-inch garden hose washers.\n- Replacement gasket: ${affiliateLinks.gardenHoseWashers}\n- Put one washer inside the female hose fitting, hand-tighten, then check for leaks.\n- If it still leaks, inspect the threads or replace the whole shutoff/flush valve.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
 }
 
 function toReminder(start, offsetDays, title, note, category) {

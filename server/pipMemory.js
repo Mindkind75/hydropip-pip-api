@@ -2,10 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { dailyLimitForTier, dailyResetAt } from "./pipUsage.js";
+import { resetKnowledgeIndex } from "./ragStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultDataFile = path.join(__dirname, ".data", "pip-memory.json");
 const dataFile = process.env.PIP_MEMORY_FILE || defaultDataFile;
+const rootDir = path.resolve(__dirname, "..");
 export const FREE_BUILD_PHOTO_LIMIT = 5;
 
 export const DEFAULT_WORKSPACE_TAB_ORDER = [
@@ -729,6 +731,7 @@ export async function updateReviewItem({ id, patch = {} } = {}) {
   const status = cleanOptionalText(patch.status, 40);
   const priority = cleanOptionalText(patch.priority, 40);
   const resolution = cleanOptionalText(patch.resolution, 4000);
+  let savedReviewItem;
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
@@ -742,7 +745,9 @@ export async function updateReviewItem({ id, patch = {} } = {}) {
       [itemId, status, priority, resolution]
     );
     if (!result.rows[0]) throw Object.assign(new Error("Review item not found"), { statusCode: 404 });
-    return { status: "updated", reviewItem: rowToReviewItem(result.rows[0]) };
+    savedReviewItem = rowToReviewItem(result.rows[0]);
+    const applied = await maybeApplyApprovedTraining(savedReviewItem);
+    return { status: "updated", reviewItem: savedReviewItem, appliedTraining: applied };
   }
   const state = readState();
   const record = state.reviewItems?.[itemId];
@@ -752,7 +757,9 @@ export async function updateReviewItem({ id, patch = {} } = {}) {
   record.resolution = resolution || record.resolution;
   record.updatedAt = nowIso();
   writeState(state);
-  return { status: "updated", reviewItem: record };
+  savedReviewItem = record;
+  const applied = await maybeApplyApprovedTraining(savedReviewItem);
+  return { status: "updated", reviewItem: savedReviewItem, appliedTraining: applied };
 }
 
 export async function listBetaTesterProgress({ limit = 300 } = {}) {
@@ -2452,6 +2459,72 @@ async function notifyReviewWebhook(item) {
   } catch (error) {
     console.warn(`Pip review webhook failed: ${error.message}`);
   }
+}
+
+async function maybeApplyApprovedTraining(item) {
+  if (!["reviewed", "resolved", "approved"].includes(String(item.status || ""))) {
+    return { status: "not_applied", reason: "status_not_approved" };
+  }
+  const training = parseTrainingResolution(item.resolution);
+  if (!training) return { status: "not_applied", reason: "no_structured_training_note" };
+  const safeTypes = new Set(["knowledge_base", "affiliate_fix", "product_link"]);
+  if (!safeTypes.has(training.trainingUpdate)) {
+    return { status: "manual_required", reason: "tool_or_code_change_required", trainingUpdate: training.trainingUpdate };
+  }
+  if (!training.idealAnswer || training.idealAnswer.length < 20) {
+    return { status: "not_applied", reason: "ideal_answer_required" };
+  }
+  const approvedTrainingFile = getApprovedTrainingFile();
+  const existing = fs.existsSync(approvedTrainingFile) ? fs.readFileSync(approvedTrainingFile, "utf8") : "";
+  const marker = `review:${item.id}`;
+  if (existing.includes(marker)) return { status: "already_applied", file: approvedTrainingFile };
+  const entry = [
+    "",
+    `## Approved Training - ${item.id}`,
+    `<!-- ${marker} -->`,
+    `- Applied: ${nowIso()}`,
+    `- Issue type: ${training.issueType || item.reason || "needs_review"}`,
+    `- Training update: ${training.trainingUpdate}`,
+    `- Original question: ${sanitizeTrainingText(item.question)}`,
+    "",
+    "### Approved Answer",
+    sanitizeTrainingText(training.idealAnswer),
+    "",
+    training.internalNote ? `### Internal Note\n${sanitizeTrainingText(training.internalNote)}\n` : ""
+  ].join("\n");
+  fs.mkdirSync(path.dirname(approvedTrainingFile), { recursive: true });
+  fs.appendFileSync(approvedTrainingFile, `${entry}\n`);
+  resetKnowledgeIndex();
+  return { status: "applied", file: approvedTrainingFile };
+}
+
+function parseTrainingResolution(value) {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      issueType: cleanOptionalText(parsed.issueType, 80),
+      idealAnswer: cleanOptionalText(parsed.idealAnswer, 3000),
+      trainingUpdate: cleanOptionalText(parsed.trainingUpdate, 80),
+      internalNote: cleanOptionalText(parsed.internalNote, 1200)
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
+function sanitizeTrainingText(value) {
+  return String(value || "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\r/g, "")
+    .trim()
+    .slice(0, 3000);
+}
+
+function getApprovedTrainingFile() {
+  return process.env.PIP_APPROVED_TRAINING_FILE ||
+    path.join(rootDir, "HydroPip_AIknowledge_base", "approved_training.md");
 }
 
 function cloneDefaultState() {

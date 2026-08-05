@@ -28,6 +28,7 @@ const cases = [
   { q: "I need the grow medium.", type: "product", must: ["B0FYTT7D6F", "B08WF8C5CL", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
   { q: "What link do I need for the end of the hose so I can add more towers later?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip2002-20"] },
   { q: "What piece goes on the end of the main hose?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip2002-20"], avoid: ["Main garden hose feed line"] },
+  { q: "I need a gasket for the garden hose shutoff valve.", type: "product", must: ["B0F1TRNY2K", "standard 3/4-inch garden hose washers", "hydrpip2002-20"], avoid: ["I need HydroPip team review"] },
   {
     q: "What size should it be?",
     type: "product",
