@@ -82,6 +82,7 @@ const defaultState = {
   reminders: {},
   readings: {},
   seeds: {},
+  reviewItems: {},
   pushSubscriptions: {},
   usageEvents: {},
   creditLedger: {}
@@ -663,6 +664,95 @@ export async function updateBetaFeedbackReview({ id, status, priority, adminNote
   record.updatedAt = nowIso();
   writeState(state);
   return record;
+}
+
+export async function createReviewItem({ userId, projectId, question, answer = "", reason = "needs_review", context = {}, status = "new" } = {}) {
+  const now = nowIso();
+  const item = {
+    id: makeId("review"),
+    userId: cleanOptionalText(userId, 180),
+    projectId: cleanOptionalText(projectId, 180),
+    question: cleanOptionalText(question, 4000) || "(No question saved)",
+    answer: cleanOptionalText(answer, 5000) || "",
+    reason: cleanOptionalText(reason, 120) || "needs_review",
+    context: context || {},
+    status: cleanOptionalText(status, 40) || "new",
+    priority: cleanOptionalText(context?.priority, 40) || "normal",
+    resolution: null,
+    createdAt: now,
+    updatedAt: now
+  };
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `insert into pip_review_items
+       (id, user_id, project_id, question, answer, reason, context, status, priority, resolution, created_at, updated_at)
+       values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,null,now(),now())
+       returning *`,
+      [item.id, item.userId, item.projectId, item.question, item.answer, item.reason,
+        JSON.stringify(item.context), item.status, item.priority]
+    );
+    await notifyReviewWebhook(item);
+    return { status: "queued", reviewItem: rowToReviewItem(result.rows[0]) };
+  }
+  const state = readState();
+  state.reviewItems ||= {};
+  state.reviewItems[item.id] = item;
+  writeState(state);
+  await notifyReviewWebhook(item);
+  return { status: "queued", reviewItem: item };
+}
+
+export async function listReviewItems({ status, limit = 100 } = {}) {
+  const normalizedStatus = cleanOptionalText(status, 40);
+  const safeLimit = Math.min(500, Math.max(1, Number(limit) || 100));
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select * from pip_review_items
+       where ($1::text is null or status = $1)
+       order by case priority when 'urgent' then 0 when 'high' then 1 when 'normal' then 2 else 3 end,
+                created_at desc
+       limit $2`,
+      [normalizedStatus, safeLimit]
+    );
+    return result.rows.map(rowToReviewItem);
+  }
+  return Object.values(readState().reviewItems || {})
+    .filter((item) => !normalizedStatus || item.status === normalizedStatus)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, safeLimit);
+}
+
+export async function updateReviewItem({ id, patch = {} } = {}) {
+  const itemId = requireRecordId(id, "reviewItemId");
+  const status = cleanOptionalText(patch.status, 40);
+  const priority = cleanOptionalText(patch.priority, 40);
+  const resolution = cleanOptionalText(patch.resolution, 4000);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_review_items
+       set status = coalesce($2, status),
+           priority = coalesce($3, priority),
+           resolution = coalesce($4, resolution),
+           updated_at = now()
+       where id = $1
+       returning *`,
+      [itemId, status, priority, resolution]
+    );
+    if (!result.rows[0]) throw Object.assign(new Error("Review item not found"), { statusCode: 404 });
+    return { status: "updated", reviewItem: rowToReviewItem(result.rows[0]) };
+  }
+  const state = readState();
+  const record = state.reviewItems?.[itemId];
+  if (!record) throw Object.assign(new Error("Review item not found"), { statusCode: 404 });
+  record.status = status || record.status;
+  record.priority = priority || record.priority;
+  record.resolution = resolution || record.resolution;
+  record.updatedAt = nowIso();
+  writeState(state);
+  return { status: "updated", reviewItem: record };
 }
 
 export async function listBetaTesterProgress({ limit = 300 } = {}) {
@@ -1561,6 +1651,22 @@ async function ensureSchema(pool) {
     create index if not exists pip_feedback_user_created_idx on pip_feedback(user_id, created_at desc);
     create index if not exists pip_feedback_rating_created_idx on pip_feedback(rating, created_at desc);
 
+    create table if not exists pip_review_items (
+      id text primary key,
+      user_id text,
+      project_id text,
+      question text not null,
+      answer text not null default '',
+      reason text not null default 'needs_review',
+      context jsonb not null default '{}'::jsonb,
+      status text not null default 'new',
+      priority text not null default 'normal',
+      resolution text,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create index if not exists pip_review_items_status_created_idx on pip_review_items(status, created_at desc);
+
     create table if not exists pip_beta_applications (
       id text primary key,
       name text not null,
@@ -1868,6 +1974,23 @@ function rowToBetaFeedback(row) {
     userEmail: row.user_email || row.userEmail || null,
     createdAt: toIso(row.created_at || row.createdAt),
     updatedAt: toIso(row.updated_at || row.updatedAt || row.created_at || row.createdAt)
+  };
+}
+
+function rowToReviewItem(row) {
+  return {
+    id: row.id,
+    userId: row.user_id || row.userId || null,
+    projectId: row.project_id || row.projectId || null,
+    question: row.question,
+    answer: row.answer,
+    reason: row.reason,
+    context: row.context || {},
+    status: row.status,
+    priority: row.priority,
+    resolution: row.resolution,
+    createdAt: toIso(row.created_at || row.createdAt),
+    updatedAt: toIso(row.updated_at || row.updatedAt)
   };
 }
 
@@ -2315,6 +2438,20 @@ function rowToCreditEntry(row) {
     metadata: row.metadata || {},
     createdAt: toIso(row.created_at)
   };
+}
+
+async function notifyReviewWebhook(item) {
+  const url = process.env.PIP_REVIEW_WEBHOOK_URL;
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "pip_review_item", reviewItem: item })
+    });
+  } catch (error) {
+    console.warn(`Pip review webhook failed: ${error.message}`);
+  }
 }
 
 function cloneDefaultState() {

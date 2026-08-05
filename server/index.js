@@ -22,6 +22,7 @@ import {
   createProjectReminder,
   createProjectSeed,
   createBetaFeedback,
+  createReviewItem,
   cancelAiUsageReservation,
   claimBuildPhotoCheck,
   completeAiUsage,
@@ -45,6 +46,7 @@ import {
   listBetaApplications,
   listBetaFeedback,
   listBetaTesterProgress,
+  listReviewItems,
   refundBuildPhotoCheck,
   reserveAiUsage,
   seedProjectConversationDefaults,
@@ -57,6 +59,7 @@ import {
   updateBetaExperience,
   updateBetaApplicationReview,
   updateBetaFeedbackReview,
+  updateReviewItem,
   upsertUser
 } from "./pipMemory.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
@@ -258,6 +261,31 @@ app.patch("/api/pip/admin/beta/feedback/:id", requirePipAdmin, async (req, res, 
   }
 });
 
+app.get("/api/pip/admin/review-items", requirePipAdmin, async (req, res, next) => {
+  try {
+    res.json({
+      reviewItems: await listReviewItems({
+        status: req.query.status,
+        limit: req.query.limit
+      }),
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/pip/admin/review-items/:id", requirePipAdmin, async (req, res, next) => {
+  try {
+    res.json(await updateReviewItem({
+      id: req.params.id,
+      patch: req.body?.patch || req.body || {}
+    }));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use("/api/pip/users", requirePipMember);
 app.use("/api/pip/projects", requirePipMember);
 app.use("/api/pip/feedback", requirePipBeta);
@@ -363,6 +391,22 @@ app.delete("/api/pip/users/me", async (req, res, next) => {
   }
   try {
     res.json(await deleteUserData({ userId: req.pipUser.id }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/review-items", async (req, res, next) => {
+  try {
+    res.status(201).json(await createReviewItem({
+      userId: req.pipUser?.id || req.body?.userId || req.body?.user?.id,
+      projectId: req.body?.projectId,
+      question: req.body?.question,
+      answer: req.body?.answer,
+      reason: req.body?.reason || "manual_feedback",
+      context: req.body?.context || {},
+      status: "new"
+    }));
   } catch (error) {
     next(error);
   }

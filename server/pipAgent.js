@@ -1,7 +1,7 @@
 import { systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
 import { createGrowPlan, createReminder, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
-import { appendProjectMessage, buildProjectContext } from "./pipMemory.js";
+import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 import { combineOpenAiUsage, pipAiDisabled } from "./pipUsage.js";
 
@@ -12,6 +12,7 @@ const toolMap = {
   recommend_parts: recommendParts,
   create_grow_plan: createGrowPlan,
   create_reminder: createReminder,
+  flag_review_item: (args) => ({ status: "queued", ...args }),
   get_wizard_schema: getWizardSchema
 };
 
@@ -89,6 +90,29 @@ const tools = [
     name: "get_wizard_schema",
     description: "Return the setup wizard questions Pip needs before building a grow profile.",
     parameters: { type: "object", properties: {}, additionalProperties: false }
+  },
+  {
+    type: "function",
+    name: "flag_review_item",
+    description: "Queue a question for HydroPip team review when Pip cannot answer confidently after asking for missing context.",
+    parameters: {
+      type: "object",
+      properties: {
+        reason: {
+          type: "string",
+          enum: ["missing_knowledge", "ambiguous_request", "conflicting_context", "unsupported_workflow", "low_confidence", "tool_gap"]
+        },
+        missingContext: {
+          type: "array",
+          items: { type: "string" },
+          description: "Specific facts Pip would need to answer correctly."
+        },
+        attemptedAnswer: { type: "string" },
+        priority: { type: "string", enum: ["normal", "high"] }
+      },
+      required: ["reason"],
+      additionalProperties: false
+    }
   }
 ];
 
@@ -272,6 +296,9 @@ export async function askPip({ message, image, profile, subscription, history = 
       `Custom guidance for non-HydroPip systems, including DWC, NFT, Kratky, Dutch buckets, ebb and flow, drip systems, or custom hydro setups, is Pip Pro. Use this wording style: "I can definitely help with that, but that is a Pip Pro subscription feature." Include this signup link when a subscription is required: ${proSignupUrl}`,
       "General hydroponics education is allowed in free mode when it helps the user understand HydroPip or decide to build. Custom plans, optimization, troubleshooting, schedules, logs, reminders, or saved memory for a different non-HydroPip system are Pip Pro.",
       "If the retrieved context is not enough for an exact recommendation, say what is missing and ask one focused follow-up question.",
+      "If a focused follow-up still would not let you answer, or the knowledge base lacks the needed HydroPip-specific information, call flag_review_item. Do not bluff, invent specs, invent policy, or wander to products.",
+      "For ambiguous wording, ask one concise clarifying question. For plant-health, troubleshooting, or schedule tuning, ask only for the next 2-4 critical facts needed, such as crop, pH, EC/TDS, feed duration, runoff, photos, weather/heat, or exact part.",
+      "If the user is frustrated because a prior answer failed, acknowledge that briefly, correct course, and either answer the exact request or flag_review_item if the system lacks the capability.",
       "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
       `Free-member photo checks are only for inspecting the HydroPip physical build, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
@@ -312,6 +339,26 @@ export async function askPip({ message, image, profile, subscription, history = 
       } else if (result.status === "queued") {
         result = { status: "project_required", message: "Open or create a grow before adding this reminder." };
       }
+    } else if (item.name === "flag_review_item") {
+      const review = await createReviewItem({
+        userId,
+        projectId,
+        question: trimmed,
+        answer: args.attemptedAnswer || response.output_text || "",
+        reason: args.reason || "needs_review",
+        context: {
+          priority: args.priority || "normal",
+          missingContext: args.missingContext || [],
+          questionIntent,
+          topSources: (retrieval?.matches || []).slice(0, 5).map((match) => ({ source: match.source, title: match.title, score: match.score })),
+          project: projectContext?.project || null
+        }
+      });
+      result = {
+        status: "queued",
+        message: "I queued this for HydroPip review.",
+        reviewItemId: review?.reviewItem?.id
+      };
     } else {
       result = handler(args);
       if (item.name === "create_grow_plan" && subscription?.active && projectContext && Array.isArray(result.reminders) && result.reminders.length) {
@@ -393,6 +440,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "If the user asks for a shopping link, include the matching HydroPip Amazon affiliate URL directly when it appears in the tool result or known link list.",
       `If the user asks for help with a non-HydroPip hydro system, explain briefly: "I can definitely help with that, but that is a Pip Pro subscription feature." Include ${proSignupUrl}.`,
       "Make the free vs Pip Pro boundary clear when relevant, and frame unavailable Pro capabilities as planned or subscription-only instead of already active.",
+      "If a tool result says a review item was queued, tell the user Pip needs HydroPip team review before giving a confident answer. Ask for any one critical missing detail if useful.",
       "A confirmation_required reminder or schedule is not saved yet. Tell the user to review and press the confirmation button shown below your reply.",
       "When a confirmation action is shown, keep the reply under 35 words and do not repeat raw ISO timestamps or the full task list; the review card carries those details.",
       "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions.",
@@ -611,7 +659,7 @@ export function classifyQuestionIntent(message, { image = false } = {}) {
 }
 
 function toolsForQuestion(intent, message) {
-  const requested = new Set();
+  const requested = new Set(["flag_review_item"]);
   if (intent === "hydropip_build") {
     requested.add("get_build_step");
     requested.add("recommend_parts");
