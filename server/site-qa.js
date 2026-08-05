@@ -51,10 +51,12 @@ assert.doesNotMatch(pipHtml, /class=["']history-feature["']/, "The Pro history n
 assert.match(pipHtml, /class=["']history-layout["']/, "The Pro history notebook should use the compact working layout");
 assert.match(pipHtml, /pip-history-wide-concept\.jpg/, "The Pro sales page should explain saved grow memory visually");
 assert.doesNotMatch(pipHtml, /pip-history-poster-concept\.jpg/, "The history poster with outdated branding must not appear on the live Pip page");
-for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", "grow-log.png", "history.png"]) {
+for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", "grow-log.png"]) {
   assert.equal(fs.existsSync(new URL(`../assets/marketing/pro-tabs/${asset}`, import.meta.url)), true, `Pip notebook guide is missing: ${asset}`);
   assert.match(pipHtml, new RegExp(`/assets/marketing/pro-tabs/${asset.replaceAll(".", "\\.")}`), `Pip Pro should use the ${asset} notebook guide`);
 }
+assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/historian.png", import.meta.url)), true, "The History notebook needs its transparent historian Pip");
+assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/historian\.png/, "The History notebook should use historian Pip beside saved activity");
 assert.deepEqual(
   fs.readFileSync(new URL("../assets/marketing/pro-tabs/calendar.png", import.meta.url)),
   fs.readFileSync(new URL("../assets/marketing/pro-tabs/planner.png", import.meta.url)),
