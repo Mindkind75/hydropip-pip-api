@@ -96,6 +96,7 @@ const nutrientCalculatorHtml = fs.readFileSync(new URL("../nutrient-calculator.h
 const nutrientCalculatorJs = fs.readFileSync(new URL("../assets/js/nutrient-calculator.js", import.meta.url), "utf8");
 assert.match(nutrientCalculatorJs, /\/api\/pip\/nutrient-programs/, "The nutrient calculator should load the signed member catalog from the server");
 assert.match(nutrientCalculatorHtml, /HydroPip member tool/, "Visitors should see a branded member gate");
+assert.match(nutrientCalculatorHtml, /href="https:\/\/www\.hydropip\.com\/" target="_top">Home<\/a>/, "The nutrient calculator should provide a clear Home action");
 assert.match(nutrientCalculatorHtml, /Grow beyond the standard HydroPip recipe/, "Free members should see the Pip Pro calculator benefit");
 assert.match(nutrientCalculatorJs, /hydropipToolSession/, "The calculator should use the signed member session passed by Pip");
 assert.match(nutrientCalculatorHtml, /mixing a fresh reservoir batch/i, "The nutrient calculator must ask whether this is a fresh batch");
@@ -104,6 +105,13 @@ assert.match(nutrientCalculatorHtml, /Calculate my nutrient mix/, "The nutrient 
 assert.match(nutrientCalculatorJs, /Another brand - use my label rate/, "The nutrient calculator should support growers using another labeled nutrient");
 assert.doesNotMatch(nutrientCalculatorJs, /addEventListener\(["']change["'],\s*render\)/, "Changing an input must not calculate a recipe before the button is pressed");
 assert.doesNotThrow(() => new Function(nutrientCalculatorJs), "The nutrient calculator JavaScript should parse");
+assert.match(fieldGuideHtml, /pip\?tool=nutrients/, "The Field Guide should hand members into the nutrient calculator before planting");
+assert.match(fieldGuideHtml, /Before adding seeds or transplants/, "The Field Guide should place nutrient calculation before planting");
+const plannerPanelHtml = pipHtml.match(/<section class="workspace-section notebook-page" data-pro-panel="planner"[\s\S]*?<section class="workspace-section notebook-page" data-pro-panel="calendar"/)?.[0] || "";
+const trackBuildPanelHtml = pipHtml.match(/<section class="workspace-section notebook-page" data-pro-panel="build"[\s\S]*?<section class="workspace-section notebook-page" data-pro-panel="account"/)?.[0] || "";
+assert.match(plannerPanelHtml, /nutrient-calculator\.html/, "The nutrient calculator should live in the Pip Pro Planner");
+assert.doesNotMatch(trackBuildPanelHtml, /nutrient-calculator\.html/, "Track My Build should stay focused on parts and construction");
+assert.match(pipHtml, /requestedTool==="nutrients"/, "Pip should securely hand signed members into the Field Guide nutrient tool");
 const nutrientPrograms = JSON.parse(fs.readFileSync(new URL("../data/nutrient-programs.json", import.meta.url), "utf8"));
 for (const programId of ["hydropip_masterblend", "masterblend_label", "jacks_321", "gh_flora_3part"]) {
   assert.ok(nutrientPrograms.programs[programId], `The nutrient catalog is missing ${programId}`);
