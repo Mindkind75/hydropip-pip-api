@@ -108,9 +108,28 @@ app.use(
 );
 app.use(express.json({ limit: "4mb" }));
 app.get("/data/nutrient-programs.json", (_req, res) => res.status(404).json({ error: "not_found" }));
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/") || req.path === "/beta-admin" || req.path === "/pip-review-admin.html") {
+    res.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  next();
+});
+
+const publicPageRoutes = new Map([
+  ["/field-guide", "field-guide.html"],
+  ["/how-it-works", "how-it-works.html"],
+  ["/nutrient-calculator", "nutrient-calculator.html"],
+  ["/track-start", "track-start.html"]
+]);
+
+for (const [route, file] of publicPageRoutes) {
+  app.get(route, (_req, res) => res.sendFile(path.join(rootDir, file)));
+  app.get(`/${file}`, (_req, res) => res.redirect(301, route));
+}
+
 app.use(express.static(rootDir));
 
-app.get("/field-guide", (_req, res) => res.sendFile(path.join(rootDir, "field-guide.html")));
 app.get("/beta-test", (_req, res) => res.sendFile(path.join(rootDir, "beta-test.html")));
 app.get("/beta-admin", (_req, res) => res.sendFile(path.join(rootDir, "beta-admin.html")));
 

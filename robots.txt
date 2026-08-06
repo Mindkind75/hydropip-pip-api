@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /beta-admin
+Disallow: /beta-admin.html
+Disallow: /pip-review-admin.html
+
+Sitemap: https://hydropip-pip-api.onrender.com/sitemap.xml
