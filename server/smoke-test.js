@@ -55,6 +55,7 @@ import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
 import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
 import { getZonePlantingGuidance } from "./plantingCalendar.js";
+import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 process.env.PIP_APPROVED_TRAINING_FILE ||= path.join(process.cwd(), "server", ".data", "approved-training-test.md");
@@ -70,6 +71,14 @@ assert.equal(verifyPipSession(signedSession).sub, "test-user");
 assert.equal(verifyPipSession(signedSession).beta, true);
 assert.equal(verifyPipSession(signedSession).planName, "Pip Pro Beta Tester");
 assert.equal(verifyPipSession(`${signedSession}tampered`), null);
+const freeNutrientCatalog = nutrientProgramsForSubscription({ active: false });
+assert.deepEqual(Object.keys(freeNutrientCatalog.systems), ["hydropip"]);
+assert.deepEqual(Object.keys(freeNutrientCatalog.programs), ["hydropip_masterblend"]);
+assert.equal(freeNutrientCatalog.access.scope, "hydropip_only");
+const proNutrientCatalog = nutrientProgramsForSubscription({ active: true });
+assert.equal(Object.keys(proNutrientCatalog.systems).includes("dwc"), true);
+assert.equal(Object.keys(proNutrientCatalog.programs).includes("jacks_321"), true);
+assert.equal(proNutrientCatalog.access.scope, "all_systems");
 assert.equal(stripSummaryLabel("TL;DR: Use shorter feed cycles."), "Use shorter feed cycles.");
 assert.equal(stripSummaryLabel("Summary: Check pH first."), "Check pH first.");
 const linkedCompact = compactAnswer(

@@ -7,6 +7,11 @@
   var changed = document.querySelector("#changed");
   var customFields = document.querySelector("#customFields");
   var programHint = document.querySelector("#programHint");
+  var accessTitle = document.querySelector("#accessTitle");
+  var accessText = document.querySelector("#accessText");
+  var accessActions = document.querySelector("#accessActions");
+  var memberOnlyNote = document.querySelector("#memberOnlyNote");
+  var proUpsell = document.querySelector("#proUpsell");
   var config = null;
   var hasCalculated = false;
   var stageLabels = {
@@ -187,11 +192,57 @@
       var program = config.programs[key];
       return '<article class="program-card"><h3>' + escapeHtml(program.shortLabel) + '</h3><p>' + escapeHtml(program.bestFor) + '</p></article>';
     });
-    cards.push('<article class="program-card"><h3>Any labeled nutrient</h3><p>Enter the label rate for up to three products and scale it to your actual reservoir without guessing.</p></article>');
+    if (config.access.pro) cards.push('<article class="program-card"><h3>Any labeled nutrient</h3><p>Enter the label rate for up to three products and scale it to your actual reservoir without guessing.</p></article>');
     document.querySelector("#programCards").innerHTML = cards.join("");
   }
 
-  fetch("/data/nutrient-programs.json").then(function (response) {
+  function sessionToken() {
+    var match = String(window.location.hash || "").match(/(?:^#|&)session=([^&]+)/);
+    if (match) {
+      var token = decodeURIComponent(match[1]);
+      try { window.sessionStorage.setItem("hydropipToolSession", token); } catch (error) {}
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      return token;
+    }
+    try { return window.sessionStorage.getItem("hydropipToolSession") || ""; } catch (error) { return ""; }
+  }
+
+  function showMemberGate(message) {
+    document.body.classList.remove("access-pending");
+    document.body.classList.add("access-blocked");
+    accessTitle.textContent = "Sign in to calculate your mix.";
+    accessText.textContent = message || "A free HydroPip account unlocks the calculator for the HydroPip system. Pip Pro adds other hydroponic systems, nutrient programs, saved grow history, and personalized planning.";
+    accessActions.hidden = false;
+  }
+
+  function configureAccess() {
+    document.body.classList.remove("access-pending", "access-blocked");
+    if (config.access.pro) {
+      document.querySelector("#heroEyebrow").textContent = "Pip Pro nutrient calculator";
+      document.querySelector("#heroTitle").textContent = "Mix for the grow you actually have.";
+      document.querySelector("#heroText").textContent = "Choose your system, reservoir, crop, stage, water, and nutrient program. Pip Pro scales the supported recipe or your product-label rate and keeps it connected to the grow.";
+      document.querySelector("#heroCardTitle").textContent = "One calculator. More ways to grow.";
+      document.querySelector("#heroCardText").textContent = "HydroPip, DWC, NFT, Kratky, drip, Dutch buckets, ebb and flow, aeroponics, and custom programs stay in one workspace.";
+      return;
+    }
+    form.system.disabled = true;
+    form.program.disabled = true;
+    memberOnlyNote.hidden = false;
+    proUpsell.hidden = false;
+    document.querySelector("#programHeading").textContent = "The tested HydroPip batch method.";
+  }
+
+  var token = sessionToken();
+  if (!token) {
+    showMemberGate();
+    return;
+  }
+
+  fetch("/api/pip/nutrient-programs", { headers: { Authorization: "Bearer " + token } }).then(function (response) {
+    if (response.status === 401) {
+      try { window.sessionStorage.removeItem("hydropipToolSession"); } catch (error) {}
+      throw new Error("member_session_required");
+    }
     if (!response.ok) throw new Error("Unable to load nutrient programs.");
     return response.json();
   }).then(function (data) {
@@ -199,13 +250,14 @@
     populateSelect(form.system, config.systems);
     populateSelect(form.crop, config.crops);
     populateSelect(form.waterSource, config.waterSources);
-    form.program.innerHTML = Object.keys(config.programs).map(function (key) { return option(key, config.programs[key].label); }).join("") + option("custom_label", "Another brand - use my label rate");
+    form.program.innerHTML = Object.keys(config.programs).map(function (key) { return option(key, config.programs[key].label); }).join("") + (config.access.pro ? option("custom_label", "Another brand - use my label rate") : "");
     form.system.value = "hydropip";
     form.crop.value = "mixed";
     form.waterSource.value = "unknown_tap";
     form.program.value = "hydropip_masterblend";
     updateProgramUi();
     form.stage.value = "vegetative";
+    configureAccess();
     renderProgramCards();
     form.addEventListener("submit", calculate);
     form.program.addEventListener("change", function () { updateProgramUi(); markDirty(); });
@@ -219,6 +271,11 @@
     });
     form.addEventListener("input", markDirty);
   }).catch(function (caught) {
+    if (caught.message === "member_session_required") {
+      showMemberGate("Your member session has expired. Sign in again to use the HydroPip calculator. Pip Pro unlocks other systems and nutrient programs.");
+      return;
+    }
+    document.body.classList.remove("access-pending");
     error.textContent = caught.message;
     error.hidden = false;
   });

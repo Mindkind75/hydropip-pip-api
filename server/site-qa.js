@@ -94,7 +94,10 @@ assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build sh
 assert.match(partsChecklistHtml, /\/data\/build-items\.json/, "Track My Build should load its prices from the centralized build catalog");
 const nutrientCalculatorHtml = fs.readFileSync(new URL("../nutrient-calculator.html", import.meta.url), "utf8");
 const nutrientCalculatorJs = fs.readFileSync(new URL("../assets/js/nutrient-calculator.js", import.meta.url), "utf8");
-assert.match(nutrientCalculatorJs, /\/data\/nutrient-programs\.json/, "The nutrient calculator should load centralized multi-grower nutrient programs");
+assert.match(nutrientCalculatorJs, /\/api\/pip\/nutrient-programs/, "The nutrient calculator should load the signed member catalog from the server");
+assert.match(nutrientCalculatorHtml, /HydroPip member tool/, "Visitors should see a branded member gate");
+assert.match(nutrientCalculatorHtml, /Grow beyond the standard HydroPip recipe/, "Free members should see the Pip Pro calculator benefit");
+assert.match(nutrientCalculatorJs, /hydropipToolSession/, "The calculator should use the signed member session passed by Pip");
 assert.match(nutrientCalculatorHtml, /mixing a fresh reservoir batch/i, "The nutrient calculator must ask whether this is a fresh batch");
 assert.match(nutrientCalculatorJs, /Do not add a complete recipe to a partially depleted reservoir/, "The nutrient calculator must block full dosing into a partial HydroPip batch");
 assert.match(nutrientCalculatorHtml, /Calculate my nutrient mix/, "The nutrient calculator needs an explicit calculation action");
