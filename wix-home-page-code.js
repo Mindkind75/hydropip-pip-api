@@ -2,8 +2,9 @@ import wixWindowFrontend from "wix-window-frontend";
 import wixLocation from "wix-location";
 import { currentMember, authentication } from "wix-members-frontend";
 
-const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260803c";
+const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260806-gapfix1";
 const HOME_EMBED_IDS = ["#homeHtml", "#html1", "#html2", "#iFrame1"];
+let hasMeasuredHomeHeight = false;
 
 $w.onReady(() => {
   collapseOuterHeader();
@@ -13,6 +14,7 @@ $w.onReady(() => {
   embed.onMessage(async (event) => {
     const message = event.data || {};
     if (message.type === "HYDROPIP_EMBED_HEIGHT" && message.page === "home.html") {
+      hasMeasuredHomeHeight = true;
       setEmbedHeight(embed, message.height);
       return;
     }
@@ -26,8 +28,8 @@ $w.onReady(() => {
     }
   });
 
-  embed.src = HYDROPIP_HOME_SRC;
   setFallbackHeight(embed);
+  embed.src = HYDROPIP_HOME_SRC;
   setTimeout(() => sendHomeSession(embed), 1000);
 });
 
@@ -95,21 +97,24 @@ function getEmbed() {
 }
 
 function setFallbackHeight(embed) {
-  setEmbedHeight(embed, wixWindowFrontend.formFactor === "Mobile" ? 14000 : 8500);
+  if (hasMeasuredHomeHeight) return;
+  setEmbedHeight(embed, wixWindowFrontend.formFactor === "Mobile" ? 9400 : 5800);
   wixWindowFrontend.getBoundingRect().then((size) => {
-    if (size?.window?.width) setEmbedHeight(embed, heightForWidth(size.window.width));
+    if (!hasMeasuredHomeHeight && size?.window?.width) {
+      setEmbedHeight(embed, heightForWidth(size.window.width));
+    }
   }).catch(() => {});
 }
 
 function heightForWidth(width) {
-  if (width <= 560) return 14000;
-  if (width <= 900) return 12600;
-  if (width <= 1100) return 7700;
-  return 8300;
+  if (width <= 560) return 9400;
+  if (width <= 900) return 8000;
+  if (width <= 1100) return 6500;
+  return 5800;
 }
 
 function setEmbedHeight(embed, requestedHeight) {
   const height = Math.ceil(Number(requestedHeight));
   if (!Number.isFinite(height) || height < 900 || height > 20000) return;
-  embed.height = height + 24;
+  embed.height = height + 4;
 }

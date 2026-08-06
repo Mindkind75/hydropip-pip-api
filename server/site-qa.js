@@ -230,6 +230,10 @@ assert.match(wixTrackBridge, /HYDROPIP_EMBED_HEIGHT/, "The Wix Track My Build pa
 assert.doesNotMatch(wixTrackBridge, /14950|25700/, "The Wix Track My Build page must not restore fixed legacy iframe heights");
 
 const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");
+const wixHomeBridge = fs.readFileSync(new URL("../wix-home-page-code.js", import.meta.url), "utf8");
+assert.match(homeHtml, /postHeight\(true\)/, "Home must resend its measured height after the Wix bridge is ready");
+assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
+assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
 assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature the mature four-tower system");
 assert.match(homeHtml, /assets\/photos\/hydropip-mature-four-tower-system\.jpg/, "Home hero is missing the mature four-tower photo");
 assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");

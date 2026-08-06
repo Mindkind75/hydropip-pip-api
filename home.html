@@ -533,9 +533,9 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     });
     return Math.ceil(bottom);
   }
-  function postHeight(){
+  function postHeight(force){
     var nextHeight=contentHeight();
-    if(Math.abs(nextHeight-lastHeight)<8)return;
+    if(!force&&Math.abs(nextHeight-lastHeight)<8)return;
     lastHeight=nextHeight;
     try{window.parent.postMessage({type:"HYDROPIP_EMBED_HEIGHT",page:location.pathname.split("/").pop()||"home",height:nextHeight,width:window.innerWidth||document.documentElement.clientWidth,viewportHeight:window.innerHeight||document.documentElement.clientHeight},"*")}catch(error){}
   }
@@ -545,7 +545,10 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     if(!image.complete)image.addEventListener("load",postHeight,{once:true});
   });
   if("ResizeObserver" in window)new ResizeObserver(postHeight).observe(document.body);
-  setTimeout(postHeight,250);setTimeout(postHeight,1000);setTimeout(postHeight,2500);setTimeout(postHeight,6000);
+  setTimeout(function(){postHeight(true)},250);
+  setTimeout(function(){postHeight(true)},1000);
+  setTimeout(function(){postHeight(true)},2500);
+  setTimeout(function(){postHeight(true)},6000);
 })();
 </script>
 </body>
