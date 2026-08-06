@@ -1,4 +1,5 @@
 import { buildCatalog, buildSteps, hydropipSystem, parts, schedulingRules, setupWizardSchema } from "./pipData.js";
+import { pestProductLinks } from "./pipProductLinks.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const affiliateLinks = {
@@ -19,8 +20,7 @@ const affiliateLinks = {
   ecTdsMeter: "https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20",
   ecTdsCalibration: "https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20",
   seeds: "https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20",
-  stickyTraps: "https://www.amazon.com/s?k=yellow+sticky+traps+for+plants&tag=hydrpip2002-20",
-  foodSafePestControl: "https://www.amazon.com/s?k=food+safe+garden+pest+control+vegetables&tag=hydrpip2002-20",
+  stickyTraps: pestProductLinks.yellowStickyTraps,
   mediaTopOff: "https://www.amazon.com/s?k=perlite+vermiculite+hydroponic+growing+medium&tag=hydrpip2002-20"
 };
 const supportPipeUrl = "https://www.homedepot.com/p/100537138";
@@ -287,11 +287,26 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   if (wantsPart(q, ["stackable", "planter", "tower stack", "four pot", "4 pot", "pots"])) {
     return `${contextLead}Use two five-tier orders of the approved Mr. Stacky four-pot planter sections per tower. The center opening is designed for an optional 1/2-inch support pole.\n- Planter sections: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20\n- Four towers need 8 orders total.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
-  if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on|chewing bugs)\b/.test(q)) {
-    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  if (/\b(fungus gnats?|gnat larvae)\b/.test(q)) {
+    return `${contextLead}Fungus gnats need separate adult monitoring and larval control.\n- Use yellow sticky traps to monitor adults: ${pestProductLinks.yellowStickyTraps}\n- If the product label covers your crop and setup, use Bti for larvae: ${pestProductLinks.btiFungusGnats}\n- Reduce constantly wet surface areas without letting roots dry out.\n\nFollow the product label for edible crops. As an Amazon Associate I earn from qualifying purchases.`;
   }
-  if (/\b(tiny holes|holes in.*leaves|chewed|caterpillar|worm|leaf miner|leafminer)\b/.test(q)) {
-    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  if (/\b(aphids?|white ?flies|mealybugs?)\b/.test(q)) {
+    return `${contextLead}For soft-bodied pests such as aphids or whiteflies, start with removal and a labeled insecticidal soap.\n- Spray search: ${pestProductLinks.insecticidalSoap}\n- Monitoring traps: ${pestProductLinks.yellowStickyTraps}\n- Treat leaf undersides and follow the edible-crop label.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  }
+  if (/\b(caterpillars?|cabbage worms?|hornworms?|loopers?)\b/.test(q)) {
+    return `${contextLead}If you confirmed a leaf-eating caterpillar, Bt kurstaki is the targeted treatment category.\n- Bt caterpillar-control search: ${pestProductLinks.btKurstaki}\n- Remove visible larvae first and treat only as the product label directs for the crop.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  }
+  if (/\b(thrips?|leaf miners?|leafminers?)\b/.test(q)) {
+    return `${contextLead}Confirm thrips or leaf miners before treating; their damage can resemble other problems.\n- Labeled spinosad search: ${pestProductLinks.spinosad}\n- Thrips monitoring: ${pestProductLinks.blueStickyTraps}\n- Remove badly affected leaves and follow the edible-crop label.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  }
+  if (/\b(spider mites?|mites?)\b/.test(q)) {
+    return `${contextLead}For confirmed mites, remove heavily affected leaves and use a product labeled for mites and edible crops.\n- Insecticidal soap search: ${pestProductLinks.insecticidalSoap}\n- Horticultural-oil search: ${pestProductLinks.horticulturalOil}\n- Test a small area first and avoid spraying heat-stressed plants.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  }
+  if (/\b(tiny holes|holes in.*leaves|chewed)\b/.test(q)) {
+    return `${contextLead}Tiny holes confirm chewing pests, but not which pest yet.\n- Check leaf undersides and the tower after dusk for larvae or beetles.\n- If you find a caterpillar, use the targeted Bt search: ${pestProductLinks.btKurstaki}\n- If no pest is visible, send a close photo before treating.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+  }
+  if (/\b(pest|pests|bugs on|chewing bugs)\b/.test(q)) {
+    return `${contextLead}Identify the pest before choosing a spray.\n- Check leaf tops, undersides, stems, and the media surface.\n- Use yellow sticky traps to monitor flying adults: ${pestProductLinks.yellowStickyTraps}\n- Tell me its size, color, movement, and damage pattern for the matching treatment.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
 
   return null;
@@ -331,12 +346,6 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   }
   if (/\b(water temp|water temperature|reservoir temp|tank temp|too hot|hot water)\b/.test(q)) {
     return `${contextLead}Keep the IBC as cool and shaded as you can.\n- Cover the tote and block sunlight from nutrient water.\n- Circulate before testing pH/EC.\n- If roots look stressed, reduce heat exposure before chasing nutrients.\n\nIBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
-  }
-  if (/\b(fungus gnat|gnats|aphid|aphids|pest|pests|bugs on)\b/.test(q)) {
-    return `${contextLead}Handle pests early before they spread tower to tower.\n- Remove badly infested leaves and check undersides.\n- Add sticky traps nearby: ${affiliateLinks.stickyTraps}\n- Use crop-safe controls only: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
-  }
-  if (/\b(tiny holes|holes in.*leaves|chewed|caterpillar|worm|leaf miner|leafminer)\b/.test(q)) {
-    return `${contextLead}Tiny holes usually mean chewing pests, not a nutrient problem.\n- Check leaf undersides in the morning/evening.\n- Remove damaged leaves and visible pests.\n- Sticky traps: ${affiliateLinks.stickyTraps}\n- Food-safe controls: ${affiliateLinks.foodSafePestControl}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (/\b(strawberry|strawberries)\b/.test(q)) {
     return `${contextLead}Strawberries can work in HydroPip, but they are slower than greens.\n- Give them strong light and steady moisture without soaking crowns.\n- Keep pH/EC steady.\n- Start with greens/herbs first if you are still tuning the system.`;
@@ -419,7 +428,19 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   if (/\b(flush|flushing)\b/.test(q) && /\b(main line|feed line|hose|line)\b/.test(q)) {
     return `${contextLead}Yes, flush the main feed line occasionally.\n- Open the end-of-hose valve/nozzle.\n- Run the feed pump briefly into a safe drain bucket/area.\n- Close it and confirm each tower still drips evenly.\n\nFlush valve: ${affiliateLinks.hoseEndValve}`;
   }
-  return `${contextLead}I can help with HydroPip build, parts, feed timing, pH/EC, nutrients, IBC mixing, media reuse, and grow timing.\n\nAsk one specific thing, like "why are leaves yellow?" or "what link do I need for pumps?"`;
+  return `${contextLead}${fallbackConversationStarter()}`;
+}
+
+function fallbackConversationStarter() {
+  const starters = [
+    "Immediate: Compare flow at the nearest and farthest tower. What are you working on right now?",
+    "Immediate: Check one leaf underside and one root zone. Are we solving a plant, pest, or watering issue?",
+    "Immediate: Confirm the IBC level and that both pumps run. What changed since the system last looked right?",
+    "Immediate: Pick the one symptom or part that matters most. Tell me what you see and where it is.",
+    "Immediate: Check whether every tower feels equally moist. Are you building, planting, feeding, or troubleshooting?",
+    "Immediate: Note the crop and its growth stage. What decision do you want to make next?"
+  ];
+  return starters[Math.floor(Math.random() * starters.length)];
 }
 
 function wantsTowerFeedTubing(q) {
