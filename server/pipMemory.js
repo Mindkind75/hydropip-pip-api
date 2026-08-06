@@ -86,6 +86,7 @@ const defaultState = {
   seeds: {},
   reviewItems: {},
   pushSubscriptions: {},
+  conversionEvents: {},
   usageEvents: {},
   creditLedger: {}
 };
@@ -105,6 +106,101 @@ export async function getMemoryHealth() {
   await ensureSchema(pool);
   await pool.query("select 1");
   return { mode: "postgres", persistent: true };
+}
+
+export async function recordConversionEvent(event = {}) {
+  const normalized = normalizeConversionEvent(event);
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `insert into pip_conversion_events
+        (id, client_event_id, event_name, visitor_id, user_id, session_tier, page, referrer_host,
+         utm_source, utm_medium, utm_campaign, utm_content, utm_term, metadata, created_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15)
+       on conflict (client_event_id) do nothing
+       returning *`,
+      [
+        normalized.id,
+        normalized.clientEventId,
+        normalized.eventName,
+        normalized.visitorId,
+        normalized.userId,
+        normalized.sessionTier,
+        normalized.page,
+        normalized.referrerHost,
+        normalized.utmSource,
+        normalized.utmMedium,
+        normalized.utmCampaign,
+        normalized.utmContent,
+        normalized.utmTerm,
+        JSON.stringify(normalized.metadata),
+        normalized.createdAt
+      ]
+    );
+    return result.rows[0] ? rowToConversionEvent(result.rows[0]) : null;
+  }
+
+  const state = readState();
+  if (normalized.clientEventId && Object.values(state.conversionEvents).some((item) => item.clientEventId === normalized.clientEventId)) {
+    return null;
+  }
+  state.conversionEvents[normalized.id] = normalized;
+  writeState(state);
+  return normalized;
+}
+
+export async function getConversionSummary({ days = 30 } = {}) {
+  const safeDays = [7, 30, 90, 365].includes(Number(days)) ? Number(days) : 30;
+  const start = new Date(Date.now() - safeDays * 24 * 60 * 60 * 1000).toISOString();
+  let events;
+
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select * from pip_conversion_events
+       where created_at >= $1
+       order by created_at desc
+       limit 100000`,
+      [start]
+    );
+    events = result.rows.map(rowToConversionEvent);
+  } else {
+    events = Object.values(readState().conversionEvents)
+      .filter((item) => String(item.createdAt) >= start)
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, 100000);
+  }
+
+  const counts = {};
+  const visitorsByEvent = {};
+  const sources = {};
+  const daily = {};
+  for (const event of events) {
+    counts[event.eventName] = (counts[event.eventName] || 0) + 1;
+    const identity = event.userId || event.visitorId;
+    if (identity) {
+      visitorsByEvent[event.eventName] ||= new Set();
+      visitorsByEvent[event.eventName].add(identity);
+    }
+    const source = event.utmSource || (event.referrerHost && !/^(?:www\.)?hydropip\.com$/i.test(event.referrerHost) ? event.referrerHost : "direct");
+    sources[source] = (sources[source] || 0) + 1;
+    const day = String(event.createdAt).slice(0, 10);
+    daily[day] ||= {};
+    daily[day][event.eventName] = (daily[day][event.eventName] || 0) + 1;
+  }
+
+  return {
+    days: safeDays,
+    start,
+    totalEvents: events.length,
+    uniqueVisitors: new Set(events.map((event) => event.userId || event.visitorId).filter(Boolean)).size,
+    counts,
+    uniqueByEvent: Object.fromEntries(Object.entries(visitorsByEvent).map(([name, visitors]) => [name, visitors.size])),
+    sources: Object.entries(sources).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name, count]) => ({ name, count })),
+    daily: Object.entries(daily).sort((a, b) => a[0].localeCompare(b[0])).map(([date, values]) => ({ date, ...values })),
+    latestAt: events[0]?.createdAt || null
+  };
 }
 
 export async function getDailyAiUsageSummary({ userId, ipHash, tier } = {}) {
@@ -1782,6 +1878,27 @@ async function ensureSchema(pool) {
     create unique index if not exists pip_beta_applications_email_idx on pip_beta_applications (lower(email));
     create index if not exists pip_beta_applications_status_created_idx on pip_beta_applications(status, created_at desc);
 
+    create table if not exists pip_conversion_events (
+      id text primary key,
+      client_event_id text unique,
+      event_name text not null,
+      visitor_id text,
+      user_id text,
+      session_tier text not null default 'visitor',
+      page text,
+      referrer_host text,
+      utm_source text,
+      utm_medium text,
+      utm_campaign text,
+      utm_content text,
+      utm_term text,
+      metadata jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists pip_conversion_events_name_created_idx on pip_conversion_events(event_name, created_at desc);
+    create index if not exists pip_conversion_events_visitor_created_idx on pip_conversion_events(visitor_id, created_at desc);
+    create index if not exists pip_conversion_events_user_created_idx on pip_conversion_events(user_id, created_at desc);
+
     create table if not exists pip_usage_events (
       id text primary key,
       user_id text references pip_users(id) on delete cascade,
@@ -1849,6 +1966,7 @@ function readState() {
   stateCache.readings ||= {};
   stateCache.seeds ||= {};
   stateCache.pushSubscriptions ||= {};
+  stateCache.conversionEvents ||= {};
   stateCache.usageEvents ||= {};
   stateCache.creditLedger ||= {};
   return stateCache;
@@ -1860,6 +1978,62 @@ function writeState(nextState) {
   const tempFile = `${dataFile}.${process.pid}.tmp`;
   fs.writeFileSync(tempFile, `${JSON.stringify(nextState, null, 2)}\n`);
   fs.renameSync(tempFile, dataFile);
+}
+
+function normalizeConversionEvent(event = {}) {
+  const allowedEvents = new Set([
+    "page_view",
+    "signup_started",
+    "member_session_connected",
+    "pip_opened",
+    "pip_question_asked",
+    "track_build_opened",
+    "field_guide_opened",
+    "affiliate_link_clicked",
+    "pip_pro_viewed",
+    "pro_checkout_started"
+  ]);
+  const eventName = String(event.eventName || "").trim();
+  if (!allowedEvents.has(eventName)) {
+    throw Object.assign(new Error("Unsupported conversion event"), { statusCode: 400 });
+  }
+  const visitorId = cleanConversionValue(event.visitorId, 100, /^[a-z0-9_-]+$/i);
+  const userId = cleanConversionValue(event.userId, 240);
+  if (!visitorId && !userId) {
+    throw Object.assign(new Error("A visitor identifier is required"), { statusCode: 400 });
+  }
+  const metadata = {};
+  const allowedMetadata = new Set(["surface", "linkLabel", "productId", "destinationHost", "mode", "memberState"]);
+  if (event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)) {
+    for (const [key, value] of Object.entries(event.metadata)) {
+      if (!allowedMetadata.has(key)) continue;
+      const cleaned = cleanConversionValue(value, key === "linkLabel" ? 160 : 100);
+      if (cleaned) metadata[key] = cleaned;
+    }
+  }
+  return {
+    id: makeId("conversion"),
+    clientEventId: cleanConversionValue(event.clientEventId, 100, /^[a-z0-9_-]+$/i),
+    eventName,
+    visitorId,
+    userId,
+    sessionTier: ["visitor", "free_member", "pip_pro"].includes(event.sessionTier) ? event.sessionTier : "visitor",
+    page: cleanConversionValue(event.page, 240),
+    referrerHost: cleanConversionValue(event.referrerHost, 240),
+    utmSource: cleanConversionValue(event.utmSource, 160),
+    utmMedium: cleanConversionValue(event.utmMedium, 160),
+    utmCampaign: cleanConversionValue(event.utmCampaign, 160),
+    utmContent: cleanConversionValue(event.utmContent, 160),
+    utmTerm: cleanConversionValue(event.utmTerm, 160),
+    metadata,
+    createdAt: nowIso()
+  };
+}
+
+function cleanConversionValue(value, maxLength, pattern) {
+  const cleaned = String(value == null ? "" : value).trim().slice(0, maxLength);
+  if (!cleaned || (pattern && !pattern.test(cleaned))) return null;
+  return cleaned;
 }
 
 function normalizeUser(user = {}) {
@@ -2578,6 +2752,26 @@ function creditBalanceFromState(state, userId) {
   return Object.values(state.creditLedger)
     .filter((entry) => entry.userId === userId)
     .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+}
+
+function rowToConversionEvent(row) {
+  return {
+    id: row.id,
+    clientEventId: row.client_event_id || row.clientEventId || null,
+    eventName: row.event_name || row.eventName,
+    visitorId: row.visitor_id || row.visitorId || null,
+    userId: row.user_id || row.userId || null,
+    sessionTier: row.session_tier || row.sessionTier || "visitor",
+    page: row.page || null,
+    referrerHost: row.referrer_host || row.referrerHost || null,
+    utmSource: row.utm_source || row.utmSource || null,
+    utmMedium: row.utm_medium || row.utmMedium || null,
+    utmCampaign: row.utm_campaign || row.utmCampaign || null,
+    utmContent: row.utm_content || row.utmContent || null,
+    utmTerm: row.utm_term || row.utmTerm || null,
+    metadata: row.metadata || {},
+    createdAt: toIso(row.created_at || row.createdAt)
+  };
 }
 
 function rowToUsageEvent(row) {

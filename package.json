@@ -10,7 +10,8 @@
     "qa:pip": "node server/pip-qa-suite.js",
     "qa:live": "node server/pip-live-qa.js",
     "qa:site": "node server/site-qa.js",
-    "qa:seo": "node server/seo-qa.js"
+    "qa:seo": "node server/seo-qa.js",
+    "qa:conversions": "node server/conversion-tracking-test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

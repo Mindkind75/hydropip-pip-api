@@ -33,6 +33,7 @@ import {
   getMemoryHealth,
   getBuildPhotoAllowance,
   getBetaExperience,
+  getConversionSummary,
   getProject,
   getProjectTemplates,
   getUserPreferences,
@@ -49,6 +50,7 @@ import {
   listBetaTesterProgress,
   listReviewItems,
   refundBuildPhotoCheck,
+  recordConversionEvent,
   reserveAiUsage,
   seedProjectConversationDefaults,
   seedProjectDefaults,
@@ -94,6 +96,7 @@ const chatWindowMs = Number(process.env.PIP_RATE_LIMIT_WINDOW_MS || 60_000);
 const chatMaxRequests = Number(process.env.PIP_RATE_LIMIT_MAX || 20);
 const chatHits = new Map();
 const betaApplicationHits = new Map();
+const conversionHits = new Map();
 
 app.use(
   cors({
@@ -132,6 +135,20 @@ app.use(express.static(rootDir));
 
 app.get("/beta-test", (_req, res) => res.sendFile(path.join(rootDir, "beta-test.html")));
 app.get("/beta-admin", (_req, res) => res.sendFile(path.join(rootDir, "beta-admin.html")));
+
+app.post("/api/pip/conversions", conversionRateLimit, async (req, res, next) => {
+  try {
+    const signed = sessionFromRequest(req);
+    const event = await recordConversionEvent({
+      ...(req.body?.event || req.body || {}),
+      userId: signed?.sub || null,
+      sessionTier: signed ? (signed.pro ? "pip_pro" : "free_member") : "visitor"
+    });
+    res.status(event ? 201 : 202).json({ recorded: true });
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use("/api/pip/chat", (req, res, next) => {
   const forwarded = req.headers["x-forwarded-for"];
@@ -237,7 +254,7 @@ app.post("/api/pip/beta/apply", betaApplicationRateLimit, async (req, res, next)
 
 app.get("/api/pip/admin/beta/overview", requirePipAdmin, async (req, res, next) => {
   try {
-    const [applications, feedback, testers] = await Promise.all([
+    const [applications, feedback, testers, conversions] = await Promise.all([
       listBetaApplications({ status: req.query.status, limit: req.query.limit }),
       listBetaFeedback({
         status: req.query.feedbackStatus,
@@ -245,12 +262,14 @@ app.get("/api/pip/admin/beta/overview", requirePipAdmin, async (req, res, next) 
         rating: req.query.rating,
         limit: req.query.limit
       }),
-      listBetaTesterProgress({ limit: req.query.limit })
+      listBetaTesterProgress({ limit: req.query.limit }),
+      getConversionSummary({ days: req.query.conversionDays })
     ]);
     res.json({
       applications,
       feedback,
       testers,
+      conversions,
       summary: betaAdminSummary({ applications, feedback, testers }),
       generatedAt: new Date().toISOString()
     });
@@ -1022,6 +1041,21 @@ function betaApplicationRateLimit(req, res, next) {
   }
   recent.push(now);
   betaApplicationHits.set(ip, recent);
+  next();
+}
+
+function conversionRateLimit(req, res, next) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const recent = (conversionHits.get(ip) || []).filter((timestamp) => now - timestamp < windowMs);
+  if (recent.length >= 180) {
+    res.status(429).json({ error: "conversion_rate_limited" });
+    return;
+  }
+  recent.push(now);
+  conversionHits.set(ip, recent);
   next();
 }
 
