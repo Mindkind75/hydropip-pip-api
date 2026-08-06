@@ -1,0 +1,287 @@
+{
+  "version": "1.0.0",
+  "lastReviewed": "2026-08-05",
+  "disclaimer": "Nutrient charts are starting points, not guarantees. Water quality, crop load, temperature, media, and plant response can change the right strength. Follow product labels and measure carefully.",
+  "systems": {
+    "hydropip": {
+      "label": "HydroPip timed-feed towers",
+      "summary": "Open, timed-feed perlite-vermiculite towers with no runoff return to the reservoir.",
+      "operation": "Mix one complete fresh batch, let the level gradually fall, and select the next strength when the reservoir is nearly empty.",
+      "recommendedProgram": "hydropip_masterblend"
+    },
+    "dwc": {
+      "label": "DWC / raft",
+      "summary": "Roots remain in an aerated nutrient solution.",
+      "operation": "Monitor water temperature, aeration, pH, and EC because roots are continuously exposed to the solution.",
+      "recommendedProgram": "gh_flora_3part"
+    },
+    "nft": {
+      "label": "NFT",
+      "summary": "A thin, recirculating nutrient film continuously passes the roots.",
+      "operation": "Keep flow uninterrupted and monitor pH and EC because a small root-zone volume can change quickly.",
+      "recommendedProgram": "gh_flora_3part"
+    },
+    "drip": {
+      "label": "Drip / drain-to-waste",
+      "summary": "Nutrient solution is delivered through emitters and is not returned to the reservoir.",
+      "operation": "Use runoff and media moisture to tune feed volume; verify each emitter before changing nutrient strength.",
+      "recommendedProgram": "jacks_321"
+    },
+    "recirculating_drip": {
+      "label": "Recirculating drip / Dutch bucket",
+      "summary": "Drip-fed containers return solution to a shared reservoir.",
+      "operation": "Monitor pH and EC because returned solution changes the reservoir over time.",
+      "recommendedProgram": "jacks_321"
+    },
+    "ebb_flow": {
+      "label": "Ebb and flow",
+      "summary": "The root zone is periodically flooded from a recirculating reservoir.",
+      "operation": "Check reservoir strength, flood coverage, drainage, and root-zone oxygen between cycles.",
+      "recommendedProgram": "gh_flora_3part"
+    },
+    "kratky": {
+      "label": "Kratky / passive",
+      "summary": "A non-circulating reservoir supplies the crop as the level falls.",
+      "operation": "Start conservatively, preserve the air gap, and avoid disturbing established roots with aggressive corrections.",
+      "recommendedProgram": "masterblend_label"
+    },
+    "aeroponic": {
+      "label": "Aeroponic",
+      "summary": "Roots receive nutrient solution as a fine spray or mist.",
+      "operation": "Protect nozzles from precipitation, keep backup irrigation available, and monitor pH and EC closely.",
+      "recommendedProgram": "gh_flora_3part"
+    },
+    "other": {
+      "label": "Other hydroponic system",
+      "summary": "A custom or less common hydroponic setup.",
+      "operation": "Use the nutrient label as the source of truth, then verify the result against plant response and measured pH/EC.",
+      "recommendedProgram": "custom_label"
+    }
+  },
+  "crops": {
+    "mixed": { "label": "Mixed garden", "ph": "5.5-6.5", "ec": "1.5-2.5", "note": "Use the dominant crop and the most sensitive plants to choose a conservative target." },
+    "lettuce": { "label": "Lettuce", "ph": "6.0-7.0", "ec": "1.2-1.8", "note": "Leafy crops usually need less strength than mature fruiting crops." },
+    "basil": { "label": "Basil", "ph": "5.5-6.0", "ec": "1.0-1.6", "note": "Watch heat and flowering before assuming a flavor or leaf problem is nutrient related." },
+    "spinach": { "label": "Spinach", "ph": "6.0-7.0", "ec": "1.8-2.3", "note": "Keep solution temperature and oxygen in mind when growth slows." },
+    "parsley": { "label": "Parsley", "ph": "6.0-6.5", "ec": "1.8-2.2", "note": "Establishment can be slow, so choose stage from true growth rather than age alone." },
+    "tomato": { "label": "Tomato", "ph": "6.0-6.5", "ec": "2.0-4.0", "note": "Demand rises substantially as flowering and fruit load increase." },
+    "pepper": { "label": "Pepper", "ph": "5.5-6.0", "ec": "0.8-1.8", "note": "Increase cautiously and use plant response because pepper sensitivity varies." },
+    "cucumber": { "label": "Cucumber", "ph": "5.0-5.5", "ec": "1.7-2.0", "note": "Large plants can consume water quickly; do not confuse falling water level with a need for a full nutrient dose." },
+    "strawberry": { "label": "Strawberry", "ph": "6.0", "ec": "1.8-2.2", "note": "Use a crop-specific program when precision is important and watch fruiting-stage demand." },
+    "other": { "label": "Another crop", "ph": "5.5-6.5", "ec": "1.5-2.5", "note": "This broad range is only a starting point. Confirm a crop-specific target before making large adjustments." }
+  },
+  "waterSources": {
+    "unknown_tap": { "label": "Tap / well water, not tested", "note": "The starting water contributes minerals and alkalinity. Test its pH and EC before mixing when possible." },
+    "soft": { "label": "Soft or low-mineral water", "note": "Low-mineral water gives a cleaner baseline, but some programs may need calcium and magnesium support." },
+    "ro": { "label": "RO / purified water", "note": "Use a nutrient program intended for low-mineral water and verify calcium and magnesium are supplied." },
+    "hard": { "label": "Hard / high-alkalinity water", "note": "High alkalinity can push pH upward. A water test or hard-water nutrient program is worth using before repeated correction." },
+    "rain": { "label": "Filtered rainwater", "note": "Screen debris and avoid contaminated roof runoff; measure the starting pH and EC before mixing." }
+  },
+  "programs": {
+    "hydropip_masterblend": {
+      "label": "HydroPip MasterBlend batch",
+      "shortLabel": "HydroPip",
+      "kind": "scaledPreset",
+      "standardGallons": 275,
+      "bestFor": "The real HydroPip timed-feed tower system and growers who want a simple month-scale batch method.",
+      "sourceLabel": "HydroPip tested operating method",
+      "sourceUrl": "https://www.hydropip.com/field-guide",
+      "freshBatchRequired": true,
+      "mixingOrder": [
+        "Fill the reservoir with fresh water and start the internal mixing pump.",
+        "Add magnesium sulfate and let it dissolve.",
+        "Add MasterBlend and mix thoroughly.",
+        "Add calcium nitrate separately after the other ingredients are dissolved.",
+        "Circulate until evenly blended, then verify tower flow."
+      ],
+      "stages": {
+        "seedling": {
+          "label": "Seeds and young seedlings",
+          "reason": "A light HydroPip starting batch for germination and small seedlings.",
+          "components": [
+            { "name": "MasterBlend 4-18-38", "amount": 300, "unit": "g" },
+            { "name": "Calcium nitrate", "amount": 300, "unit": "g" },
+            { "name": "Magnesium sulfate", "amount": 150, "unit": "g" }
+          ]
+        },
+        "vegetative": {
+          "label": "Established vegetative growth",
+          "reason": "The normal HydroPip batch once sprouts have several true leaves and are actively growing.",
+          "components": [
+            { "name": "MasterBlend 4-18-38", "amount": 400, "unit": "g" },
+            { "name": "Calcium nitrate", "amount": 400, "unit": "g" },
+            { "name": "Magnesium sulfate", "amount": 200, "unit": "g" }
+          ]
+        },
+        "fruiting": {
+          "label": "Heavy growth and fruit production",
+          "reason": "The HydroPip production batch for mature plants and a substantial flowering or fruiting crop load.",
+          "components": [
+            { "name": "MasterBlend 4-18-38", "amount": 600, "unit": "g" },
+            { "name": "Calcium nitrate", "amount": 600, "unit": "g" },
+            { "name": "Magnesium sulfate", "amount": 300, "unit": "g" }
+          ]
+        }
+      }
+    },
+    "masterblend_label": {
+      "label": "MasterBlend 4-18-38 label rate",
+      "shortLabel": "MasterBlend label",
+      "kind": "perGallon",
+      "bestFor": "Growers using the manufacturer program in DWC, NFT, drip, Kratky, or another reservoir size.",
+      "sourceLabel": "MasterBlend 4-18-38 mixing instructions",
+      "sourceUrl": "https://www.masterblend.com/4-18-38-tomato-formula/",
+      "freshBatchRequired": false,
+      "mixingOrder": [
+        "Dissolve MasterBlend 4-18-38 in the reservoir water.",
+        "Add magnesium sulfate and dissolve completely.",
+        "Add calcium nitrate last and mix thoroughly.",
+        "Never combine calcium nitrate with the other products as a concentrated premix."
+      ],
+      "stages": {
+        "seedling": {
+          "label": "Initial growth / seedlings",
+          "reason": "The manufacturer directs growers to use half rate until seedlings are well established.",
+          "components": [
+            { "name": "MasterBlend 4-18-38", "amount": 1.2, "unit": "g/gal" },
+            { "name": "Magnesium sulfate", "amount": 0.75, "unit": "g/gal" },
+            { "name": "Calcium nitrate", "amount": 1.2, "unit": "g/gal" }
+          ]
+        },
+        "vegetative": {
+          "label": "Established growth",
+          "reason": "The full manufacturer label rate after seedlings are well established.",
+          "components": [
+            { "name": "MasterBlend 4-18-38", "amount": 2.4, "unit": "g/gal" },
+            { "name": "Magnesium sulfate", "amount": 1.5, "unit": "g/gal" },
+            { "name": "Calcium nitrate", "amount": 2.4, "unit": "g/gal" }
+          ]
+        },
+        "fruiting": {
+          "label": "Flowering / fruiting",
+          "reason": "The manufacturer full rate is the baseline; use crop-specific EC and plant response to refine it.",
+          "components": [
+            { "name": "MasterBlend 4-18-38", "amount": 2.4, "unit": "g/gal" },
+            { "name": "Magnesium sulfate", "amount": 1.5, "unit": "g/gal" },
+            { "name": "Calcium nitrate", "amount": 2.4, "unit": "g/gal" }
+          ]
+        }
+      }
+    },
+    "jacks_321": {
+      "label": "Jack's 3-2-1",
+      "shortLabel": "Jack's 3-2-1",
+      "kind": "perGallon",
+      "bestFor": "Established plants in recirculating or drain-to-waste hydroponic systems using a simple dry three-part program.",
+      "sourceLabel": "Jack's Nutrients official 3-2-1 instructions",
+      "sourceUrl": "https://www.jacksnutrients.com/post/how-do-i-mix-jack-s-321",
+      "freshBatchRequired": false,
+      "unsupportedStages": {
+        "seedling": "Jack's recommends a dedicated clone formula for young seedlings before moving to a base program. Use the product schedule or choose Custom label rate for the exact product in hand."
+      },
+      "mixingOrder": [
+        "Add Jack's Part A (5-12-26) and dissolve completely.",
+        "Add magnesium sulfate and dissolve completely.",
+        "Add Jack's Part B (calcium nitrate) last.",
+        "Mix thoroughly, then check pH and EC after the solution stabilizes."
+      ],
+      "stages": {
+        "vegetative": {
+          "label": "Established vegetative growth",
+          "reason": "Jack's published 3-2-1 base formula for established plants.",
+          "components": [
+            { "name": "Jack's Part A 5-12-26", "amount": 3.6, "unit": "g/gal" },
+            { "name": "Magnesium sulfate", "amount": 1.1, "unit": "g/gal" },
+            { "name": "Jack's Part B 15-0-0", "amount": 2.4, "unit": "g/gal" }
+          ]
+        },
+        "fruiting": {
+          "label": "Flowering / fruiting baseline",
+          "reason": "Use the published 3-2-1 base as a starting point and refine with the crop-specific Jack's schedule when higher precision is needed.",
+          "components": [
+            { "name": "Jack's Part A 5-12-26", "amount": 3.6, "unit": "g/gal" },
+            { "name": "Magnesium sulfate", "amount": 1.1, "unit": "g/gal" },
+            { "name": "Jack's Part B 15-0-0", "amount": 2.4, "unit": "g/gal" }
+          ]
+        }
+      }
+    },
+    "gh_flora_3part": {
+      "label": "General Hydroponics FloraSeries 3-part",
+      "shortLabel": "GH FloraSeries",
+      "kind": "perGallon",
+      "bestFor": "Growers who prefer liquid measuring and stage-specific control in DWC, NFT, drip, ebb-and-flow, or soilless media.",
+      "sourceLabel": "General Hydroponics FloraSeries 3-Part General Use feed program",
+      "sourceUrl": "https://generalhydroponics.com/pages/flora-series-3-part-feed-program",
+      "freshBatchRequired": false,
+      "mixingOrder": [
+        "Add FloraMicro to fresh water first and mix well.",
+        "Add FloraGro and mix well.",
+        "Add FloraBloom and mix well.",
+        "Check EC, then adjust pH after the complete solution is mixed."
+      ],
+      "stages": {
+        "seedling": {
+          "label": "Seedling / clone",
+          "reason": "The General Use seedling rate from the current FloraSeries 3-Part program.",
+          "targetEc": "0.5-0.6 mS/cm",
+          "components": [
+            { "name": "FloraMicro", "amount": 2.0, "unit": "ml/gal" },
+            { "name": "FloraGro", "amount": 2.0, "unit": "ml/gal" },
+            { "name": "FloraBloom", "amount": 2.0, "unit": "ml/gal" }
+          ]
+        },
+        "early_vegetative": {
+          "label": "Early vegetative growth",
+          "reason": "The first established-growth step in the General Use program.",
+          "targetEc": "1.0-1.2 mS/cm",
+          "components": [
+            { "name": "FloraMicro", "amount": 4.2, "unit": "ml/gal" },
+            { "name": "FloraGro", "amount": 3.8, "unit": "ml/gal" },
+            { "name": "FloraBloom", "amount": 3.0, "unit": "ml/gal" }
+          ]
+        },
+        "vegetative": {
+          "label": "Late vegetative growth",
+          "reason": "The late-growth General Use rate before flowering or fruit set.",
+          "targetEc": "1.6-2.0 mS/cm",
+          "components": [
+            { "name": "FloraMicro", "amount": 6.8, "unit": "ml/gal" },
+            { "name": "FloraGro", "amount": 6.4, "unit": "ml/gal" },
+            { "name": "FloraBloom", "amount": 4.8, "unit": "ml/gal" }
+          ]
+        },
+        "flowering": {
+          "label": "Early flowering",
+          "reason": "The General Use transition rate as flowering begins.",
+          "targetEc": "1.6-1.9 mS/cm",
+          "components": [
+            { "name": "FloraMicro", "amount": 6.1, "unit": "ml/gal" },
+            { "name": "FloraGro", "amount": 5.3, "unit": "ml/gal" },
+            { "name": "FloraBloom", "amount": 6.8, "unit": "ml/gal" }
+          ]
+        },
+        "fruiting": {
+          "label": "Mid flowering / fruit production",
+          "reason": "The General Use mid-bloom rate for active flowering and fruit set.",
+          "targetEc": "1.6-1.9 mS/cm",
+          "components": [
+            { "name": "FloraMicro", "amount": 5.3, "unit": "ml/gal" },
+            { "name": "FloraGro", "amount": 5.3, "unit": "ml/gal" },
+            { "name": "FloraBloom", "amount": 7.6, "unit": "ml/gal" }
+          ]
+        },
+        "ripening": {
+          "label": "Ripening / late production",
+          "reason": "The General Use ripening rate as nitrogen demand tapers.",
+          "targetEc": "0.7-0.9 mS/cm",
+          "components": [
+            { "name": "FloraMicro", "amount": 2.3, "unit": "ml/gal" },
+            { "name": "FloraGro", "amount": 2.3, "unit": "ml/gal" },
+            { "name": "FloraBloom", "amount": 3.6, "unit": "ml/gal" }
+          ]
+        }
+      }
+    }
+  }
+}

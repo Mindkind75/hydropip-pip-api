@@ -93,9 +93,36 @@ assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/
 assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
 assert.match(partsChecklistHtml, /\/data\/build-items\.json/, "Track My Build should load its prices from the centralized build catalog");
 const nutrientCalculatorHtml = fs.readFileSync(new URL("../nutrient-calculator.html", import.meta.url), "utf8");
-assert.match(nutrientCalculatorHtml, /\/data\/hydropip-system\.json/, "The nutrient calculator should load the centralized HydroPip nutrient method");
-assert.match(nutrientCalculatorHtml, /starting a new batch with fresh water/i, "The nutrient calculator must ask whether this is a fresh batch");
-assert.match(nutrientCalculatorHtml, /Do not add a complete recipe to a partially depleted tank/, "The nutrient calculator must block full dosing into a partial batch");
+const nutrientCalculatorJs = fs.readFileSync(new URL("../assets/js/nutrient-calculator.js", import.meta.url), "utf8");
+assert.match(nutrientCalculatorJs, /\/data\/nutrient-programs\.json/, "The nutrient calculator should load centralized multi-grower nutrient programs");
+assert.match(nutrientCalculatorHtml, /mixing a fresh reservoir batch/i, "The nutrient calculator must ask whether this is a fresh batch");
+assert.match(nutrientCalculatorJs, /Do not add a complete recipe to a partially depleted reservoir/, "The nutrient calculator must block full dosing into a partial HydroPip batch");
+assert.match(nutrientCalculatorHtml, /Calculate my nutrient mix/, "The nutrient calculator needs an explicit calculation action");
+assert.match(nutrientCalculatorJs, /Another brand - use my label rate/, "The nutrient calculator should support growers using another labeled nutrient");
+assert.doesNotMatch(nutrientCalculatorJs, /addEventListener\(["']change["'],\s*render\)/, "Changing an input must not calculate a recipe before the button is pressed");
+assert.doesNotThrow(() => new Function(nutrientCalculatorJs), "The nutrient calculator JavaScript should parse");
+const nutrientPrograms = JSON.parse(fs.readFileSync(new URL("../data/nutrient-programs.json", import.meta.url), "utf8"));
+for (const programId of ["hydropip_masterblend", "masterblend_label", "jacks_321", "gh_flora_3part"]) {
+  assert.ok(nutrientPrograms.programs[programId], `The nutrient catalog is missing ${programId}`);
+  assert.match(nutrientPrograms.programs[programId].sourceUrl, /^https:\/\//, `${programId} needs a reviewable source URL`);
+}
+assert.deepEqual(
+  nutrientPrograms.programs.masterblend_label.stages.vegetative.components.map((item) => item.amount),
+  [2.4, 1.5, 2.4],
+  "The MasterBlend manufacturer program should remain 2.4 / 1.5 / 2.4 grams per gallon"
+);
+assert.deepEqual(
+  nutrientPrograms.programs.jacks_321.stages.vegetative.components.map((item) => item.amount),
+  [3.6, 1.1, 2.4],
+  "Jack's official 3-2-1 program should remain 3.6 / 1.1 / 2.4 grams per gallon"
+);
+assert.deepEqual(
+  nutrientPrograms.programs.gh_flora_3part.stages.seedling.components.map((item) => item.amount),
+  [2, 2, 2],
+  "FloraSeries General Use seedling rates should remain 2 ml/gal for each base nutrient"
+);
+assert.ok(Object.keys(nutrientPrograms.systems).length >= 8, "The calculator should cover the common hydroponic system families");
+assert.ok(Object.keys(nutrientPrograms.crops).length >= 9, "The calculator should provide useful crop-specific pH and EC starting points");
 const systemConfig = JSON.parse(fs.readFileSync(new URL("../data/hydropip-system.json", import.meta.url), "utf8"));
 assert.deepEqual([systemConfig.stages.seeds.masterblendGrams, systemConfig.stages.seeds.calciumNitrateGrams, systemConfig.stages.seeds.magnesiumSulfateGrams], [300, 300, 150], "The seed recipe should remain 300 / 300 / 150");
 assert.deepEqual([systemConfig.stages.growing.masterblendGrams, systemConfig.stages.growing.calciumNitrateGrams, systemConfig.stages.growing.magnesiumSulfateGrams], [400, 400, 200], "The growing recipe should remain 400 / 400 / 200");
