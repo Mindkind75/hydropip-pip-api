@@ -54,7 +54,8 @@ assert.match(marketingHomeHtml, /class="navField"[^>]*>Field Guide<\/a>/, "The h
 assert.match(marketingHomeHtml, /class="navHow"[^>]*href="https:\/\/hydropip-pip-api\.onrender\.com\/how-it-works\.html"[^>]*>How It Works<\/a>/, "How It Works should open its concise overview instead of duplicating the Field Guide");
 assert.match(howItWorksHtml, /href="https:\/\/www\.hydropip\.com\/"[^>]*>Home<\/a>/, "How It Works should provide a clear Home action");
 assert.match(fieldGuideHtml, /href="https:\/\/www\.hydropip\.com\/"[^>]*>Home<\/a>/, "The Field Guide should provide a clear Home action");
-assert.match(joinHtml, /Sign in or create my account/, "The branded account page should provide a clear signup action");
+assert.match(joinHtml, /Create free account/, "The branded account page should provide a clear signup action");
+assert.match(joinHtml, /Already a member\? Sign in/, "The branded account page should separate returning-member login from signup");
 assert.match(joinHtml, /No spam email/, "The branded account page should state the no-spam promise");
 assert.match(marketingHomeHtml, /class="navTrack"[^>]*>Track My Build<\/a>/, "The homepage should make Track My Build a primary navigation path");
 assert.match(marketingHomeHtml, /class="navPip"[^>]*>Ask Pip<\/a>/, "The homepage should name the Pip destination as Ask Pip");
@@ -62,7 +63,9 @@ assert.match(marketingHomeHtml, /class="navPro"[^>]*><span>Pip<\/span><span clas
 assert.match(marketingHomeHtml, /hydropipAccountAvatar/, "The homepage account circle should support the saved HydroPip profile picture");
 assert.match(marketingHomeHtml, /pip\?pro=avatar/, "The profile-picture shortcut should use a query value the Wix bridge already forwards");
 assert.match(pipHtml, /id="pipAvatarDialog"/, "Pip should provide a profile-picture picker");
-assert.match(pipHtml, /pipQuery\.get\("pro"\) === "signup"/, "The branded account page should be able to open Wix signup through the Pip bridge");
+assert.match(pipHtml, /pipQuery\.get\("pro"\) === "login" \? "login"/, "The branded account page should distinguish Wix login from signup");
+assert.match(pipHtml, /pipQuery\.get\("pro"\) === "signup" \? "signup"/, "The branded account page should be able to open Wix signup through the Pip bridge");
+assert.match(pipHtml, /class="auth-entry-screen"/, "Signup and login should open over a branded account welcome screen instead of active chat");
 assert.match(pipHtml, /role="radiogroup"[\s\S]*role="radio"/, "Built-in Pip profile pictures should be exposed as selectable radio options");
 assert.match(pipHtml, /id="pipAvatarUpload"[^>]*accept="image\/jpeg,image\/png,image\/webp"/, "Members should be able to upload a supported profile image");
 assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Build<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Build link");

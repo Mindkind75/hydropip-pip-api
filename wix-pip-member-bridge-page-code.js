@@ -153,7 +153,8 @@ async function handlePipLoginRequest(mode) {
     return;
   }
 
-  await authentication.promptLogin({ mode: "signup", modal: true }).catch(() => null);
+  const authenticationMode = mode === "login" ? "login" : "signup";
+  await authentication.promptLogin({ mode: authenticationMode, modal: true }).catch(() => null);
 }
 
 async function sendPipSession(pip, force = false) {

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=yes">
 <title>Pip Buddy | HydroPip Systems</title>
+<script>if(["signup","login"].includes(new URLSearchParams(location.search).get("pro"))){document.documentElement.classList.add("pip-auth-entry")}</script>
 <meta name="robots" content="noindex,nofollow">
 <link rel="canonical" href="https://www.hydropip.com/pip">
 <script>if(["1","account"].includes(new URLSearchParams(location.search).get("pro")))document.documentElement.classList.add("pip-pro-route","pro-auth-pending");</script>
@@ -69,6 +70,7 @@
 @media(max-width:560px){.page-intro .notebook-guide{width:100%;min-width:0;margin-top:10px}.notebook-guide{grid-template-columns:62px minmax(0,1fr);gap:8px}.notebook-guide img{width:62px;height:58px}.notebook-guide .notebook-help{margin-top:0}}
 .notebook-guide.history-guide{grid-template-columns:1fr;min-width:0;width:100%;flex:none}.notebook-guide.history-guide img{width:145px;height:175px}.notebook-guide.history-guide .notebook-help{min-width:0;width:100%}@media(max-width:960px){.notebook-guide.history-guide img{width:118px;height:145px}}@media(max-width:700px){.notebook-guide.history-guide{grid-template-columns:84px minmax(0,1fr);min-width:0}.notebook-guide.history-guide img{width:84px;height:106px}}
 html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:block}.pro-auth-loading{display:none;min-height:100vh;min-height:100dvh;padding:24px;place-items:center;background:linear-gradient(135deg,#f7f5ef,#eaf5ed)}html.pro-auth-pending .pro-auth-loading{display:grid}html.pro-auth-pending .pro-view>.pip-top,html.pro-auth-pending .pro-shell{display:none}.pro-auth-card{display:grid;justify-items:center;gap:10px;width:min(420px,100%);padding:28px;text-align:center}.pro-auth-card img{width:116px;height:116px;object-fit:contain;animation:proAuthFloat 2.4s ease-in-out infinite}.pro-auth-card strong{font-size:1.2rem}.pro-auth-card span{color:var(--muted);font-weight:800}.pro-auth-dots{display:flex;gap:6px;margin-top:4px}.pro-auth-dots i{width:8px;height:8px;border-radius:50%;background:var(--leaf);animation:proAuthDot 1.1s ease-in-out infinite}.pro-auth-dots i:nth-child(2){animation-delay:.14s}.pro-auth-dots i:nth-child(3){animation-delay:.28s}@keyframes proAuthFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes proAuthDot{0%,100%{opacity:.28;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}@media(prefers-reduced-motion:reduce){.pro-auth-card img,.pro-auth-dots i{animation:none}}
+.auth-entry-screen{display:none;width:100%;height:100%;padding:clamp(24px,5vw,72px);background:linear-gradient(135deg,#f7f5ef 0%,#edf7ef 48%,#cfe8dc 100%)}html.pip-auth-entry .pip-app{display:grid;place-items:stretch}html.pip-auth-entry .pip-app>.layout{display:none}html.pip-auth-entry .auth-entry-screen{display:grid}.auth-entry-shell{width:min(1460px,100%);height:100%;margin:auto;display:grid;grid-template-columns:minmax(240px,1fr) minmax(430px,540px) minmax(210px,.8fr);gap:32px;align-items:center}.auth-entry-copy{grid-column:1;padding:28px;border-left:6px solid var(--amber);border-radius:0 8px 8px 0;background:rgba(255,255,255,.78);box-shadow:var(--shadow)}.auth-entry-copy h1{margin:7px 0 14px;font-size:clamp(2.5rem,5vw,5.2rem);line-height:.94}.auth-entry-copy p{margin-bottom:18px;font-size:1.04rem}.auth-entry-trust{display:grid;gap:8px;color:var(--deep);font-weight:900}.auth-entry-trust span:before{content:"\2713";margin-right:8px;color:var(--leaf)}.auth-entry-mascot{grid-column:3;width:min(260px,100%);height:320px;object-fit:contain;justify-self:center;filter:drop-shadow(0 18px 22px rgba(15,55,38,.18))}@media(max-width:900px){.auth-entry-screen{padding:18px}.auth-entry-shell{grid-template-columns:1fr;align-content:end}.auth-entry-copy{grid-column:1;padding:20px}.auth-entry-copy h1{font-size:2.65rem}.auth-entry-mascot{display:none}}
 .pro-view,.log,.panel,.tab-order-list{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .pro-view{scrollbar-color:var(--leaf) #dce8df;scrollbar-width:auto}
 .log{scrollbar-color:#68a8bb #eef7f0}
@@ -187,6 +189,12 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
 <dialog class="invite-dialog" id="proInviteDialog" aria-labelledby="proInviteTitle"><button class="invite-close" id="proInviteClose" type="button" aria-label="Close invite">&times;</button><div class="invite-card"><img class="invite-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&amp;format=png&amp;qzone=4&amp;color=0f4f37&amp;data=https%3A%2F%2Fwww.hydropip.com%2F%3Futm_source%3Dpip_pro%26utm_medium%3Dmember_invite%26utm_campaign%3Dgrow_with_pip" alt="QR code linking to the HydroPip home page"><div class="invite-copy"><p class="eyebrow">Invite a grower</p><h2 id="proInviteTitle">Share HydroPip.</h2><p>Scan the code, copy the link, or send it from your phone.</p><label class="invite-link-label" for="proInviteLink">Invite link</label><div class="invite-link-row"><input id="proInviteLink" type="text" readonly value="https://www.hydropip.com/?utm_source=pip_pro&amp;utm_medium=member_invite&amp;utm_campaign=grow_with_pip" aria-label="HydroPip invite link"><button class="btn" id="proSelectInvite" type="button">Select link</button></div><div class="invite-actions"><a class="btn" href="https://www.hydropip.com/" target="_top">Open home</a><button class="btn" id="proCopyInvite" type="button">Copy link</button><button class="btn primary" id="proShareInvite" type="button">Share</button></div><div class="invite-share-options" id="proInviteShareChoices" hidden><a id="proInviteText" href="#">Text</a><a id="proInviteEmail" href="#">Email</a><a id="proInviteFacebook" href="#" target="_blank" rel="noopener">Facebook</a></div><p class="invite-status" id="proInviteStatus" aria-live="polite"></p></div></div></dialog>
 <dialog class="tab-order-dialog" id="proTabOrderDialog" aria-labelledby="proTabOrderTitle"><form class="tab-order-form" id="proTabOrderForm"><div><p class="eyebrow">Your notebook</p><h2 id="proTabOrderTitle">Arrange tabs</h2></div><p>Put the tools you use most where your hand expects them. Drag on desktop or use the arrow buttons on any device.</p><div class="tab-order-list" id="proTabOrderList"></div><p class="tab-order-status" id="proTabOrderStatus" aria-live="polite"></p><div class="tab-order-actions"><button class="btn" id="proTabOrderReset" type="button">Reset default</button><div><button class="btn" id="proTabOrderCancel" type="button">Cancel</button><button class="btn primary" type="submit">Save order</button></div></div></form></dialog>
 <div class="pip-app">
+  <section class="auth-entry-screen" aria-label="HydroPip account welcome">
+    <div class="auth-entry-shell">
+      <div class="auth-entry-copy"><p class="eyebrow">Your HydroPip account</p><h1>Keep the build moving.</h1><p>Create a free account for the parts checklist, saved build progress, and Pip guidance from setup through first harvest.</p><div class="auth-entry-trust"><span>Free to join</span><span>No card required</span><span>No spam email</span></div></div>
+      <img class="auth-entry-mascot" src="/assets/branding/pip-mascot-transparent.png" alt="Pip ready to guide your HydroPip build">
+    </div>
+  </section>
   <main class="layout">
     <aside class="panel">
       <div><p class="eyebrow">Pip Buddy</p><h1>Build with Pip.</h1><p>Ask about the next part, setup step, feed cycle, crop, or problem. Pip stays with the real HydroPip timed-feed tower system.</p></div>
@@ -218,7 +226,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   var requestedProjectType = pipQuery.get("project");
   var requestedProjectId = pipQuery.get("projectId");
   var requestedAvatarPicker = pipQuery.get("avatar") === "1" || pipQuery.get("pro") === "avatar";
-  var requestedSignup = pipQuery.get("pro") === "signup";
+  var requestedAuthMode = pipQuery.get("pro") === "login" ? "login" : pipQuery.get("pro") === "signup" ? "signup" : null;
   if(proMode){document.body.classList.add("pro-mode");document.title=accountMode?"My Account | HydroPip Systems":"Pip Pro | HydroPip Systems"}
   if(accountMode)document.body.classList.add("account-mode");
   var mascot = "/assets/branding/pip-head-transparent.png";
@@ -722,7 +730,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
     pipSession.subscription=data.subscription||{active:false,plan:pipSession.member?"free_member":"visitor"};
     renderMemberMenus();
     await loadAccountPreferences();
-    if(requestedSignup){requestedSignup=false;if(!hasLead()){requestAccount("signup");return}}
+    if(requestedAuthMode){var authMode=requestedAuthMode;requestedAuthMode=null;if(!hasLead()){requestAccount(authMode);return}}
     if(requestedAvatarPicker&&hasLead()){requestedAvatarPicker=false;openAvatarPicker()}
     if(proMode)revealProPage();
     await loadPhotoAllowance();
