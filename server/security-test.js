@@ -179,6 +179,7 @@ try {
   assert.equal(betaAdminResponse.status, 404);
   assert.match(String(betaAdminResponse.headers.get("cache-control")), /no-store/);
   assert.equal((await fetch(`${baseUrl}/pip-review-admin.html`)).status, 404);
+  assert.equal((await fetch(`${baseUrl}/admin-control-center.html`)).status, 404);
   process.env.NODE_ENV = "test";
 
   const nullOriginResponse = await fetch(`${baseUrl}/api/pip/health`, { headers: { Origin: "null" } });

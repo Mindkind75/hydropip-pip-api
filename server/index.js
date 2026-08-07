@@ -158,6 +158,7 @@ app.use((req, res, next) => {
 
 app.get(["/beta-admin", "/beta-admin.html"], serveAdminPage("beta-admin.html"));
 app.get("/pip-review-admin.html", serveAdminPage("pip-review-admin.html"));
+app.get(["/admin-control-center", "/admin-control-center.html"], serveAdminPage("admin-control-center.html"));
 
 const publicPageRoutes = new Map([
   ["/field-guide", "field-guide.html"],

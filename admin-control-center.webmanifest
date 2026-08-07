@@ -1,0 +1,19 @@
+{
+  "id": "/admin-control-center",
+  "name": "HydroPip Control Center",
+  "short_name": "Pip Control",
+  "description": "Private HydroPip operations and launch dashboard.",
+  "start_url": "/admin-control-center",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#123f31",
+  "icons": [
+    {
+      "src": "/assets/branding/pip-head-transparent.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

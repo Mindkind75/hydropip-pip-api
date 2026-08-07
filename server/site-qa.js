@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const files = ["home.html", "join.html", "how-it-works.html", "field-guide.html", "nutrient-calculator.html", "print-build-guide.html", "print-parts-guide.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
+const files = ["home.html", "join.html", "how-it-works.html", "field-guide.html", "nutrient-calculator.html", "print-build-guide.html", "print-parts-guide.html", "pip.html", "parts-checklist.html", "track-start.html", "beta-test.html", "beta-admin.html", "admin-control-center.html", "privacy.html", "terms.html", "affiliate-disclosure.html", "safety.html", "cancellation.html"];
 const bannedCopy = [/HydroSync/i, /My Site 2/i, /concept render/i, /\brebuild\b/i];
 
 for (const file of files) {
@@ -14,7 +14,7 @@ for (const file of files) {
 
   for (const href of hrefs) {
     if (href.startsWith("#") && href !== "#") assert.ok(ids.has(href.slice(1)), `${file} points to missing anchor ${href}`);
-    if (/amazon\.com/i.test(href)) {
+    if (/amazon\.com/i.test(href) && !/affiliate-program\.amazon\.com/i.test(href)) {
       assert.ok(href.includes("tag=hydrpip2002-20"), `${file} has an Amazon link without the HydroPip affiliate tag: ${href}`);
     }
   }
@@ -42,6 +42,13 @@ const marketingHomeHtml = fs.readFileSync(new URL("../home.html", import.meta.ur
 const fieldGuideHtml = fs.readFileSync(new URL("../field-guide.html", import.meta.url), "utf8");
 const joinHtml = fs.readFileSync(new URL("../join.html", import.meta.url), "utf8");
 const howItWorksHtml = fs.readFileSync(new URL("../how-it-works.html", import.meta.url), "utf8");
+const adminControlHtml = fs.readFileSync(new URL("../admin-control-center.html", import.meta.url), "utf8");
+const adminControlManifest = JSON.parse(fs.readFileSync(new URL("../admin-control-center.webmanifest", import.meta.url), "utf8"));
+assert.match(adminControlHtml, /api\/pip\/admin\/ip-status/, "The mobile Control Center should display staged admin IP status");
+assert.match(adminControlHtml, /sessionStorage\.getItem\("hydropipControlAdminKey"\)/, "The Control Center admin key should be session-only");
+assert.doesNotMatch(adminControlHtml, /localStorage\.(?:getItem|setItem)\([^\n]*AdminKey/i, "The Control Center must never persist its admin key in localStorage");
+assert.match(adminControlHtml, /beta-admin\.html[\s\S]*pip-review-admin\.html/, "The Control Center should link to feedback and Pip review workflows");
+assert.equal(adminControlManifest.start_url, "/admin-control-center", "The Control Center manifest should launch the protected dashboard route");
 for (const asset of ["pip-take-a-pic-illustration.jpg", "pip-planning-illustration.jpg", "pip-maintenance-illustration.jpg"]) {
   assert.equal(fs.existsSync(new URL(`../assets/marketing/${asset}`, import.meta.url)), true, `Pip marketing asset is missing: ${asset}`);
   assert.match(pipHtml, new RegExp(asset.replaceAll(".", "\\.")), `Pip Pro should use ${asset}`);
