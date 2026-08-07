@@ -109,6 +109,7 @@
     const workTitle = document.getElementById("workTitle");
     let items = [];
     let selectedId = null;
+    let adminNetworkText = "";
 
     const savedKey = sessionStorage.getItem("pipReviewAdminKey");
     if (savedKey) keyInput.value = savedKey;
@@ -125,6 +126,10 @@
         params.set("limit", limitFilter.value);
         const response = await fetch("/api/pip/admin/review-items?" + params.toString(), { headers: { Authorization: "Bearer " + key } });
         if (!response.ok) throw new Error("Review API returned " + response.status);
+        const mode = response.headers.get("x-pip-admin-ip-mode");
+        const match = response.headers.get("x-pip-admin-ip-match");
+        const ip = response.headers.get("x-pip-admin-observed-ip");
+        adminNetworkText = mode && ip ? ` Admin network: ${ip} · ${mode}${match === "true" ? " · allowed" : " · not yet allowed"}.` : "";
         const data = await response.json();
         items = data.reviewItems || [];
         selectedId = items.some((item) => item.id === selectedId) ? selectedId : items[0]?.id || null;
@@ -135,7 +140,7 @@
     }
 
     function render() {
-      statusText.textContent = items.length ? items.length + " item" + (items.length === 1 ? "" : "s") + " loaded." : "No items in this view.";
+      statusText.textContent = (items.length ? items.length + " item" + (items.length === 1 ? "" : "s") + " loaded." : "No items in this view.") + adminNetworkText;
       renderStats();
       renderQueue();
       renderWorkbench(items.find((item) => item.id === selectedId));

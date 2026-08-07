@@ -23,6 +23,10 @@ services:
         sync: false
       - key: PIP_ADMIN_KEY
         sync: false
+      - key: PIP_ADMIN_ALLOWED_IPS
+        sync: false
+      - key: PIP_ADMIN_IP_MODE
+        value: observe
       - key: PIP_REQUIRE_SIGNED_SESSIONS
         value: true
       - key: DATABASE_URL

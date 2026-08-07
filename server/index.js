@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "node:path";
+import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { askPip } from "./pipAgent.js";
 import { createGrowPlan, createReminder, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
@@ -263,6 +264,17 @@ app.use("/api/pip/admin", (req, res, next) => {
   res.set("Cache-Control", "private, no-store, max-age=0");
   res.set("Pragma", "no-cache");
   next();
+});
+
+app.get("/api/pip/admin/ip-status", requirePipAdmin, (req, res) => {
+  const status = adminIpStatus(req);
+  res.json({
+    mode: status.mode,
+    observedIp: status.ip,
+    allowlistConfigured: status.configured,
+    matched: status.matched,
+    ruleCount: status.ruleCount
+  });
 });
 
 app.post("/api/pip/admin/credits/grant", requirePipAdmin, async (req, res, next) => {
@@ -1089,12 +1101,18 @@ function requirePipBeta(req, res, next) {
 }
 
 function requirePipAdmin(req, res, next) {
-  if (!adminIpAllowed(req)) {
-    res.status(403).json({ error: "admin_ip_not_allowed" });
-    return;
-  }
   if (!adminRequestAllowed(req)) {
     res.status(401).json({ error: "admin_key_required", message: "Enter the HydroPip beta admin key." });
+    return;
+  }
+  const ipStatus = adminIpStatus(req);
+  setAdminIpHeaders(res, ipStatus);
+  if (ipStatus.mode === "enforce" && ipStatus.configured && !ipStatus.matched) {
+    res.status(403).json({
+      error: "admin_ip_not_allowed",
+      message: "This network is not on the HydroPip admin allowlist.",
+      observedIp: ipStatus.ip
+    });
     return;
   }
   res.set("Cache-Control", "no-store");
@@ -1109,20 +1127,72 @@ function serveAdminPage(file) {
       res.status(404).json({ error: "not_found" });
       return;
     }
-    if (!adminIpAllowed(req)) {
-      res.status(403).json({ error: "admin_ip_not_allowed" });
+    const ipStatus = adminIpStatus(req);
+    setAdminIpHeaders(res, ipStatus);
+    if (ipStatus.mode === "enforce" && ipStatus.configured && !ipStatus.matched) {
+      res.status(403).json({
+        error: "admin_ip_not_allowed",
+        message: "This network is not on the HydroPip admin allowlist. Change PIP_ADMIN_IP_MODE to observe in Render to recover access."
+      });
       return;
     }
     res.sendFile(path.join(rootDir, file));
   };
 }
 
-function adminIpAllowed(req) {
-  const allowed = String(process.env.PIP_ADMIN_ALLOWED_IPS || "")
+function adminIpRules() {
+  return String(process.env.PIP_ADMIN_ALLOWED_IPS || "")
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  return allowed.length === 0 || allowed.includes(requestIp(req));
+}
+
+function adminIpMode() {
+  return String(process.env.PIP_ADMIN_IP_MODE || "observe").trim().toLowerCase() === "enforce"
+    ? "enforce"
+    : "observe";
+}
+
+function normalizeIp(value) {
+  let ip = String(value || "").trim().replace(/^\[|\]$/g, "");
+  const zoneIndex = ip.indexOf("%");
+  if (zoneIndex >= 0) ip = ip.slice(0, zoneIndex);
+  if (ip.toLowerCase().startsWith("::ffff:") && net.isIP(ip.slice(7)) === 4) ip = ip.slice(7);
+  return ip;
+}
+
+function ipMatchesRule(address, rawRule) {
+  const ip = normalizeIp(address);
+  const rule = String(rawRule || "").trim();
+  const slash = rule.lastIndexOf("/");
+  if (slash < 0) return normalizeIp(rule) === ip;
+  const network = normalizeIp(rule.slice(0, slash));
+  const family = net.isIP(network);
+  if (!family || net.isIP(ip) !== family) return false;
+  const prefix = Number(rule.slice(slash + 1));
+  const maximum = family === 4 ? 32 : 128;
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > maximum) return false;
+  const blockList = new net.BlockList();
+  blockList.addSubnet(network, prefix, family === 4 ? "ipv4" : "ipv6");
+  return blockList.check(ip, family === 4 ? "ipv4" : "ipv6");
+}
+
+function adminIpStatus(req) {
+  const ip = normalizeIp(requestIp(req));
+  const rules = adminIpRules();
+  return {
+    mode: adminIpMode(),
+    ip,
+    configured: rules.length > 0,
+    matched: rules.length === 0 || rules.some((rule) => ipMatchesRule(ip, rule)),
+    ruleCount: rules.length
+  };
+}
+
+function setAdminIpHeaders(res, status) {
+  res.set("X-Pip-Admin-Ip-Mode", status.mode);
+  res.set("X-Pip-Admin-Ip-Match", String(status.matched));
+  res.set("X-Pip-Admin-Observed-Ip", status.ip);
 }
 
 function consumeSessionExchange(req) {
@@ -1152,7 +1222,7 @@ function requestIp(req) {
   return String(req.ip || req.socket?.remoteAddress || "unknown").trim();
 }
 
-export { app };
+export { adminIpStatus, app, ipMatchesRule, normalizeIp };
 
 function betaApplicationRateLimit(req, res, next) {
   const ip = requestIp(req);

@@ -30,6 +30,7 @@ Production web service for Pip, the HydroPip AI Buddy.
 - `GET /api/pip/health`: verifies service status and AI mode.
 - `POST /api/pip/chat`: main Pip chat endpoint.
 - `GET /api/pip/knowledge/search?q=...`: admin-authenticated QA endpoint for local RAG matches; raw retrieval is never exposed to public clients.
+- `GET /api/pip/admin/ip-status`: admin-authenticated check showing the observed address and whether it matches the configured admin allowlist.
 - `GET /api/pip/wizard`: setup profile questions.
 - `GET /api/pip/build-steps`: HydroPip build steps.
 - `GET /api/pip/parts?towerCount=4`: parts and quantities.
@@ -44,6 +45,10 @@ Production web service for Pip, the HydroPip AI Buddy.
 
 - `/beta-test` is the public tester intake form.
 - `/beta-admin` is the private review dashboard. Enter `PIP_ADMIN_KEY`; the key is kept in session storage and removed by the dashboard's Lock button.
+
+### Staged Admin IP Protection
+
+Set `PIP_ADMIN_ALLOWED_IPS` to a comma-separated list of exact IPv4/IPv6 addresses or CIDR ranges. Keep `PIP_ADMIN_IP_MODE=observe` while testing every approved network. Admin responses report the observed address, mode, and match result without blocking access. Change the mode to `enforce` only after every required route matches. If an ISP address changes, recover through the Render dashboard by changing the mode back to `observe` or clearing the allowlist, then redeploy.
 
 ## RAG Strategy
 

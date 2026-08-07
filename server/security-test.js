@@ -19,7 +19,7 @@ process.env.PIP_ADMIN_KEY = "security-admin-secret";
 process.env.PIP_REQUIRE_SIGNED_SESSIONS = "true";
 process.env.PIP_AI_DISABLED = "true";
 
-const { app, optionalPipSession } = await import("./index.js");
+const { app, ipMatchesRule, normalizeIp, optionalPipSession } = await import("./index.js");
 const { adminRequestAllowed, issuePipSession } = await import("./pipAuth.js");
 const { askPip, filterSensitiveModelOutput, isPromptExfiltrationAttempt } = await import("./pipAgent.js");
 const { clientIpHash, validateChatPayload } = await import("./pipUsage.js");
@@ -69,6 +69,11 @@ process.env.PIP_REQUIRE_SIGNED_SESSIONS = "true";
 assert.equal(adminRequestAllowed({ headers: { "x-pip-admin-key": "security-bridge-secret" } }), false);
 assert.equal(adminRequestAllowed({ headers: { authorization: "Bearer security-admin-secret" } }), true);
 assert.equal(adminRequestAllowed({ headers: {}, query: { adminKey: "security-admin-secret" } }), false);
+assert.equal(normalizeIp("::ffff:192.0.2.10"), "192.0.2.10");
+assert.equal(ipMatchesRule("192.0.2.10", "192.0.2.10"), true);
+assert.equal(ipMatchesRule("192.0.2.10", "192.0.2.0/24"), true);
+assert.equal(ipMatchesRule("192.0.3.10", "192.0.2.0/24"), false);
+assert.equal(ipMatchesRule("2001:db8::10", "2001:db8::/64"), true);
 assert.equal(validateChatPayload({ message: "x".repeat(6001) }).error, "pip_prompt_too_long");
 assert.equal(validateChatPayload({ history: Array.from({ length: 25 }, () => ({ content: "ok" })) }).error, "pip_history_too_long");
 const oversizedImage = `data:image/jpeg;base64,${Buffer.alloc(2 * 1024 * 1024 + 1).toString("base64")}`;
@@ -125,6 +130,29 @@ try {
   const adminApiResponse = await fetch(`${baseUrl}/api/pip/admin/review-items`, { headers: { Authorization: "Bearer security-admin-secret" } });
   assert.equal(adminApiResponse.status, 200);
   assert.match(String(adminApiResponse.headers.get("cache-control")), /no-store/);
+  assert.equal(adminApiResponse.headers.get("x-pip-admin-ip-mode"), "observe");
+  process.env.PIP_ADMIN_ALLOWED_IPS = "203.0.113.0/24";
+  process.env.PIP_ADMIN_IP_MODE = "observe";
+  const observedIpResponse = await fetch(`${baseUrl}/api/pip/admin/ip-status`, {
+    headers: { Authorization: "Bearer security-admin-secret", "X-Forwarded-For": "198.51.100.25" }
+  });
+  assert.equal(observedIpResponse.status, 200);
+  assert.deepEqual(await observedIpResponse.json(), {
+    mode: "observe",
+    observedIp: "198.51.100.25",
+    allowlistConfigured: true,
+    matched: false,
+    ruleCount: 1
+  });
+  process.env.PIP_ADMIN_IP_MODE = "enforce";
+  assert.equal((await fetch(`${baseUrl}/api/pip/admin/review-items`, {
+    headers: { Authorization: "Bearer security-admin-secret", "X-Forwarded-For": "198.51.100.25" }
+  })).status, 403);
+  assert.equal((await fetch(`${baseUrl}/api/pip/admin/review-items`, {
+    headers: { Authorization: "Bearer security-admin-secret", "X-Forwarded-For": "203.0.113.25" }
+  })).status, 200);
+  process.env.PIP_ADMIN_ALLOWED_IPS = "";
+  process.env.PIP_ADMIN_IP_MODE = "observe";
   assert.equal((await fetch(`${baseUrl}/api/pip/admin/credits/grant`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-pip-bridge-secret": "security-bridge-secret" },
