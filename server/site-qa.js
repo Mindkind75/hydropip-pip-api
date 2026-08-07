@@ -346,6 +346,10 @@ assert.match(wixPipBridge, /copyToClipboard/, "Wix Pip bridge should copy Invite
 assert.match(wixPipBridge, /HYDROPIP_INVITE_COPY_RESULT/, "Wix Pip bridge should return the Invite copy result to Pip");
 assert.match(wixPipBridge, /HYDROPIP_SCROLL_TOP/, "Wix Pip bridge should let contained pages return to the outer navigation");
 assert.match(wixPipBridge, /scrollTo\(0, 0\)/, "Wix Pip bridge should reset the outer page scroll");
+assert.match(wixPipBridge, /sessionRequestInFlight = deliverPipSession/, "Wix Pip bridge should serialize signed-member exchanges");
+assert.match(wixPipBridge, /if \(member && !sessionToken\)/, "Wix Pip bridge should retry a failed signed-member exchange");
+assert.match(wixPipBridge, /if \(sessionRetryCount < 4\)/, "Wix Pip bridge should bound signed-member exchange retries");
+assert.match(wixPipBridge, /Boolean\(sessionToken\)/, "Wix Pip bridge should not cache a missing signed-member token as a successful exchange");
 assert.doesNotMatch(wixPipBridge, /formFactor === "Desktop" \? 860 : 800/, "Wix Pip must not force an iframe taller than common phone viewports");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");

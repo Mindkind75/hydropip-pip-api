@@ -9,6 +9,9 @@ const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=beta-2026
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
+let sessionRetryCount = 0;
+let sessionRetryTimer;
+let sessionRequestInFlight;
 
 $w.onReady(() => {
   collapseOuterHeader();
@@ -158,15 +161,38 @@ async function handlePipLoginRequest(mode) {
 }
 
 async function sendPipSession(pip, force = false) {
+  if (sessionRequestInFlight) return sessionRequestInFlight;
+  sessionRequestInFlight = deliverPipSession(pip, force);
+  try {
+    return await sessionRequestInFlight;
+  } finally {
+    sessionRequestInFlight = null;
+  }
+}
+
+async function deliverPipSession(pip, force = false) {
   const member = await getLoggedInMember();
   const subscription = member
     ? await getPipSubscription()
     : { active: false, plan: "visitor", orders: [] };
-  const signature = `${member?._id || "visitor"}:${subscription.plan}:${subscription.active}:${subscription.beta || false}`;
+  const { sessionToken, ...publicSubscription } = subscription;
+
+  clearTimeout(sessionRetryTimer);
+  if (member && !sessionToken) {
+    if (sessionRetryCount < 4) {
+      sessionRetryCount += 1;
+      sessionRetryTimer = setTimeout(
+        () => sendPipSession(pip, true),
+        1200 * sessionRetryCount
+      );
+    }
+    return;
+  }
+
+  const signature = `${member?._id || "visitor"}:${subscription.plan}:${subscription.active}:${subscription.beta || false}:${Boolean(sessionToken)}`;
   if (!force && signature === lastSessionSignature) return;
   lastSessionSignature = signature;
 
-  const { sessionToken, ...publicSubscription } = subscription;
   pip.postMessage({
     type: "HYDROPIP_PIP_SESSION",
     member: member
@@ -180,6 +206,8 @@ async function sendPipSession(pip, force = false) {
     subscription: publicSubscription,
     sessionToken: sessionToken || null
   });
+
+  sessionRetryCount = 0;
 }
 
 function memberPhoto(member) {
