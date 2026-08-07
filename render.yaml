@@ -24,6 +24,14 @@ services:
       - key: PIP_ADMIN_KEY
         sync: false
       - key: PIP_REQUIRE_SIGNED_SESSIONS
+        value: true
+      - key: DATABASE_URL
+        sync: false
+      - key: PIP_SESSION_TTL_SECONDS
+        value: 3600
+      - key: PIP_REQUIRE_EXCHANGE_NONCE
+        value: false
+      - key: PIP_ENABLE_ADMIN_UI
         value: false
       - key: PIP_MODEL
         value: gpt-5-mini
@@ -33,6 +41,14 @@ services:
         value: 20
       - key: PIP_PRO_DAILY_AI_CREDITS
         value: 150
+      - key: PIP_VISITOR_MONTHLY_AI_CREDITS
+        value: 100
+      - key: PIP_FREE_MEMBER_MONTHLY_AI_CREDITS
+        value: 400
+      - key: PIP_PRO_MONTHLY_AI_CREDITS
+        value: 3000
+      - key: PIP_GLOBAL_MONTHLY_AI_CREDITS
+        value: 100000
       - key: PIP_TEXT_CREDIT_COST
         value: 1
       - key: PIP_DETAILED_CREDIT_COST
@@ -45,3 +61,13 @@ services:
         value: 0.25
       - key: PIP_MODEL_OUTPUT_COST_PER_MILLION
         value: 2.00
+      - key: PIP_MAX_PROMPT_CHARS
+        value: 6000
+      - key: PIP_MAX_HISTORY_MESSAGES
+        value: 24
+      - key: PIP_MAX_HISTORY_CHARS
+        value: 24000
+      - key: PIP_FREE_MEMBER_MAX_IMAGE_BYTES
+        value: 2097152
+      - key: PIP_PRO_MAX_IMAGE_BYTES
+        value: 5242880

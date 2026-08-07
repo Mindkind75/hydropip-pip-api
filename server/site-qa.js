@@ -325,7 +325,8 @@ assert.match(betaTestHtml, /name="twitter:card" content="summary_large_image"/, 
 assert.equal(fs.existsSync(new URL("../assets/share/hydropip-beta-share.jpg", import.meta.url)), true, "Beta social card asset is missing");
 
 const betaAdminHtml = fs.readFileSync(new URL("../beta-admin.html", import.meta.url), "utf8");
-assert.match(betaAdminHtml, /X-Pip-Admin-Key/, "Beta review data must require the private admin key");
+assert.match(betaAdminHtml, /Authorization.*Bearer/, "Beta review data must send the private admin key in an authorization header");
+assert.doesNotMatch(betaAdminHtml, /localStorage/, "Beta review must not persist an admin key beyond the browser session");
 assert.match(betaAdminHtml, /Download CSV/, "Beta review should support operational exports");
 assert.match(betaAdminHtml, /Tester progress/, "Beta review should show checklist progress");
 

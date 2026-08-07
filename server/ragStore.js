@@ -87,7 +87,7 @@ export function formatContextForPrompt(searchResult) {
 
   return searchResult.matches
     .map((match, index) => {
-      return `Source ${index + 1}: ${match.source}${match.title ? ` - ${match.title}` : ""}\n${match.text}`;
+      return `HydroPip reference ${index + 1}\n${match.text}`;
     })
     .join("\n\n---\n\n");
 }

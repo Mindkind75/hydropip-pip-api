@@ -72,14 +72,18 @@ import {
   estimateAiCreditCost,
   estimateModelCost,
   makeDailyLimitPayload,
+  makeMonthlyLimitPayload,
   pipAiDisabled,
-  resolvePipUsageTier
+  resolvePipUsageTier,
+  validateChatPayload
 } from "./pipUsage.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const app = express();
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
 const port = Number(process.env.PORT || 8787);
 const allowedOrigins = (process.env.PIP_ALLOWED_ORIGINS || "")
   .split(",")
@@ -97,19 +101,24 @@ const chatMaxRequests = Number(process.env.PIP_RATE_LIMIT_MAX || 20);
 const chatHits = new Map();
 const betaApplicationHits = new Map();
 const conversionHits = new Map();
+const sessionExchangeHits = new Map();
+const exchangeNonces = new Map();
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || serviceOrigins.size === 0 || serviceOrigins.has(origin) || isWixEmbedOrigin(origin)) {
+      if (!origin || serviceOrigins.has(origin)) {
         callback(null, true);
         return;
       }
-      callback(new Error(`Origin not allowed: ${origin}`));
+      const error = new Error("Origin not allowed");
+      error.code = "pip_cors_origin_denied";
+      error.statusCode = 403;
+      callback(error);
     }
   })
 );
-app.use(express.json({ limit: "4mb" }));
+app.use(express.json({ limit: process.env.PIP_JSON_BODY_LIMIT || "8mb" }));
 app.get("/data/nutrient-programs.json", (_req, res) => res.status(404).json({ error: "not_found" }));
 
 app.use((req, res, next) => {
@@ -118,6 +127,34 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+app.use((req, res, next) => {
+  let requestPath;
+  try {
+    requestPath = decodeURIComponent(req.path).toLowerCase();
+  } catch {
+    res.status(400).json({ error: "invalid_path" });
+    return;
+  }
+  const blocked = requestPath.startsWith("/hydropip_aiknowledge_base/")
+    || requestPath === "/hydropip_aiknowledge_base"
+    || requestPath.startsWith("/server/")
+    || requestPath === "/server"
+    || requestPath.startsWith("/node_modules/")
+    || requestPath.startsWith("/wix-")
+    || /(?:^|\/)\.[^/]+/.test(requestPath)
+    || /\.(?:zip|env|log|sql|bak|tmp|md|ya?ml)$/i.test(requestPath)
+    || /^\/(?:package(?:-lock)?\.json|pnpm-lock\.yaml)$/i.test(requestPath);
+  if (blocked) {
+    res.set("Cache-Control", "no-store");
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  next();
+});
+
+app.get(["/beta-admin", "/beta-admin.html"], serveAdminPage("beta-admin.html"));
+app.get("/pip-review-admin.html", serveAdminPage("pip-review-admin.html"));
 
 const publicPageRoutes = new Map([
   ["/field-guide", "field-guide.html"],
@@ -134,7 +171,6 @@ for (const [route, file] of publicPageRoutes) {
 app.use(express.static(rootDir));
 
 app.get("/beta-test", (_req, res) => res.sendFile(path.join(rootDir, "beta-test.html")));
-app.get("/beta-admin", (_req, res) => res.sendFile(path.join(rootDir, "beta-admin.html")));
 
 app.post("/api/pip/conversions", conversionRateLimit, async (req, res, next) => {
   try {
@@ -204,8 +240,14 @@ app.get("/api/pip/nutrient-programs", requirePipMember, (req, res) => {
 });
 
 app.post("/api/pip/session/exchange", (req, res) => {
+  res.set("Cache-Control", "no-store");
   if (!bridgeRequestAllowed(req)) {
     res.status(401).json({ error: "invalid_bridge_credentials" });
+    return;
+  }
+  const exchangeCheck = consumeSessionExchange(req);
+  if (!exchangeCheck.allowed) {
+    res.status(exchangeCheck.statusCode).json({ error: exchangeCheck.error });
     return;
   }
   const token = issuePipSession(req.body || {});
@@ -213,14 +255,16 @@ app.post("/api/pip/session/exchange", (req, res) => {
     res.status(400).json({ error: "invalid_member_session" });
     return;
   }
-  res.json({ token, expiresIn: 6 * 60 * 60 });
+  res.json({ token, expiresIn: Math.max(300, Math.min(6 * 60 * 60, Number(process.env.PIP_SESSION_TTL_SECONDS) || 60 * 60)) });
 });
 
-app.post("/api/pip/admin/credits/grant", async (req, res, next) => {
-  if (!bridgeRequestAllowed(req)) {
-    res.status(401).json({ error: "invalid_bridge_credentials" });
-    return;
-  }
+app.use("/api/pip/admin", (req, res, next) => {
+  res.set("Cache-Control", "private, no-store, max-age=0");
+  res.set("Pragma", "no-cache");
+  next();
+});
+
+app.post("/api/pip/admin/credits/grant", requirePipAdmin, async (req, res, next) => {
   try {
     const userId = String(req.body?.userId || "").trim();
     const entry = await grantPipCredits({
@@ -442,10 +486,10 @@ app.delete("/api/pip/users/me", async (req, res, next) => {
   }
 });
 
-app.post("/api/pip/review-items", async (req, res, next) => {
+app.post("/api/pip/review-items", requirePipMember, async (req, res, next) => {
   try {
     res.status(201).json(await createReviewItem({
-      userId: req.pipUser?.id || req.body?.userId || req.body?.user?.id,
+      userId: req.pipUser.id,
       projectId: req.body?.projectId,
       question: req.body?.question,
       answer: req.body?.answer,
@@ -791,7 +835,7 @@ app.get("/api/pip/parts", (req, res) => {
   res.json(recommendParts({ towerCount: req.query.towerCount }));
 });
 
-app.get("/api/pip/knowledge/search", (req, res) => {
+app.get("/api/pip/knowledge/search", requirePipAdmin, (req, res) => {
   res.json(retrieveHydroPipContext(req.query.q || "", { limit: req.query.limit || 6 }));
 });
 
@@ -816,6 +860,17 @@ app.post("/api/pip/chat", async (req, res, next) => {
     access = optionalPipSession(req);
     let photoAllowance = null;
     const hasPhoto = Boolean(req.body?.image?.dataUrl);
+    const tier = resolvePipUsageTier({ user: access.user, subscription: access.subscription });
+    const payloadCheck = validateChatPayload({
+      message: req.body?.message,
+      history: req.body?.history,
+      image: req.body?.image,
+      tier
+    });
+    if (!payloadCheck.ok) {
+      res.status(payloadCheck.statusCode).json({ error: payloadCheck.error, message: payloadCheck.message });
+      return;
+    }
 
     if (hasPhoto) {
       if (!access.user?.id || !access.subscription?.verified) {
@@ -870,7 +925,6 @@ app.post("/api/pip/chat", async (req, res, next) => {
       subscription: access.subscription,
       beforeAiCall: async () => {
         if (access.user?.id) await upsertUser(access.user);
-        const tier = resolvePipUsageTier({ user: access.user, subscription: access.subscription });
         const creditsRequired = estimateAiCreditCost({ message: req.body?.message, hasPhoto });
         aiReservation = await reserveAiUsage({
           userId: access.user?.id || null,
@@ -885,10 +939,13 @@ app.post("/api/pip/chat", async (req, res, next) => {
           }
         });
         if (!aiReservation.allowed) {
-          const error = new Error("Pip daily AI limit reached");
+          const monthly = aiReservation.limitKind === "monthly" || aiReservation.limitKind === "global_monthly";
+          const error = new Error(monthly ? "Pip monthly AI limit reached" : "Pip daily AI limit reached");
           error.statusCode = 402;
-          error.code = "pip_daily_limit_reached";
-          error.payload = makeDailyLimitPayload(aiReservation);
+          error.code = monthly ? "pip_monthly_limit_reached" : "pip_daily_limit_reached";
+          error.payload = monthly
+            ? makeMonthlyLimitPayload({ ...aiReservation, global: aiReservation.limitKind === "global_monthly" })
+            : makeDailyLimitPayload(aiReservation);
           throw error;
         }
       }
@@ -909,7 +966,9 @@ app.post("/api/pip/chat", async (req, res, next) => {
           creditsUsed: aiReservation.creditsRequired,
           funding: aiReservation.funding,
           dailyLimit: aiReservation.dailyLimit,
+          monthlyLimit: aiReservation.monthlyLimit,
           usedToday: aiReservation.usedToday + (aiReservation.funding === "included" ? aiReservation.creditsRequired : 0),
+          usedThisMonth: aiReservation.usedThisMonth + aiReservation.creditsRequired,
           topUpBalance: aiReservation.topUpBalance,
           resetAt: aiReservation.resetAt
         };
@@ -944,7 +1003,7 @@ app.post("/api/pip/chat", async (req, res, next) => {
         console.warn(`Could not refund failed Build Check: ${refundError.message}`);
       }
     }
-    if (error.code === "pip_daily_limit_reached") {
+    if (error.code === "pip_daily_limit_reached" || error.code === "pip_monthly_limit_reached") {
       res.status(error.statusCode || 402).json(error.payload || makeDailyLimitPayload({}));
       return;
     }
@@ -953,19 +1012,17 @@ app.post("/api/pip/chat", async (req, res, next) => {
 });
 
 app.use((error, _req, res, _next) => {
-  console.error(error);
+  if (error.code !== "pip_cors_origin_denied") console.error(error);
   res.status(error.statusCode || 500).json({
-    error: "pip_error",
+    error: error.code === "pip_cors_origin_denied" ? "cors_origin_denied" : "pip_error",
     message: error.statusCode ? error.message : "Pip hit a server-side issue. Check the backend logs."
   });
 });
 
-app.listen(port, () => {
-  console.log(`HydroPip Pip API running on port ${port}`);
-});
-
-function isWixEmbedOrigin(origin) {
-  return origin === "null" || /^https:\/\/[a-z0-9-]+\.filesusr\.com$/i.test(origin);
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  app.listen(port, () => {
+    console.log(`HydroPip Pip API running on port ${port}`);
+  });
 }
 
 function requirePipMember(req, res, next) {
@@ -979,7 +1036,7 @@ function requirePipMember(req, res, next) {
   next();
 }
 
-function optionalPipSession(req) {
+export function optionalPipSession(req) {
   const signed = sessionFromRequest(req);
   if (signed) {
     return {
@@ -999,14 +1056,19 @@ function optionalPipSession(req) {
     };
   }
 
-  if (signedSessionsRequired()) {
+  const allowUnsignedDev = process.env.NODE_ENV !== "production"
+    && String(process.env.PIP_ALLOW_UNSIGNED_DEV_SESSIONS || "false").toLowerCase() === "true";
+  if (!allowUnsignedDev || signedSessionsRequired()) {
     return { user: null, subscription: { active: false, plan: "visitor", verified: false } };
   }
 
-  const legacyUser = req.body?.user || (req.query?.userId ? { id: req.query.userId } : null);
+  const legacyUser = req.body?.user || null;
   return {
     user: legacyUser,
-    subscription: req.body?.subscription || { active: false, plan: legacyUser ? "free_member" : "visitor" }
+    subscription: {
+      ...(req.body?.subscription || { active: false, plan: legacyUser ? "free_member" : "visitor" }),
+      verified: false
+    }
   };
 }
 
@@ -1021,6 +1083,10 @@ function requirePipBeta(req, res, next) {
 }
 
 function requirePipAdmin(req, res, next) {
+  if (!adminIpAllowed(req)) {
+    res.status(403).json({ error: "admin_ip_not_allowed" });
+    return;
+  }
   if (!adminRequestAllowed(req)) {
     res.status(401).json({ error: "admin_key_required", message: "Enter the HydroPip beta admin key." });
     return;
@@ -1028,6 +1094,60 @@ function requirePipAdmin(req, res, next) {
   res.set("Cache-Control", "no-store");
   next();
 }
+
+function serveAdminPage(file) {
+  return (req, res) => {
+    res.set("Cache-Control", "private, no-store, max-age=0");
+    res.set("Pragma", "no-cache");
+    if (process.env.NODE_ENV === "production" && String(process.env.PIP_ENABLE_ADMIN_UI || "false").toLowerCase() !== "true") {
+      res.status(404).json({ error: "not_found" });
+      return;
+    }
+    if (!adminIpAllowed(req)) {
+      res.status(403).json({ error: "admin_ip_not_allowed" });
+      return;
+    }
+    res.sendFile(path.join(rootDir, file));
+  };
+}
+
+function adminIpAllowed(req) {
+  const allowed = String(process.env.PIP_ADMIN_ALLOWED_IPS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return allowed.length === 0 || allowed.includes(requestIp(req));
+}
+
+function consumeSessionExchange(req) {
+  const now = Date.now();
+  for (const [key, expiresAt] of exchangeNonces) {
+    if (expiresAt <= now) exchangeNonces.delete(key);
+  }
+  const memberId = String(req.body?.member?.id || req.body?.member?._id || "").trim();
+  const rateKey = memberId || requestIp(req);
+  const recent = (sessionExchangeHits.get(rateKey) || []).filter((timestamp) => now - timestamp < 60_000);
+  if (recent.length >= 20) return { allowed: false, statusCode: 429, error: "session_exchange_rate_limited" };
+  recent.push(now);
+  sessionExchangeHits.set(rateKey, recent);
+
+  const nonce = String(req.headers["x-pip-exchange-nonce"] || req.body?.exchangeNonce || "").trim();
+  const nonceRequired = String(process.env.PIP_REQUIRE_EXCHANGE_NONCE || "false").toLowerCase() === "true";
+  if (!nonce) return nonceRequired
+    ? { allowed: false, statusCode: 400, error: "exchange_nonce_required" }
+    : { allowed: true };
+  if (!/^[a-z0-9._:-]{16,200}$/i.test(nonce)) return { allowed: false, statusCode: 400, error: "invalid_exchange_nonce" };
+  if (exchangeNonces.has(nonce)) return { allowed: false, statusCode: 409, error: "exchange_nonce_replayed" };
+  exchangeNonces.set(nonce, now + 10 * 60_000);
+  return { allowed: true };
+}
+
+function requestIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  return String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+}
+
+export { app };
 
 function betaApplicationRateLimit(req, res, next) {
   const forwarded = req.headers["x-forwarded-for"];

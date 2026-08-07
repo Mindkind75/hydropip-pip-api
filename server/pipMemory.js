@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { dailyLimitForTier, dailyResetAt } from "./pipUsage.js";
+import { dailyLimitForTier, dailyResetAt, getPipUsageConfig, monthlyLimitForTier, monthlyResetAt } from "./pipUsage.js";
 import { resetKnowledgeIndex } from "./ragStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -9,6 +9,10 @@ const defaultDataFile = path.join(__dirname, ".data", "pip-memory.json");
 const dataFile = process.env.PIP_MEMORY_FILE || defaultDataFile;
 const rootDir = path.resolve(__dirname, "..");
 export const FREE_BUILD_PHOTO_LIMIT = 5;
+
+if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is required in production; local JSON memory is disabled.");
+}
 
 export const DEFAULT_WORKSPACE_TAB_ORDER = [
   "profile",
@@ -207,23 +211,31 @@ export async function getDailyAiUsageSummary({ userId, ipHash, tier } = {}) {
   const identity = normalizeUsageIdentity({ userId, ipHash });
   const normalizedTier = normalizeUsageTier(tier);
   const dailyLimit = dailyLimitForTier(normalizedTier);
+  const monthlyLimit = monthlyLimitForTier(normalizedTier);
   const resetAt = dailyResetAt();
 
   if (usesPostgres()) {
     const pool = await readyPool();
     const usedResult = await pool.query(
-      `select coalesce(sum(credits_used), 0)::integer as used,
-              count(*)::integer as event_count
+      `select coalesce(sum(credits_used) filter (
+                where created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
+                  and coalesce(metadata->>'funding', 'included') = 'included'
+              ), 0)::integer as used,
+              count(*) filter (where created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC')::integer as event_count,
+              coalesce(sum(credits_used) filter (
+                where created_at >= date_trunc('month', now() at time zone 'UTC') at time zone 'UTC'
+              ), 0)::integer as used_month
        from pip_usage_events
        where ${identity.userId ? "user_id = $1" : "user_id is null and ip_hash = $1"}
-         and created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
-         and coalesce(metadata->>'funding', 'included') = 'included'`,
+         and created_at >= date_trunc('month', now() at time zone 'UTC') at time zone 'UTC'`,
       [identity.userId || identity.ipHash]
     );
     return {
       tier: normalizedTier,
       dailyLimit,
+      monthlyLimit,
       usedToday: Number(usedResult.rows[0]?.used || 0),
+      usedThisMonth: Number(usedResult.rows[0]?.used_month || 0),
       eventCountToday: Number(usedResult.rows[0]?.event_count || 0),
       topUpBalance: identity.userId ? await getPipCreditBalance({ userId: identity.userId }) : 0,
       resetAt
@@ -232,11 +244,15 @@ export async function getDailyAiUsageSummary({ userId, ipHash, tier } = {}) {
 
   const state = readState();
   const start = utcDayStart();
-  const events = Object.values(state.usageEvents).filter((event) => usageEventMatches(event, identity, start));
+  const monthStart = utcMonthStart();
+  const monthlyEvents = Object.values(state.usageEvents).filter((event) => usageEventMatches(event, identity, monthStart));
+  const events = monthlyEvents.filter((event) => String(event.createdAt) >= start);
   return {
     tier: normalizedTier,
     dailyLimit,
+    monthlyLimit,
     usedToday: events.filter((event) => event.metadata?.funding !== "top_up").reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0),
+    usedThisMonth: monthlyEvents.reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0),
     eventCountToday: events.length,
     topUpBalance: identity.userId ? creditBalanceFromState(state, identity.userId) : 0,
     resetAt
@@ -248,6 +264,9 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
   const normalizedTier = normalizeUsageTier(tier);
   const required = normalizeCreditAmount(creditsRequired, "creditsRequired");
   const dailyLimit = dailyLimitForTier(normalizedTier);
+  const monthlyLimit = monthlyLimitForTier(normalizedTier);
+  const usageConfig = getPipUsageConfig();
+  const globalMonthlyLimit = usageConfig.globalMonthlyCredits;
   const reservationId = makeId("usage");
   const safeMetadata = normalizeUsageMetadata(metadata);
 
@@ -256,6 +275,7 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
     const client = await pool.connect();
     try {
       await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtext('pip_usage_global_monthly'))");
       await client.query("select pg_advisory_xact_lock(hashtext($1))", [usageLockKey(identity)]);
       const usedResult = await client.query(
         `select coalesce(sum(credits_used), 0)::integer as used
@@ -266,6 +286,30 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
         [identity.userId || identity.ipHash]
       );
       const usedToday = Number(usedResult.rows[0]?.used || 0);
+      const monthlyResult = await client.query(
+        `select coalesce(sum(credits_used), 0)::integer as used
+         from pip_usage_events
+         where ${identity.userId ? "user_id = $1" : "user_id is null and ip_hash = $1"}
+           and created_at >= date_trunc('month', now() at time zone 'UTC') at time zone 'UTC'`,
+        [identity.userId || identity.ipHash]
+      );
+      const usedThisMonth = Number(monthlyResult.rows[0]?.used || 0);
+      if (monthlyLimit > 0 && usedThisMonth + required > monthlyLimit) {
+        await client.query("rollback");
+        return { allowed: false, limitKind: "monthly", monthlyLimit, usedThisMonth, creditsRequired: required, resetAt: monthlyResetAt() };
+      }
+      if (globalMonthlyLimit > 0) {
+        const globalResult = await client.query(
+          `select coalesce(sum(credits_used), 0)::integer as used
+           from pip_usage_events
+           where created_at >= date_trunc('month', now() at time zone 'UTC') at time zone 'UTC'`
+        );
+        const globalUsedThisMonth = Number(globalResult.rows[0]?.used || 0);
+        if (globalUsedThisMonth + required > globalMonthlyLimit) {
+          await client.query("rollback");
+          return { allowed: false, limitKind: "global_monthly", monthlyLimit: globalMonthlyLimit, usedThisMonth: globalUsedThisMonth, creditsRequired: required, resetAt: monthlyResetAt() };
+        }
+      }
       let funding = "included";
       let topUpBalance = 0;
 
@@ -299,7 +343,7 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
         );
       }
       await client.query("commit");
-      return { allowed: true, reservationId, funding, dailyLimit, usedToday, creditsRequired: required, topUpBalance: funding === "top_up" ? topUpBalance - required : topUpBalance, resetAt: dailyResetAt() };
+      return { allowed: true, reservationId, funding, dailyLimit, monthlyLimit, usedToday, usedThisMonth, creditsRequired: required, topUpBalance: funding === "top_up" ? topUpBalance - required : topUpBalance, resetAt: dailyResetAt() };
     } catch (error) {
       await client.query("rollback");
       throw error;
@@ -310,8 +354,20 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
 
   const state = readState();
   const start = utcDayStart();
+  const monthStart = utcMonthStart();
   const events = Object.values(state.usageEvents).filter((event) => usageEventMatches(event, identity, start));
   const usedToday = events.filter((event) => event.metadata?.funding !== "top_up").reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0);
+  const monthlyEvents = Object.values(state.usageEvents).filter((event) => usageEventMatches(event, identity, monthStart));
+  const usedThisMonth = monthlyEvents.reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0);
+  if (monthlyLimit > 0 && usedThisMonth + required > monthlyLimit) {
+    return { allowed: false, limitKind: "monthly", monthlyLimit, usedThisMonth, creditsRequired: required, resetAt: monthlyResetAt() };
+  }
+  const globalUsedThisMonth = Object.values(state.usageEvents)
+    .filter((event) => String(event.createdAt) >= monthStart)
+    .reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0);
+  if (globalMonthlyLimit > 0 && globalUsedThisMonth + required > globalMonthlyLimit) {
+    return { allowed: false, limitKind: "global_monthly", monthlyLimit: globalMonthlyLimit, usedThisMonth: globalUsedThisMonth, creditsRequired: required, resetAt: monthlyResetAt() };
+  }
   let funding = "included";
   let topUpBalance = identity.userId ? creditBalanceFromState(state, identity.userId) : 0;
   if (usedToday + required > dailyLimit) {
@@ -350,7 +406,7 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
     topUpBalance -= required;
   }
   writeState(state);
-  return { allowed: true, reservationId, funding, dailyLimit, usedToday, creditsRequired: required, topUpBalance, resetAt: dailyResetAt() };
+  return { allowed: true, reservationId, funding, dailyLimit, monthlyLimit, usedToday, usedThisMonth, creditsRequired: required, topUpBalance, resetAt: dailyResetAt() };
 }
 
 export async function completeAiUsage({ reservationId, model, inputTokens, outputTokens, estimatedCostUsd, metadata = {} } = {}) {
@@ -948,8 +1004,40 @@ export async function deleteUserData({ userId } = {}) {
   const ownerId = requireUserId(userId);
   if (usesPostgres()) {
     const pool = await readyPool();
-    const result = await pool.query("delete from pip_users where id = $1", [ownerId]);
-    return { deleted: result.rowCount > 0 };
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      const countsResult = await client.query(
+        `select
+           (select count(*) from pip_projects where user_id = $1)::integer as projects,
+           (select count(*) from pip_conversations where user_id = $1)::integer as conversations,
+           (select count(*) from pip_messages where user_id = $1)::integer as messages,
+           (select count(*) from pip_reminders where user_id = $1)::integer as reminders,
+           (select count(*) from pip_readings where user_id = $1)::integer as readings,
+           (select count(*) from pip_seeds where user_id = $1)::integer as seeds,
+           (select count(*) from pip_feedback where user_id = $1)::integer as feedback,
+           (select count(*) from pip_usage_events where user_id = $1)::integer as usage_events,
+           (select count(*) from pip_credit_ledger where user_id = $1)::integer as credit_ledger,
+           (select count(*) from pip_review_items where user_id = $1)::integer as review_items`,
+        [ownerId]
+      );
+      const summary = normalizeDeletionSummary(countsResult.rows[0]);
+      await client.query("delete from pip_review_items where user_id = $1", [ownerId]);
+      const conversions = await client.query(
+        `update pip_conversion_events
+         set user_id = null, metadata = coalesce(metadata, '{}'::jsonb) || '{"accountDeleted":true}'::jsonb
+         where user_id = $1`,
+        [ownerId]
+      );
+      const result = await client.query("delete from pip_users where id = $1", [ownerId]);
+      await client.query("commit");
+      return { deleted: result.rowCount > 0, summary: { ...summary, conversionEventsAnonymized: conversions.rowCount } };
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   const state = readState();
@@ -959,6 +1047,20 @@ export async function deleteUserData({ userId } = {}) {
   const conversationIds = Object.values(state.chatThreads)
     .filter((conversation) => conversation.userId === ownerId)
     .map((conversation) => conversation.id);
+  const summary = {
+    projects: projectIds.length,
+    conversations: conversationIds.length,
+    messages: conversationIds.reduce((sum, id) => sum + (state.conversations[id]?.length || 0), 0),
+    reminders: projectIds.reduce((sum, id) => sum + (state.reminders[id]?.length || 0), 0),
+    readings: projectIds.reduce((sum, id) => sum + (state.readings[id]?.length || 0), 0),
+    seeds: projectIds.reduce((sum, id) => sum + (state.seeds[id]?.length || 0), 0),
+    feedback: Object.values(state.feedback).filter((item) => item.userId === ownerId).length,
+    usageEvents: Object.values(state.usageEvents).filter((item) => item.userId === ownerId).length,
+    creditLedger: Object.values(state.creditLedger).filter((item) => item.userId === ownerId).length,
+    reviewItems: Object.values(state.reviewItems || {}).filter((item) => item.userId === ownerId).length,
+    pushSubscriptions: Object.values(state.pushSubscriptions || {}).filter((item) => item.userId === ownerId).length,
+    conversionEventsAnonymized: Object.values(state.conversionEvents || {}).filter((item) => item.userId === ownerId).length
+  };
   projectIds.forEach((projectId) => {
     delete state.projects[projectId];
     delete state.reminders[projectId];
@@ -972,10 +1074,16 @@ export async function deleteUserData({ userId } = {}) {
   Object.values(state.feedback).filter((item) => item.userId === ownerId).forEach((item) => delete state.feedback[item.id]);
   Object.values(state.usageEvents).filter((item) => item.userId === ownerId).forEach((item) => delete state.usageEvents[item.id]);
   Object.values(state.creditLedger).filter((item) => item.userId === ownerId).forEach((item) => delete state.creditLedger[item.id]);
+  Object.values(state.reviewItems || {}).filter((item) => item.userId === ownerId).forEach((item) => delete state.reviewItems[item.id]);
+  Object.entries(state.pushSubscriptions || {}).filter(([, item]) => item.userId === ownerId).forEach(([id]) => delete state.pushSubscriptions[id]);
+  Object.values(state.conversionEvents || {}).filter((item) => item.userId === ownerId).forEach((item) => {
+    item.userId = null;
+    item.metadata = { ...(item.metadata || {}), accountDeleted: true };
+  });
   const deleted = Boolean(state.users[ownerId]);
   delete state.users[ownerId];
   writeState(state);
-  return { deleted };
+  return { deleted, summary };
 }
 
 export async function listProjects({ userId } = {}) {
@@ -1976,8 +2084,14 @@ function writeState(nextState) {
   stateCache = nextState;
   fs.mkdirSync(path.dirname(dataFile), { recursive: true });
   const tempFile = `${dataFile}.${process.pid}.tmp`;
-  fs.writeFileSync(tempFile, `${JSON.stringify(nextState, null, 2)}\n`);
+  fs.writeFileSync(tempFile, `${JSON.stringify(nextState, redactLocalSecret, 2)}\n`);
   fs.renameSync(tempFile, dataFile);
+}
+
+function redactLocalSecret(key, value) {
+  return /(?:api[_-]?key|secret|password|authorization|cookie|session[_-]?token|access[_-]?token|refresh[_-]?token)/i.test(key)
+    ? undefined
+    : value;
 }
 
 function normalizeConversionEvent(event = {}) {
@@ -2705,6 +2819,9 @@ function normalizeUsageMetadata(metadata) {
   delete safe.message;
   delete safe.response;
   delete safe.image;
+  for (const key of Object.keys(safe)) {
+    if (/(?:api[_-]?key|secret|password|authorization|cookie|token)/i.test(key)) delete safe[key];
+  }
   return JSON.parse(JSON.stringify(safe));
 }
 
@@ -2741,6 +2858,13 @@ function utcDayStart() {
   return start.toISOString();
 }
 
+function utcMonthStart() {
+  const start = new Date();
+  start.setUTCDate(1);
+  start.setUTCHours(0, 0, 0, 0);
+  return start.toISOString();
+}
+
 function usageEventMatches(event, identity, start) {
   const identityMatches = identity.userId
     ? event.userId === identity.userId
@@ -2752,6 +2876,21 @@ function creditBalanceFromState(state, userId) {
   return Object.values(state.creditLedger)
     .filter((entry) => entry.userId === userId)
     .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+}
+
+function normalizeDeletionSummary(row = {}) {
+  return {
+    projects: Number(row.projects || 0),
+    conversations: Number(row.conversations || 0),
+    messages: Number(row.messages || 0),
+    reminders: Number(row.reminders || 0),
+    readings: Number(row.readings || 0),
+    seeds: Number(row.seeds || 0),
+    feedback: Number(row.feedback || 0),
+    usageEvents: Number(row.usage_events || 0),
+    creditLedger: Number(row.credit_ledger || 0),
+    reviewItems: Number(row.review_items || 0)
+  };
 }
 
 function rowToConversionEvent(row) {

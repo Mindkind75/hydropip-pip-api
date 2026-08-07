@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 
-const SESSION_TTL_SECONDS = 6 * 60 * 60;
+const SESSION_ISSUER = "hydropip-wix";
+const SESSION_AUDIENCE = "hydropip-pip-api";
+const DEFAULT_SESSION_TTL_SECONDS = 60 * 60;
 
 export function issuePipSession({ member, subscription } = {}) {
   const secret = sessionSecret();
@@ -8,6 +10,7 @@ export function issuePipSession({ member, subscription } = {}) {
   if (!secret || !memberId) return null;
 
   const now = Math.floor(Date.now() / 1000);
+  const ttlSeconds = sessionTtlSeconds();
   const payload = {
     sub: memberId,
     email: cleanOptional(member?.email),
@@ -17,8 +20,10 @@ export function issuePipSession({ member, subscription } = {}) {
     pro: Boolean(subscription?.active),
     beta: Boolean(subscription?.active && subscription?.beta),
     iat: now,
-    exp: now + SESSION_TTL_SECONDS,
-    iss: "hydropip-wix"
+    exp: now + ttlSeconds,
+    iss: SESSION_ISSUER,
+    aud: SESSION_AUDIENCE,
+    jti: crypto.randomUUID()
   };
   const encoded = encodeJson(payload);
   return `${encoded}.${sign(encoded, secret)}`;
@@ -37,7 +42,17 @@ export function verifyPipSession(token) {
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
     const now = Math.floor(Date.now() / 1000);
-    if (payload.iss !== "hydropip-wix" || !payload.sub || !payload.exp || payload.exp <= now) return null;
+    if (
+      payload.iss !== SESSION_ISSUER
+      || payload.aud !== SESSION_AUDIENCE
+      || !payload.jti
+      || !payload.sub
+      || !payload.iat
+      || !payload.exp
+      || payload.exp <= now
+      || payload.iat > now + 60
+      || payload.exp - payload.iat > sessionTtlSeconds() + 60
+    ) return null;
     return payload;
   } catch {
     return null;
@@ -60,8 +75,11 @@ export function bridgeRequestAllowed(req) {
 }
 
 export function adminRequestAllowed(req) {
-  const secret = String(process.env.PIP_ADMIN_KEY || process.env.PIP_BRIDGE_SECRET || "").trim();
-  const supplied = String(req.headers["x-pip-admin-key"] || "");
+  const secret = String(process.env.PIP_ADMIN_KEY || "").trim();
+  const authorization = String(req.headers.authorization || "");
+  const supplied = authorization.startsWith("Bearer ")
+    ? authorization.slice(7).trim()
+    : String(req.headers["x-pip-admin-key"] || "").trim();
   if (!secret || !supplied) return false;
   const actualBuffer = Buffer.from(supplied);
   const expectedBuffer = Buffer.from(secret);
@@ -78,6 +96,12 @@ export function signedSessionsConfigured() {
 
 function sessionSecret() {
   return String(process.env.PIP_BRIDGE_SECRET || "").trim();
+}
+
+function sessionTtlSeconds() {
+  const configured = Number(process.env.PIP_SESSION_TTL_SECONDS);
+  if (!Number.isFinite(configured)) return DEFAULT_SESSION_TTL_SECONDS;
+  return Math.max(300, Math.min(6 * 60 * 60, Math.floor(configured)));
 }
 
 function sign(encoded, secret) {

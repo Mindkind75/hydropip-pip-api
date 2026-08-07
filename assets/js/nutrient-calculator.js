@@ -12,6 +12,7 @@
   var accessActions = document.querySelector("#accessActions");
   var memberOnlyNote = document.querySelector("#memberOnlyNote");
   var proUpsell = document.querySelector("#proUpsell");
+  var nutrientSafetyDisclaimer = "HydroPip nutrient calculations are educational estimates for a fresh reservoir batch, not professional agronomic, food-safety, medical, or chemical-handling advice. Verify all amounts against the nutrient product label, your crop, your water source, and local agricultural guidance before mixing. Do not add a full new dose to a partly used reservoir unless the product label and your own measurements support it. Over-fertilization can injure plants, contaminate runoff, and make edible crops unsafe or poor quality. Store nutrients and pH adjusters away from children and pets, wear appropriate protection, mix only in the recommended order, and never premix concentrated MasterBlend and calcium nitrate together.";
   var config = null;
   var hasCalculated = false;
   var stageLabels = {
@@ -178,6 +179,7 @@
         '<h3>Mix in this order</h3><ol class="steps">' + mixingOrder.map(function (step) { return "<li>" + escapeHtml(step) + "</li>"; }).join("") + "</ol>" +
         '<h3>Operate this system</h3><p class="reason">' + escapeHtml(system.operation) + '</p>' +
         '<p class="fine"><strong>Recipe source:</strong> ' + sourceMarkup + '. ' + escapeHtml(config.disclaimer) + '</p>' +
+        '<div class="warning"><strong>Important nutrient safety:</strong><br>' + escapeHtml(nutrientSafetyDisclaimer) + '</div>' +
         '<div class="result-actions"><button class="btn secondary" type="button" id="printResult">Print this mix</button><a class="btn primary" href="https://www.hydropip.com/pip" target="_top">Ask Pip about this grow</a></div>';
       document.querySelector("#printResult").addEventListener("click", function () { window.print(); });
       hasCalculated = true;

@@ -110,20 +110,20 @@
     let items = [];
     let selectedId = null;
 
-    const savedKey = localStorage.getItem("pipReviewAdminKey");
+    const savedKey = sessionStorage.getItem("pipReviewAdminKey");
     if (savedKey) keyInput.value = savedKey;
     loadButton.addEventListener("click", loadDashboard);
 
     async function loadDashboard() {
       const key = keyInput.value.trim();
       if (!key) { statusText.textContent = "Enter the admin key first."; return; }
-      localStorage.setItem("pipReviewAdminKey", key);
+      sessionStorage.setItem("pipReviewAdminKey", key);
       statusText.textContent = "Loading...";
       try {
         const params = new URLSearchParams();
         if (statusFilter.value) params.set("status", statusFilter.value);
         params.set("limit", limitFilter.value);
-        const response = await fetch("/api/pip/admin/review-items?" + params.toString(), { headers: { "X-Pip-Admin-Key": key } });
+        const response = await fetch("/api/pip/admin/review-items?" + params.toString(), { headers: { Authorization: "Bearer " + key } });
         if (!response.ok) throw new Error("Review API returned " + response.status);
         const data = await response.json();
         items = data.reviewItems || [];
@@ -362,7 +362,7 @@
       try {
         const response = await fetch("/api/pip/admin/review-items/" + encodeURIComponent(id), {
           method:"PATCH",
-          headers:{ "Content-Type":"application/json", "X-Pip-Admin-Key":keyInput.value.trim() },
+          headers:{ "Content-Type":"application/json", Authorization:"Bearer " + keyInput.value.trim() },
           body:JSON.stringify({ patch })
         });
         if (!response.ok) throw new Error("Save returned " + response.status);

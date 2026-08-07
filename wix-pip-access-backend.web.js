@@ -47,11 +47,13 @@ async function createPipSession(subscription) {
   if (!member?._id) return null;
 
   const bridgeSecret = await getSecret("PIP_BRIDGE_SECRET");
+  const exchangeNonce = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
   const response = await fetch(`${PIP_API_URL}/api/pip/session/exchange`, {
     method: "post",
     headers: {
       "Content-Type": "application/json",
-      "x-pip-bridge-secret": bridgeSecret
+      "x-pip-bridge-secret": bridgeSecret,
+      "x-pip-exchange-nonce": exchangeNonce
     },
     body: JSON.stringify({
       member: {
@@ -59,7 +61,8 @@ async function createPipSession(subscription) {
         email: member.loginEmail || null,
         name: member.profile?.nickname || member.contactDetails?.firstName || null
       },
-      subscription
+      subscription,
+      exchangeNonce
     })
   });
 
