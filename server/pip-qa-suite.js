@@ -107,7 +107,9 @@ for (const item of cases) {
   const failures = [];
   if (words > maxWords) failures.push(`too long: ${words} words`);
   for (const token of item.must || []) {
-    if (!answer.toLowerCase().includes(token.toLowerCase())) failures.push(`missing: ${token}`);
+    const presentInAnswer = answer.toLowerCase().includes(token.toLowerCase());
+    const presentAsAction = token === proUrl && data.upgradeCta?.url === proUrl;
+    if (!presentInAnswer && !presentAsAction) failures.push(`missing: ${token}`);
   }
   for (const token of item.avoid || []) {
     if (answer.toLowerCase().includes(token.toLowerCase())) failures.push(`bad phrase: ${token}`);
@@ -116,7 +118,7 @@ for (const item of cases) {
   if (/https?:\/\/(?:www\.)?amazon\.com/i.test(answer) && !answer.includes("As an Amazon Associate I earn from qualifying purchases.")) {
     failures.push("missing Amazon disclosure");
   }
-  if (item.type === "pro" && !answer.includes(proUrl)) failures.push("missing Pro signup URL");
+  if (item.type === "pro" && data.upgradeCta?.url !== proUrl && !answer.includes(proUrl)) failures.push("missing Pro signup action");
 
   results.push({ question: item.q, type: item.type, words, mode: data.mode, failures, answer });
 }

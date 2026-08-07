@@ -17,7 +17,7 @@ export function classifyPhotoRequest({ message, projectType, subscription = {} }
   if ((projectType && projectType !== "hydropip_build") || proPhotoTopics.test(question) || otherSystemTopics.test(question)) {
     return {
       access: "pip_pro_required",
-      message: `I can help diagnose plant health, pests, roots, nutrients, and other hydro systems from photos with Pip Pro: ${PHOTO_UPGRADE_URL}\n\nYour five complimentary photo checks are reserved for the HydroPip build and proposed HydroPip installation site.`
+      message: "I can help diagnose plant health, pests, roots, nutrients, and other hydro systems from photos with Pip Pro.\n\nYour five complimentary photo checks are reserved for the HydroPip build and proposed HydroPip installation site."
     };
   }
 

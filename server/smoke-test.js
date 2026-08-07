@@ -742,6 +742,38 @@ const customSystemGate = await askPip({
 assert.equal(customSystemGate.subscriptionRequired, true);
 assert.equal(customSystemGate.mode, "subscription_gate");
 assert.equal(customSystemGate.answer.includes("Pip Pro"), true);
+assert.deepEqual(customSystemGate.upgradeCta, {
+  label: "See Pip Pro",
+  url: "https://www.hydropip.com/pip?pro=1"
+});
+
+const savedReminderGate = await askPip({
+  message: "Save a reminder to check my pH every Friday.",
+  subscription: { active: false }
+});
+assert.equal(savedReminderGate.subscriptionRequired, true);
+assert.equal(savedReminderGate.mode, "subscription_gate");
+assert.equal(savedReminderGate.upgradeCta.label, "See Pip Pro");
+assert.equal(savedReminderGate.answer.includes("Free Pip can still guide the HydroPip build"), true);
+
+const growHistoryGate = await askPip({
+  message: "Keep my grow history and readings for this crop.",
+  subscription: { active: false }
+});
+assert.equal(growHistoryGate.subscriptionRequired, true);
+assert.equal(growHistoryGate.upgradeCta.url, "https://www.hydropip.com/pip?pro=1");
+
+const freeBuildTracking = await askPip({
+  message: "Where do I open Track My Build for my HydroPip parts?",
+  subscription: { active: false }
+});
+assert.notEqual(freeBuildTracking.subscriptionRequired, true);
+
+const proReminderAnswer = await askPip({
+  message: "Save a reminder to check my pH every Friday.",
+  subscription: { active: true, verified: true }
+});
+assert.notEqual(proReminderAnswer.subscriptionRequired, true);
 
 const contextualPartAnswer = await askPip({
   message: "What size should it be?",

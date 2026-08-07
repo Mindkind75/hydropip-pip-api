@@ -202,6 +202,9 @@ assert.match(pipHtml, /photo-allowance/, "Pip should show the member's remaining
 assert.match(pipHtml, /photo_limit_reached|data\.photoAllowance/, "Pip should handle the server-enforced photo allowance");
 assert.match(pipHtml, /pip_daily_limit_reached/, "Pip should explain daily AI limits without breaking local guidance");
 assert.match(pipHtml, /Pip Credits are coming soon/, "Pip should set a friendly expectation while top-up checkout is pending");
+assert.match(pipHtml, /function addUpgradeCta/, "Pip should show an inline Pip Pro action for subscription-only requests");
+assert.match(pipHtml, /className=["']chat-upgrade["']/, "Pip Pro nudges should use a compact chat action instead of replacing the chat controls");
+assert.doesNotMatch(pipHtml, /data\.subscriptionRequired&&!isPro\(\)\)setGate\(true,["']pro["']\)/, "A Pip Pro nudge must not lock free HydroPip build help");
 assert.match(pipHtml, /your HydroPip grow partner/, "Pip should open with a clear capability-focused introduction");
 assert.match(pipHtml, /class=["']chat-head["'][^>]*>[\s\S]*?pip-head-transparent\.png/, "Pip chat header should use the head-only avatar");
 assert.match(pipHtml, /var mascot = ["']\/assets\/branding\/pip-head-transparent\.png["']/, "Pip replies should use the head-only avatar");

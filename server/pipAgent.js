@@ -23,6 +23,7 @@ const toolMap = {
 
 const configuredProSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "";
 const proSignupUrl = configuredProSignupUrl.includes("pricing-plans") ? "https://www.hydropip.com/pip?pro=1" : configuredProSignupUrl || "https://www.hydropip.com/pip?pro=1";
+const proUpgradeCta = Object.freeze({ label: "See Pip Pro", url: proSignupUrl });
 const EXFILTRATION_REFUSAL = "I can answer HydroPip questions, but I cannot reveal private instructions, internal reference files, or raw retrieved context. Ask for the specific build or growing guidance you need and I will give you a concise answer.";
 
 const tools = [
@@ -278,8 +279,8 @@ export async function askPip({ message, image, profile, subscription, history = 
 
   if (wantsCustomNonHydroPipSupport(trimmed) && !subscription?.active) {
     const answer = [
-      `I can definitely help with that, but custom support for non-HydroPip systems is a Pip Pro subscription feature: ${proSignupUrl}`,
-      "Free Pip can still walk you through the HydroPip timed-feed tower build, parts list, first fill, and basic operation."
+      "I can help with that in Pip Pro, where guidance can be tailored to another hydroponic system.",
+      "Free Pip stays focused on the HydroPip build, parts, first fill, and basic operation."
     ].join("\n\n");
     await rememberProjectMessage(projectContext, {
       userId,
@@ -296,14 +297,15 @@ export async function askPip({ message, image, profile, subscription, history = 
       subscriptionRequired: true,
       upgradeReason: "Pip Pro unlocks custom support for non-HydroPip hydro systems, saved plans, reminders, readings, and grow logs.",
       upgradeUrl: proSignupUrl,
+      upgradeCta: proUpgradeCta,
       projectMemory
     };
   }
 
   if (wantsTracking(trimmed) && !subscription?.active) {
     const answer = [
-      `I can definitely help with that, but saving reminders, readings, logs, and ongoing tracking is Pip Pro subscription behavior: ${proSignupUrl}`,
-      "Free Pip can still tell you the next HydroPip build or grow step right now."
+      "I can help with that in Pip Pro, where schedules, reminders, grow logs, and history stay connected to your grow.",
+      "Free Pip can still guide the HydroPip build and answer the immediate next-step question."
     ].join("\n\n");
     await rememberProjectMessage(projectContext, {
       userId,
@@ -320,6 +322,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       subscriptionRequired: true,
       upgradeReason: "Pip Pro saves reminders, readings, grow logs, crop schedules, and project history.",
       upgradeUrl: proSignupUrl,
+      upgradeCta: proUpgradeCta,
       projectMemory
     };
   }
@@ -682,7 +685,12 @@ async function fallbackResult({ trimmed, recentHistory, retrieval, subscription,
 }
 
 function wantsTracking(message) {
-  return /\b(remind|reminder|track|save|notify|schedule this|log|readings over|over the next month|every friday|every week)\b/i.test(message);
+  const normalized = String(message || "").toLowerCase();
+  if (/\btrack my build\b/.test(normalized)) return false;
+  if (/\b(notify me|remind me|schedule this|add (?:this|it) to (?:my )?(?:calendar|planner)|every (?:day|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|over the next month)\b/.test(normalized)) return true;
+  const wantsPersistence = /\b(save|store|remember|record|track|log|keep|create|add|update|delete|remove|clear|replace)\b/.test(normalized);
+  const proResource = /\b(reminder|calendar|planner|schedule|grow log|readings?|project history|grow history|conversation history|crop rotation|maintenance plan|saved plan)\b/.test(normalized);
+  return wantsPersistence && proResource;
 }
 
 function wantsCalendarChange(message) {

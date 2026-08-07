@@ -900,6 +900,7 @@ app.post("/api/pip/chat", async (req, res, next) => {
           error: "photo_pro_required",
           message: classification.message,
           subscriptionRequired: true,
+          upgradeCta: { label: "See Pip Pro", url: "https://www.hydropip.com/pip?pro=1" },
           photoAllowance
         });
         return;
@@ -909,8 +910,9 @@ app.post("/api/pip/chat", async (req, res, next) => {
       if (!photoAllowance.allowed) {
         res.status(402).json({
           error: "photo_limit_reached",
-          message: "You have used your five complimentary HydroPip Build Checks. Text build help stays available, or unlock ongoing photo guidance with Pip Pro: https://www.hydropip.com/pip?pro=1",
+          message: "You have used your five complimentary HydroPip Build Checks. Text-based HydroPip build help stays available, and ongoing photo guidance is included with Pip Pro.",
           subscriptionRequired: true,
+          upgradeCta: { label: "See Pip Pro", url: "https://www.hydropip.com/pip?pro=1" },
           photoAllowance
         });
         return;
