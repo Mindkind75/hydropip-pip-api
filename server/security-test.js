@@ -20,7 +20,7 @@ process.env.PIP_REQUIRE_SIGNED_SESSIONS = "true";
 process.env.PIP_AI_DISABLED = "true";
 
 const { app, ipMatchesRule, normalizeIp, optionalPipSession } = await import("./index.js");
-const { adminRequestAllowed, issuePipSession } = await import("./pipAuth.js");
+const { adminRequestAllowed, adminSessionFromRequest, issueAdminSession, issuePipSession } = await import("./pipAuth.js");
 const { askPip, filterSensitiveModelOutput, isPromptExfiltrationAttempt } = await import("./pipAgent.js");
 const { clientIpHash, validateChatPayload } = await import("./pipUsage.js");
 const {
@@ -69,6 +69,9 @@ process.env.PIP_REQUIRE_SIGNED_SESSIONS = "true";
 assert.equal(adminRequestAllowed({ headers: { "x-pip-admin-key": "security-bridge-secret" } }), false);
 assert.equal(adminRequestAllowed({ headers: { authorization: "Bearer security-admin-secret" } }), true);
 assert.equal(adminRequestAllowed({ headers: {}, query: { adminKey: "security-admin-secret" } }), false);
+const adminSessionToken = issueAdminSession();
+assert.equal(adminSessionFromRequest({ headers: { cookie: `hydropip_admin_session=${adminSessionToken}` } })?.scope, "pip_admin");
+assert.equal(adminRequestAllowed({ headers: { cookie: `hydropip_admin_session=${adminSessionToken}` } }), true);
 assert.equal(normalizeIp("::ffff:192.0.2.10"), "192.0.2.10");
 assert.equal(ipMatchesRule("192.0.2.10", "192.0.2.10"), true);
 assert.equal(ipMatchesRule("192.0.2.10", "192.0.2.0/24"), true);
@@ -115,6 +118,21 @@ try {
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`)).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`, { headers: { "x-pip-admin-key": "security-bridge-secret" } })).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`, { headers: { Authorization: "Bearer security-admin-secret" } })).status, 200);
+  const passkeyStatusResponse = await fetch(`${baseUrl}/api/pip/admin/passkeys/status`);
+  assert.equal(passkeyStatusResponse.status, 200);
+  assert.equal(typeof (await passkeyStatusResponse.json()).enrolled, "boolean");
+  const adminSessionResponse = await fetch(`${baseUrl}/api/pip/admin/session/key`, {
+    method: "POST",
+    headers: { Authorization: "Bearer security-admin-secret", "Content-Type": "application/json" },
+    body: "{}"
+  });
+  assert.equal(adminSessionResponse.status, 200);
+  const adminCookie = String(adminSessionResponse.headers.get("set-cookie") || "").split(";")[0];
+  assert.match(adminCookie, /^hydropip_admin_session=/);
+  assert.equal((await fetch(`${baseUrl}/api/pip/admin/review-items`, { headers: { Cookie: adminCookie } })).status, 200);
+  const adminLogoutResponse = await fetch(`${baseUrl}/api/pip/admin/session/logout`, { method: "POST", headers: { Cookie: adminCookie } });
+  assert.equal(adminLogoutResponse.status, 200);
+  assert.match(String(adminLogoutResponse.headers.get("set-cookie")), /hydropip_admin_session=;/);
   assert.equal((await fetch(`${baseUrl}/api/pip/feedback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

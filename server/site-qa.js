@@ -45,8 +45,11 @@ const howItWorksHtml = fs.readFileSync(new URL("../how-it-works.html", import.me
 const adminControlHtml = fs.readFileSync(new URL("../admin-control-center.html", import.meta.url), "utf8");
 const adminControlManifest = JSON.parse(fs.readFileSync(new URL("../admin-control-center.webmanifest", import.meta.url), "utf8"));
 assert.match(adminControlHtml, /api\/pip\/admin\/ip-status/, "The mobile Control Center should display staged admin IP status");
-assert.match(adminControlHtml, /sessionStorage\.getItem\("hydropipControlAdminKey"\)/, "The Control Center admin key should be session-only");
+assert.doesNotMatch(adminControlHtml, /(?:localStorage|sessionStorage)\.(?:getItem|setItem)\([^\n]*AdminKey/i, "The Control Center must not persist or retrieve its recovery key from browser storage");
 assert.doesNotMatch(adminControlHtml, /localStorage\.(?:getItem|setItem)\([^\n]*AdminKey/i, "The Control Center must never persist its admin key in localStorage");
+assert.match(adminControlHtml, /api\/pip\/admin\/session\/key/, "The Control Center should exchange the recovery key for an HttpOnly admin session");
+assert.match(adminControlHtml, /api\/pip\/admin\/passkeys\/authenticate\/options/, "The Control Center should support passkey unlock");
+assert.match(adminControlHtml, /api\/pip\/admin\/session\/logout/, "The Control Center Lock action should clear the server session");
 assert.match(adminControlHtml, /beta-admin\.html[\s\S]*pip-review-admin\.html/, "The Control Center should link to feedback and Pip review workflows");
 assert.equal(adminControlManifest.start_url, "/admin-control-center", "The Control Center manifest should launch the protected dashboard route");
 for (const asset of ["pip-take-a-pic-illustration.jpg", "pip-planning-illustration.jpg", "pip-maintenance-illustration.jpg"]) {

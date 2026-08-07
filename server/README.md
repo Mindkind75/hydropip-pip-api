@@ -20,7 +20,9 @@ Production web service for Pip, the HydroPip AI Buddy.
 - `PIP_AI_DISABLED`: set to `true` to skip OpenAI and keep deterministic/rules guidance available.
 - `PIP_MODEL_INPUT_COST_PER_MILLION`, `PIP_MODEL_OUTPUT_COST_PER_MILLION`: model cost estimates (defaults `0.25` and `2.00`).
 - `PIP_USAGE_HASH_SECRET`: optional salt for anonymous IP hashes; falls back to `PIP_BRIDGE_SECRET`.
-- `PIP_ADMIN_KEY`: unique private key for the beta applicant and feedback review dashboard. It is separate from `PIP_BRIDGE_SECRET` and is accepted only through an admin request header.
+- `PIP_ADMIN_KEY`: recovery-only key for enrolling an administrator passkey or recovering access. It is separate from `PIP_BRIDGE_SECRET` and is accepted only through an admin request header.
+- `PIP_ADMIN_PASSKEY_RP_ID`, `PIP_ADMIN_PASSKEY_ORIGIN`: WebAuthn relying-party hostname and exact HTTPS origin for the Control Center.
+- `PIP_ADMIN_SESSION_TTL_SECONDS`: lifetime of the secure, signed, `HttpOnly` admin session issued after passkey verification (default eight hours).
 - `PIP_ALLOWED_ORIGINS`: comma-separated allowed website origins.
 - `PIP_MODEL`: defaults to `gpt-5-mini` for a strong cost/performance launch balance.
 - `PORT`: set automatically by Render.
@@ -31,6 +33,8 @@ Production web service for Pip, the HydroPip AI Buddy.
 - `POST /api/pip/chat`: main Pip chat endpoint.
 - `GET /api/pip/knowledge/search?q=...`: admin-authenticated QA endpoint for local RAG matches; raw retrieval is never exposed to public clients.
 - `GET /api/pip/admin/ip-status`: admin-authenticated check showing the observed address and whether it matches the configured admin allowlist.
+- `POST /api/pip/admin/passkeys/authenticate/options` and `/verify`: Face ID, fingerprint, or device-passcode admin unlock.
+- `POST /api/pip/admin/passkeys/register/options` and `/verify`: recovery-key-protected device enrollment.
 - `GET /api/pip/wizard`: setup profile questions.
 - `GET /api/pip/build-steps`: HydroPip build steps.
 - `GET /api/pip/parts?towerCount=4`: parts and quantities.
@@ -44,7 +48,8 @@ Production web service for Pip, the HydroPip AI Buddy.
 ## Beta Operations
 
 - `/beta-test` is the public tester intake form.
-- `/beta-admin` is the private review dashboard. Enter `PIP_ADMIN_KEY`; the key is kept in session storage and removed by the dashboard's Lock button.
+- `/admin-control-center` is the private mobile operations dashboard. Enter `PIP_ADMIN_KEY` once to enroll a device passkey; later visits unlock with Face ID, fingerprint, or the device passcode.
+- `/beta-admin` and `/pip-review-admin.html` reuse the same secure admin cookie. The raw recovery key is never stored in browser storage.
 
 ### Staged Admin IP Protection
 

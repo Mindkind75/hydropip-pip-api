@@ -92,7 +92,8 @@ const defaultState = {
   pushSubscriptions: {},
   conversionEvents: {},
   usageEvents: {},
-  creditLedger: {}
+  creditLedger: {},
+  adminPasskeys: {}
 };
 
 let stateCache;
@@ -110,6 +111,92 @@ export async function getMemoryHealth() {
   await ensureSchema(pool);
   await pool.query("select 1");
   return { mode: "postgres", persistent: true };
+}
+
+export async function listAdminPasskeys() {
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select credential_id, public_key, counter, transports, device_type, backed_up, created_at, last_used_at
+       from pip_admin_passkeys order by created_at asc`
+    );
+    return result.rows.map(rowToAdminPasskey);
+  }
+  return Object.values(readState().adminPasskeys).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+}
+
+export async function getAdminPasskey({ credentialId } = {}) {
+  const id = String(credentialId || "").trim();
+  if (!id) return null;
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select credential_id, public_key, counter, transports, device_type, backed_up, created_at, last_used_at
+       from pip_admin_passkeys where credential_id = $1`,
+      [id]
+    );
+    return result.rows[0] ? rowToAdminPasskey(result.rows[0]) : null;
+  }
+  return readState().adminPasskeys[id] || null;
+}
+
+export async function saveAdminPasskey(passkey = {}) {
+  const normalized = normalizeAdminPasskey(passkey);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `insert into pip_admin_passkeys
+         (credential_id, public_key, counter, transports, device_type, backed_up, created_at, last_used_at)
+       values ($1,$2,$3,$4::jsonb,$5,$6,$7,$7)
+       on conflict (credential_id) do update set
+         public_key=excluded.public_key,
+         counter=excluded.counter,
+         transports=excluded.transports,
+         device_type=excluded.device_type,
+         backed_up=excluded.backed_up,
+         last_used_at=excluded.last_used_at
+       returning credential_id, public_key, counter, transports, device_type, backed_up, created_at, last_used_at`,
+      [
+        normalized.credentialId,
+        normalized.publicKey,
+        normalized.counter,
+        JSON.stringify(normalized.transports),
+        normalized.deviceType,
+        normalized.backedUp,
+        normalized.createdAt
+      ]
+    );
+    return rowToAdminPasskey(result.rows[0]);
+  }
+  const state = readState();
+  state.adminPasskeys[normalized.credentialId] = normalized;
+  writeState(state);
+  return normalized;
+}
+
+export async function updateAdminPasskeyCounter({ credentialId, counter, backedUp, deviceType } = {}) {
+  const id = String(credentialId || "").trim();
+  if (!id) return null;
+  const nextCounter = Math.max(0, Number(counter) || 0);
+  const lastUsedAt = new Date().toISOString();
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `update pip_admin_passkeys
+       set counter=$1, backed_up=$2, device_type=$3, last_used_at=$4
+       where credential_id=$5
+       returning credential_id, public_key, counter, transports, device_type, backed_up, created_at, last_used_at`,
+      [nextCounter, Boolean(backedUp), cleanOptionalText(deviceType, 60) || "unknown", lastUsedAt, id]
+    );
+    return result.rows[0] ? rowToAdminPasskey(result.rows[0]) : null;
+  }
+  const state = readState();
+  const current = state.adminPasskeys[id];
+  if (!current) return null;
+  const updated = { ...current, counter: nextCounter, backedUp: Boolean(backedUp), deviceType: cleanOptionalText(deviceType, 60) || "unknown", lastUsedAt };
+  state.adminPasskeys[id] = updated;
+  writeState(state);
+  return updated;
 }
 
 export async function recordConversionEvent(event = {}) {
@@ -2048,6 +2135,18 @@ async function ensureSchema(pool) {
       created_at timestamptz not null default now()
     );
     create index if not exists pip_credit_ledger_user_created_idx on pip_credit_ledger(user_id, created_at desc);
+
+    create table if not exists pip_admin_passkeys (
+      credential_id text primary key,
+      public_key text not null,
+      counter bigint not null default 0,
+      transports jsonb not null default '[]'::jsonb,
+      device_type text not null default 'unknown',
+      backed_up boolean not null default false,
+      created_at timestamptz not null default now(),
+      last_used_at timestamptz not null default now()
+    );
+    create index if not exists pip_admin_passkeys_last_used_idx on pip_admin_passkeys(last_used_at desc);
   `);
   return schemaPromise;
 }
@@ -2088,6 +2187,7 @@ function readState() {
   stateCache.conversionEvents ||= {};
   stateCache.usageEvents ||= {};
   stateCache.creditLedger ||= {};
+  stateCache.adminPasskeys ||= {};
   return stateCache;
 }
 
@@ -2994,6 +3094,37 @@ function rowToCreditEntry(row) {
     usageEventId: row.usage_event_id,
     metadata: row.metadata || {},
     createdAt: toIso(row.created_at)
+  };
+}
+
+function normalizeAdminPasskey(passkey = {}) {
+  const credentialId = String(passkey.credentialId || "").trim();
+  const publicKey = String(passkey.publicKey || "").trim();
+  if (!credentialId || !/^[A-Za-z0-9_-]{16,1024}$/.test(credentialId)) throw new Error("Valid passkey credential ID is required");
+  if (!publicKey || !/^[A-Za-z0-9_-]{16,8192}$/.test(publicKey)) throw new Error("Valid passkey public key is required");
+  const createdAt = passkey.createdAt || new Date().toISOString();
+  return {
+    credentialId,
+    publicKey,
+    counter: Math.max(0, Number(passkey.counter) || 0),
+    transports: Array.isArray(passkey.transports) ? passkey.transports.map(String).slice(0, 12) : [],
+    deviceType: cleanOptionalText(passkey.deviceType, 60) || "unknown",
+    backedUp: Boolean(passkey.backedUp),
+    createdAt,
+    lastUsedAt: passkey.lastUsedAt || createdAt
+  };
+}
+
+function rowToAdminPasskey(row) {
+  return {
+    credentialId: row.credential_id,
+    publicKey: row.public_key,
+    counter: Number(row.counter || 0),
+    transports: Array.isArray(row.transports) ? row.transports : [],
+    deviceType: row.device_type || "unknown",
+    backedUp: Boolean(row.backed_up),
+    createdAt: toIso(row.created_at),
+    lastUsedAt: toIso(row.last_used_at)
   };
 }
 

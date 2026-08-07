@@ -27,6 +27,12 @@ services:
         sync: false
       - key: PIP_ADMIN_IP_MODE
         value: observe
+      - key: PIP_ADMIN_SESSION_TTL_SECONDS
+        value: 28800
+      - key: PIP_ADMIN_PASSKEY_RP_ID
+        value: hydropip-pip-api.onrender.com
+      - key: PIP_ADMIN_PASSKEY_ORIGIN
+        value: https://hydropip-pip-api.onrender.com
       - key: PIP_REQUIRE_SIGNED_SESSIONS
         value: true
       - key: DATABASE_URL

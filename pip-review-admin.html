@@ -75,7 +75,7 @@
       <h1>Pip Training</h1>
       <p>Pick a suggested fix, approve the training note, and let safe updates apply themselves.</p>
       <div class="controls">
-        <label class="field"><span>Admin key</span><input id="adminKey" type="password" autocomplete="off" placeholder="PIP_ADMIN_KEY"></label>
+        <label class="field"><span>Recovery key (only if locked)</span><input id="adminKey" type="password" autocomplete="current-password" placeholder="PIP_ADMIN_KEY"></label>
         <label class="field"><span>Status</span><select id="statusFilter"><option value="new">New</option><option value="reviewing">Reviewing</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="">All</option></select></label>
         <label class="field"><span>Limit</span><select id="limitFilter"><option>50</option><option>100</option><option>250</option></select></label>
         <button id="loadButton" type="button" class="light">Load Dashboard</button>
@@ -111,20 +111,21 @@
     let selectedId = null;
     let adminNetworkText = "";
 
-    const savedKey = sessionStorage.getItem("pipReviewAdminKey");
-    if (savedKey) keyInput.value = savedKey;
     loadButton.addEventListener("click", loadDashboard);
 
     async function loadDashboard() {
       const key = keyInput.value.trim();
-      if (!key) { statusText.textContent = "Enter the admin key first."; return; }
-      sessionStorage.setItem("pipReviewAdminKey", key);
       statusText.textContent = "Loading...";
       try {
+        if (key) {
+          const unlockResponse = await fetch("/api/pip/admin/session/key", { method:"POST", credentials:"same-origin", headers:{ "Content-Type":"application/json", Authorization:"Bearer " + key }, body:"{}" });
+          if (!unlockResponse.ok) throw new Error("Recovery key was not accepted");
+          keyInput.value = "";
+        }
         const params = new URLSearchParams();
         if (statusFilter.value) params.set("status", statusFilter.value);
         params.set("limit", limitFilter.value);
-        const response = await fetch("/api/pip/admin/review-items?" + params.toString(), { headers: { Authorization: "Bearer " + key } });
+        const response = await fetch("/api/pip/admin/review-items?" + params.toString(), { credentials:"same-origin" });
         if (!response.ok) throw new Error("Review API returned " + response.status);
         const mode = response.headers.get("x-pip-admin-ip-mode");
         const match = response.headers.get("x-pip-admin-ip-match");
@@ -367,7 +368,8 @@
       try {
         const response = await fetch("/api/pip/admin/review-items/" + encodeURIComponent(id), {
           method:"PATCH",
-          headers:{ "Content-Type":"application/json", Authorization:"Bearer " + keyInput.value.trim() },
+          credentials:"same-origin",
+          headers:{ "Content-Type":"application/json" },
           body:JSON.stringify({ patch })
         });
         if (!response.ok) throw new Error("Save returned " + response.status);
@@ -394,6 +396,7 @@
     function escapeHtml(value) {
       return String(value || "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
     }
+    loadDashboard();
   </script>
 </body>
 </html>

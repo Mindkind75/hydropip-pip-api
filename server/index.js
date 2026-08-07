@@ -8,8 +8,11 @@ import { askPip } from "./pipAgent.js";
 import { createGrowPlan, createReminder, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
 import {
+  ADMIN_SESSION_COOKIE,
+  adminKeyRequestAllowed,
   adminRequestAllowed,
   bridgeRequestAllowed,
+  issueAdminSession,
   issuePipSession,
   sessionFromRequest,
   signedSessionsConfigured,
@@ -80,6 +83,13 @@ import {
 } from "./pipUsage.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { analyzeFeedbackSuggestion, feedbackPortfolioInsights } from "./feedbackTriage.js";
+import {
+  adminPasskeyStatus,
+  beginAdminPasskeyAuthentication,
+  beginAdminPasskeyRegistration,
+  finishAdminPasskeyAuthentication,
+  finishAdminPasskeyRegistration
+} from "./adminPasskeys.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -106,6 +116,7 @@ const feedbackHits = new Map();
 const conversionHits = new Map();
 const sessionExchangeHits = new Map();
 const exchangeNonces = new Map();
+const adminPasskeyHits = new Map();
 
 app.use(
   cors({
@@ -265,6 +276,64 @@ app.use("/api/pip/admin", (req, res, next) => {
   res.set("Cache-Control", "private, no-store, max-age=0");
   res.set("Pragma", "no-cache");
   next();
+});
+
+app.get("/api/pip/admin/passkeys/status", async (_req, res, next) => {
+  try {
+    res.json(await adminPasskeyStatus());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/admin/session/key", adminPasskeyRateLimit, requireAdminRecoveryKey, async (_req, res, next) => {
+  try {
+    setAdminSessionCookie(res);
+    res.json({ authenticated: true, ...(await adminPasskeyStatus()) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/admin/session/logout", (_req, res) => {
+  clearAdminSessionCookie(res);
+  res.json({ locked: true });
+});
+
+app.post("/api/pip/admin/passkeys/register/options", adminPasskeyRateLimit, requireAdminRecoveryKey, async (_req, res, next) => {
+  try {
+    res.json(await beginAdminPasskeyRegistration());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/admin/passkeys/register/verify", adminPasskeyRateLimit, requireAdminRecoveryKey, async (req, res, next) => {
+  try {
+    const result = await finishAdminPasskeyRegistration(req.body || {});
+    setAdminSessionCookie(res);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/admin/passkeys/authenticate/options", adminPasskeyRateLimit, requireAdminNetwork, async (_req, res, next) => {
+  try {
+    res.json(await beginAdminPasskeyAuthentication());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pip/admin/passkeys/authenticate/verify", adminPasskeyRateLimit, requireAdminNetwork, async (req, res, next) => {
+  try {
+    const result = await finishAdminPasskeyAuthentication(req.body || {});
+    setAdminSessionCookie(res);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/pip/admin/ip-status", requirePipAdmin, (req, res) => {
@@ -1033,7 +1102,7 @@ app.post("/api/pip/chat", async (req, res, next) => {
 app.use((error, _req, res, _next) => {
   if (error.code !== "pip_cors_origin_denied") console.error(error);
   res.status(error.statusCode || 500).json({
-    error: error.code === "pip_cors_origin_denied" ? "cors_origin_denied" : "pip_error",
+    error: error.code === "pip_cors_origin_denied" ? "cors_origin_denied" : error.statusCode && error.code ? error.code : "pip_error",
     message: error.statusCode ? error.message : "Pip hit a server-side issue. Check the backend logs."
   });
 });
@@ -1117,6 +1186,66 @@ function requirePipAdmin(req, res, next) {
     return;
   }
   res.set("Cache-Control", "no-store");
+  next();
+}
+
+function requireAdminRecoveryKey(req, res, next) {
+  if (!adminKeyRequestAllowed(req)) {
+    res.status(401).json({ error: "admin_key_required", message: "Enter the Render PIP_ADMIN_KEY to recover or enroll this device." });
+    return;
+  }
+  requireAdminNetwork(req, res, next);
+}
+
+function requireAdminNetwork(req, res, next) {
+  const ipStatus = adminIpStatus(req);
+  setAdminIpHeaders(res, ipStatus);
+  if (ipStatus.mode === "enforce" && ipStatus.configured && !ipStatus.matched) {
+    res.status(403).json({
+      error: "admin_ip_not_allowed",
+      message: "This network is not on the HydroPip admin allowlist.",
+      observedIp: ipStatus.ip
+    });
+    return;
+  }
+  next();
+}
+
+function setAdminSessionCookie(res) {
+  const token = issueAdminSession();
+  if (!token) throw Object.assign(new Error("PIP_ADMIN_KEY is not configured"), { statusCode: 503, code: "admin_session_unavailable" });
+  const configured = Number(process.env.PIP_ADMIN_SESSION_TTL_SECONDS);
+  const ttlSeconds = Number.isFinite(configured)
+    ? Math.max(300, Math.min(7 * 24 * 60 * 60, Math.floor(configured)))
+    : 8 * 60 * 60;
+  res.cookie(ADMIN_SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: ttlSeconds * 1000
+  });
+}
+
+function clearAdminSessionCookie(res) {
+  res.clearCookie(ADMIN_SESSION_COOKIE, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/"
+  });
+}
+
+function adminPasskeyRateLimit(req, res, next) {
+  const ip = requestIp(req);
+  const now = Date.now();
+  const recent = (adminPasskeyHits.get(ip) || []).filter((timestamp) => now - timestamp < 60_000);
+  if (recent.length >= 20) {
+    res.status(429).json({ error: "admin_auth_rate_limited", message: "Too many admin unlock attempts. Wait a minute and try again." });
+    return;
+  }
+  recent.push(now);
+  adminPasskeyHits.set(ip, recent);
   next();
 }
 
