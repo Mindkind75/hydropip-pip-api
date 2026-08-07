@@ -66,6 +66,10 @@ assert.match(pipHtml, /id="pipAvatarDialog"/, "Pip should provide a profile-pict
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "login" \? "login"/, "The branded account page should distinguish Wix login from signup");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "signup" \? "signup"/, "The branded account page should be able to open Wix signup through the Pip bridge");
 assert.match(pipHtml, /class="auth-entry-screen"/, "Signup and login should open over a branded account welcome screen instead of active chat");
+assert.match(pipHtml, /Your free account is ready\./, "Completed signup should confirm that the free member account is ready");
+assert.match(pipHtml, /What do you want to do next\?/, "Completed signup should present a clear next-step decision");
+assert.match(pipHtml, /Track My Build[\s\S]*Talk to Pip[\s\S]*Plan My Grow/, "Free member onboarding should link to the three primary HydroPip paths");
+assert.match(pipHtml, /requestedStart==="grow"/, "Plan My Grow onboarding should open Pip with a useful crop-planning starter");
 assert.match(pipHtml, /role="radiogroup"[\s\S]*role="radio"/, "Built-in Pip profile pictures should be exposed as selectable radio options");
 assert.match(pipHtml, /id="pipAvatarUpload"[^>]*accept="image\/jpeg,image\/png,image\/webp"/, "Members should be able to upload a supported profile image");
 assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Build<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Build link");
