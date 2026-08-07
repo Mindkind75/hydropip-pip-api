@@ -32,7 +32,11 @@ services:
       - key: PIP_REQUIRE_EXCHANGE_NONCE
         value: true
       - key: PIP_ENABLE_ADMIN_UI
-        value: false
+        value: true
+      - key: PIP_FEEDBACK_AI_ENABLED
+        value: true
+      - key: PIP_FEEDBACK_AI_TIMEOUT_MS
+        value: 15000
       - key: PIP_MODEL
         value: gpt-5-mini
       - key: PIP_VISITOR_DAILY_AI_CREDITS

@@ -78,6 +78,7 @@ import {
   validateChatPayload
 } from "./pipUsage.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
+import { analyzeFeedbackSuggestion, feedbackPortfolioInsights } from "./feedbackTriage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -100,6 +101,7 @@ const chatWindowMs = Number(process.env.PIP_RATE_LIMIT_WINDOW_MS || 60_000);
 const chatMaxRequests = Number(process.env.PIP_RATE_LIMIT_MAX || 20);
 const chatHits = new Map();
 const betaApplicationHits = new Map();
+const feedbackHits = new Map();
 const conversionHits = new Map();
 const sessionExchangeHits = new Map();
 const exchangeNonces = new Map();
@@ -311,6 +313,7 @@ app.get("/api/pip/admin/beta/overview", requirePipAdmin, async (req, res, next) 
     res.json({
       applications,
       feedback,
+      feedbackInsights: feedbackPortfolioInsights(feedback),
       testers,
       conversions,
       summary: betaAdminSummary({ applications, feedback, testers }),
@@ -377,7 +380,7 @@ app.patch("/api/pip/admin/review-items/:id", requirePipAdmin, async (req, res, n
 
 app.use("/api/pip/users", requirePipMember);
 app.use("/api/pip/projects", requirePipMember);
-app.use("/api/pip/feedback", requirePipBeta);
+app.use("/api/pip/feedback", requirePipMember, feedbackRateLimit);
 
 app.post("/api/pip/users", async (req, res, next) => {
   try {
@@ -466,7 +469,9 @@ app.patch("/api/pip/users/me/beta", requirePipBeta, async (req, res, next) => {
 app.post("/api/pip/feedback", async (req, res, next) => {
   try {
     await upsertUser(req.pipUser);
-    const feedback = await createBetaFeedback({ userId: req.pipUser.id, feedback: req.body?.feedback });
+    const submission = req.body?.feedback || {};
+    const analysis = submission.message ? await analyzeFeedbackSuggestion(submission) : null;
+    const feedback = await createBetaFeedback({ userId: req.pipUser.id, feedback: submission, analysis });
     res.status(201).json({ feedback });
   } catch (error) {
     next(error);
@@ -1160,6 +1165,20 @@ function betaApplicationRateLimit(req, res, next) {
   }
   recent.push(now);
   betaApplicationHits.set(ip, recent);
+  next();
+}
+
+function feedbackRateLimit(req, res, next) {
+  const key = req.pipUser?.id || requestIp(req);
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const recent = (feedbackHits.get(key) || []).filter((timestamp) => now - timestamp < windowMs);
+  if (recent.length >= 12) {
+    res.status(429).json({ error: "feedback_rate_limited", message: "Thanks for helping HydroPip. Please wait a little before sending another suggestion." });
+    return;
+  }
+  recent.push(now);
+  feedbackHits.set(key, recent);
   next();
 }
 

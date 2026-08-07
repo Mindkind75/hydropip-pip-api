@@ -63,6 +63,9 @@ assert.match(marketingHomeHtml, /class="navPro"[^>]*><span>Pip<\/span><span clas
 assert.match(marketingHomeHtml, /hydropipAccountAvatar/, "The homepage account circle should support the saved HydroPip profile picture");
 assert.match(marketingHomeHtml, /pip\?pro=avatar/, "The profile-picture shortcut should use a query value the Wix bridge already forwards");
 assert.match(pipHtml, /id="pipAvatarDialog"/, "Pip should provide a profile-picture picker");
+assert.match(pipHtml, /id="pipFeedbackImpact"/, "Member suggestions should record how strongly an issue affected the user");
+assert.match(pipHtml, /data-feedback-open/, "Signed-in members should have a clear Suggest an improvement action");
+assert.match(pipHtml, /Pip organizes similar ideas/, "The feedback form should explain AI-assisted grouping without promising automatic changes");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "login" \? "login"/, "The branded account page should distinguish Wix login from signup");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "signup" \? "signup"/, "The branded account page should be able to open Wix signup through the Pip bridge");
 assert.match(pipHtml, /class="auth-entry-screen"/, "Signup and login should open over a branded account welcome screen instead of active chat");

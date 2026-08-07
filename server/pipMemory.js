@@ -645,19 +645,23 @@ export async function updateBetaExperience({ userId, welcomeSeen, activity } = {
   return betaExperienceFromValues(user.betaWelcomeSeenAt, user.betaActivity);
 }
 
-export async function createBetaFeedback({ userId, feedback = {} } = {}) {
+export async function createBetaFeedback({ userId, feedback = {}, analysis = null } = {}) {
   const ownerId = requireUserId(userId);
   const normalized = normalizeBetaFeedback(feedback);
+  const safeAnalysis = normalizeFeedbackAnalysis(analysis);
+  const clusterKey = cleanOptionalText(safeAnalysis?.clusterKey, 80);
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
       `insert into pip_feedback
-       (id, user_id, project_id, conversation_id, rating, category, message, page, include_context, prompt, response, device, created_at)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now())
+       (id, user_id, project_id, conversation_id, rating, category, message, page, include_context, prompt, response,
+        device, impact, contact_ok, analysis, cluster_key, created_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,$16,now())
        returning *`,
       [makeId("feedback"), ownerId, normalized.projectId, normalized.conversationId, normalized.rating,
         normalized.category, normalized.message, normalized.page, normalized.includeContext,
-        normalized.prompt, normalized.response, normalized.device]
+        normalized.prompt, normalized.response, normalized.device, normalized.impact, normalized.contactOkay,
+        JSON.stringify(safeAnalysis || {}), clusterKey]
     );
     await updateBetaExperience({ userId: ownerId, activity: { feedback: true } });
     return rowToBetaFeedback(result.rows[0]);
@@ -665,7 +669,7 @@ export async function createBetaFeedback({ userId, feedback = {} } = {}) {
 
   const state = readState();
   if (!state.users[ownerId]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
-  const record = { id: makeId("feedback"), userId: ownerId, ...normalized, createdAt: nowIso() };
+  const record = { id: makeId("feedback"), userId: ownerId, ...normalized, analysis: safeAnalysis || {}, clusterKey, createdAt: nowIso() };
   state.feedback[record.id] = record;
   state.users[ownerId].betaActivity = { ...normalizeBetaActivity(state.users[ownerId].betaActivity), feedback: true };
   state.users[ownerId].updatedAt = nowIso();
@@ -771,7 +775,8 @@ export async function listBetaFeedback({ status, category, rating, limit = 300 }
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
-      `select f.*, u.name as user_name, u.email as user_email
+      `select f.*, u.name as user_name, u.email as user_email,
+              (select count(*) from pip_feedback grouped where grouped.cluster_key = f.cluster_key and f.cluster_key is not null)::integer as duplicate_count
        from pip_feedback f
        left join pip_users u on u.id = f.user_id
        where ($1::text is null or f.review_status = $1)
@@ -791,10 +796,11 @@ export async function listBetaFeedback({ status, category, rating, limit = 300 }
       && (!normalizedRating || item.rating === normalizedRating))
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
     .slice(0, safeLimit)
-    .map((item) => rowToBetaFeedback({
+    .map((item, _index, all) => rowToBetaFeedback({
       ...item,
       userName: state.users[item.userId]?.name || null,
-      userEmail: state.users[item.userId]?.email || null
+      userEmail: state.users[item.userId]?.email || null,
+      duplicateCount: item.clusterKey ? all.filter((candidate) => candidate.clusterKey === item.clusterKey).length : 1
     }));
 }
 
@@ -1941,12 +1947,17 @@ async function ensureSchema(pool) {
       device jsonb not null default '{}'::jsonb,
       created_at timestamptz not null default now()
     );
+    alter table pip_feedback add column if not exists impact text not null default 'nice_to_have';
+    alter table pip_feedback add column if not exists contact_ok boolean not null default false;
+    alter table pip_feedback add column if not exists analysis jsonb not null default '{}'::jsonb;
+    alter table pip_feedback add column if not exists cluster_key text;
     alter table pip_feedback add column if not exists review_status text not null default 'new';
     alter table pip_feedback add column if not exists priority text not null default 'normal';
     alter table pip_feedback add column if not exists admin_notes text not null default '';
     alter table pip_feedback add column if not exists updated_at timestamptz not null default now();
     create index if not exists pip_feedback_user_created_idx on pip_feedback(user_id, created_at desc);
     create index if not exists pip_feedback_rating_created_idx on pip_feedback(rating, created_at desc);
+    create index if not exists pip_feedback_cluster_created_idx on pip_feedback(cluster_key, created_at desc);
 
     create table if not exists pip_review_items (
       id text primary key,
@@ -2374,8 +2385,38 @@ function normalizeBetaFeedback(feedback = {}) {
     includeContext,
     prompt: includeContext ? cleanOptionalText(feedback.prompt, 3000) : null,
     response: includeContext ? cleanOptionalText(feedback.response, 5000) : null,
-    device: normalizeFeedbackDevice(feedback.device)
+    device: normalizeFeedbackDevice(feedback.device),
+    impact: ["blocked", "frustrating", "nice_to_have"].includes(feedback.impact) ? feedback.impact : "nice_to_have",
+    contactOkay: Boolean(feedback.contactOkay)
   };
+}
+
+function normalizeFeedbackAnalysis(analysis) {
+  if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) return null;
+  const score = Math.max(1, Math.min(100, Math.round(Number(analysis.priorityScore) || 1)));
+  return {
+    category: cleanOptionalText(analysis.category, 40) || "other",
+    summary: cleanOptionalText(analysis.summary, 180) || "Product improvement request.",
+    recommendation: cleanOptionalText(analysis.recommendation, 220) || "Review with similar feedback.",
+    rationale: cleanOptionalText(analysis.rationale, 320) || "More evidence will improve the decision.",
+    userImpact: normalizeFeedbackScore(analysis.userImpact),
+    severity: normalizeFeedbackScore(analysis.severity),
+    businessImpact: normalizeFeedbackScore(analysis.businessImpact),
+    confidence: normalizeFeedbackScore(analysis.confidence),
+    effort: normalizeFeedbackScore(analysis.effort),
+    risk: normalizeFeedbackScore(analysis.risk),
+    priorityScore: score,
+    bucket: cleanOptionalText(analysis.bucket, 60) || "research_first",
+    clusterKey: cleanOptionalText(analysis.clusterKey, 80),
+    suggestedMetric: cleanOptionalText(analysis.suggestedMetric, 180),
+    analyzedBy: analysis.analyzedBy === "ai" ? "ai" : "rules",
+    model: cleanOptionalText(analysis.model, 120),
+    analyzedAt: cleanOptionalText(analysis.analyzedAt, 80) || nowIso()
+  };
+}
+
+function normalizeFeedbackScore(value) {
+  return Math.max(1, Math.min(5, Math.round(Number(value) || 1)));
 }
 
 function normalizeBetaApplication(application = {}) {
@@ -2433,6 +2474,11 @@ function rowToBetaFeedback(row) {
     prompt: row.prompt,
     response: row.response,
     device: row.device || {},
+    impact: row.impact || "nice_to_have",
+    contactOkay: Boolean(row.contact_ok ?? row.contactOkay),
+    analysis: row.analysis || {},
+    clusterKey: row.cluster_key || row.clusterKey || null,
+    duplicateCount: Math.max(1, Number(row.duplicate_count || row.duplicateCount || 1)),
     reviewStatus: row.review_status || row.reviewStatus || "new",
     priority: row.priority || "normal",
     adminNotes: row.admin_notes || row.adminNotes || "",

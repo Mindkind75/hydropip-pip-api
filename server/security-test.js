@@ -110,6 +110,18 @@ try {
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`)).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`, { headers: { "x-pip-admin-key": "security-bridge-secret" } })).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`, { headers: { Authorization: "Bearer security-admin-secret" } })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/api/pip/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ feedback: { category: "idea", message: "Make the Planner easier to scan." } })
+  })).status, 401);
+  const memberFeedbackResponse = await fetch(`${baseUrl}/api/pip/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${signedToken}` },
+    body: JSON.stringify({ feedback: { category: "idea", impact: "nice_to_have", message: "Make the Planner easier to scan." } })
+  });
+  assert.equal(memberFeedbackResponse.status, 201);
+  assert.equal(Boolean((await memberFeedbackResponse.json()).feedback.analysis.priorityScore), true);
   const adminApiResponse = await fetch(`${baseUrl}/api/pip/admin/review-items`, { headers: { Authorization: "Bearer security-admin-secret" } });
   assert.equal(adminApiResponse.status, 200);
   assert.match(String(adminApiResponse.headers.get("cache-control")), /no-store/);

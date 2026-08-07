@@ -57,6 +57,7 @@ import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.j
 import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
 import { getZonePlantingGuidance } from "./plantingCalendar.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
+import { feedbackPortfolioInsights, heuristicFeedbackAnalysis } from "./feedbackTriage.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 process.env.PIP_APPROVED_TRAINING_FILE ||= path.join(process.cwd(), "server", ".data", "approved-training-test.md");
@@ -401,19 +402,34 @@ const betaUpdated = await updateBetaExperience({
 assert.equal(Boolean(betaUpdated.welcomeSeenAt), true);
 assert.equal(betaUpdated.activity.profile, true);
 assert.equal(betaUpdated.activity.reminder, true);
+const feedbackAnalysis = heuristicFeedbackAnalysis({
+  category: "mobile",
+  impact: "blocked",
+  page: "track_my_build",
+  message: "The phone page gets stuck and I cannot finish the build calculator."
+});
+assert.equal(feedbackAnalysis.category, "mobile");
+assert.equal(feedbackAnalysis.bucket, "fix_now");
+assert.equal(feedbackAnalysis.priorityScore >= 50, true);
 const privateFeedback = await createBetaFeedback({
   userId: "test-user",
   feedback: {
     rating: "not_helpful",
     category: "pip_answer",
     message: "The answer missed the fitting.",
+    impact: "frustrating",
+    contactOkay: true,
     includeContext: false,
     prompt: "private prompt",
     response: "private response"
-  }
+  },
+  analysis: feedbackAnalysis
 });
 assert.equal(privateFeedback.prompt, null);
 assert.equal(privateFeedback.response, null);
+assert.equal(privateFeedback.impact, "frustrating");
+assert.equal(privateFeedback.contactOkay, true);
+assert.equal(privateFeedback.analysis.priorityScore, feedbackAnalysis.priorityScore);
 assert.equal((await getBetaExperience({ userId: "test-user" })).activity.feedback, true);
 const betaApplication = await createBetaApplication({
   application: {
@@ -438,6 +454,9 @@ assert.equal(updatedApplication.status, "shortlisted");
 assert.equal(updatedApplication.adminNotes, "Good device mix");
 const feedbackList = await listBetaFeedback({ rating: "not_helpful" });
 assert.equal(feedbackList.length, 1);
+const feedbackInsights = feedbackPortfolioInsights(feedbackList);
+assert.equal(feedbackInsights.analyzed, 1);
+assert.equal(feedbackInsights.ranked[0].id, privateFeedback.id);
 const reviewedFeedback = await updateBetaFeedbackReview({ id: privateFeedback.id, status: "reviewing", priority: "high", adminNotes: "Reproduce fitting question" });
 assert.equal(reviewedFeedback.reviewStatus, "reviewing");
 assert.equal(reviewedFeedback.priority, "high");
