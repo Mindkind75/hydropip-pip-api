@@ -182,6 +182,11 @@ assert.match(pipHtml, /class=["']pro-auth-loading["']/, "Pip Pro should show a n
 assert.match(pipHtml, /pro-auth-pending \.pro-view>\.pip-top/, "Pip Pro must hide public content while membership is unresolved");
 assert.match(pipHtml, /function revealProPage\(\)/, "Pip Pro should reveal the correct view only after session resolution");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
+assert.match(pipHtml, /id=["']pipProCelebrationDialog["']/, "Pip Pro needs a successful-upgrade celebration");
+assert.match(pipHtml, /pip-pro-celebration-transparent\.png/, "The successful-upgrade celebration should feature celebratory Pip");
+assert.match(pipHtml, /Let's Go to Pip Pro/, "The successful-upgrade celebration needs a clear workspace call to action");
+assert.match(pipHtml, /pendingProCheckout&&isPro\(\)/, "The celebration must wait until the member has verified Pip Pro access");
+assert.match(pipHtml, /HYDROPIP_PIP_READY/, "The completed checkout flow should recheck Wix while Pro access propagates");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
 assert.match(pipHtml, /How it works/, "Pip Pro should explain the subscription flow before checkout");

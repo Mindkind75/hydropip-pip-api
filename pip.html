@@ -89,9 +89,27 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
 .member-photo[hidden],.member-initial[hidden]{display:none}
 .avatar-dialog{width:min(620px,calc(100% - 24px));padding:0;border:0;border-radius:8px;background:#fff;color:var(--ink);box-shadow:0 28px 80px rgba(15,36,28,.34)}.avatar-dialog::backdrop{background:rgba(15,33,27,.66)}.avatar-form{display:grid;gap:16px;padding:24px}.avatar-form h2,.avatar-form p{margin:0}.avatar-form>p{color:var(--muted)}.avatar-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.avatar-choice{display:grid;gap:7px;justify-items:center;min-width:0;padding:10px 7px;border:2px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);font-weight:900;cursor:pointer}.avatar-choice img{display:block;width:76px;height:76px;padding:3px;border-radius:50%;background:#fff;object-fit:contain}.avatar-choice.is-selected{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(31,122,79,.14)}.avatar-actions{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}.avatar-actions>div{display:flex;gap:8px;flex-wrap:wrap}.avatar-upload-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.avatar-status{min-height:20px;color:var(--deep)!important;font-size:.86rem;font-weight:850}.avatar-current{display:flex;align-items:center;gap:12px}.avatar-current img{width:64px;height:64px;padding:3px;border:1px solid var(--line);border-radius:50%;background:var(--soft);object-fit:contain}.member-photo.is-pip-avatar{padding:2px;object-fit:contain}.account-avatar-row{display:flex;align-items:center;gap:12px;margin:12px 0}.account-avatar-row img{width:58px;height:58px;padding:3px;border:1px solid var(--line);border-radius:50%;background:var(--soft);object-fit:contain}@media(max-width:560px){.avatar-form{padding:20px 16px}.avatar-grid{grid-template-columns:1fr 1fr}.avatar-choice img{width:68px;height:68px}.avatar-actions{display:grid}.avatar-actions>div{display:grid;grid-template-columns:1fr 1fr}.avatar-actions .btn{width:100%}}
 .account-brand-panel{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:24px;align-items:center;margin-bottom:16px;padding:24px 28px;border-radius:8px;background:linear-gradient(135deg,var(--deep),#183d31);color:#fff;overflow:hidden}.account-brand-panel h2{margin:5px 0 8px;font-size:clamp(1.7rem,3.5vw,2.6rem)}.account-brand-panel p{max-width:700px;margin:0;color:rgba(255,255,255,.8)}.account-brand-panel .eyebrow{color:var(--amber)}.account-brand-panel img{width:170px;height:170px;justify-self:center;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(0,0,0,.25))}.account-mode .workspace-heading,.account-mode .project-switcher,.account-mode .workspace-meta,.account-mode #proWorkspace>.workspace-notebook>.workspace-tabs{display:none}.account-mode .pro-workspace{padding-top:18px}.account-mode .workspace-notebook{margin-top:0}.account-mode .notebook-paper{min-height:0;border:0;background:transparent;box-shadow:none}.account-mode .notebook-page{display:none!important}.account-mode .notebook-page[data-pro-panel="account"]{display:block!important;border-radius:8px;box-shadow:var(--shadow)}@media(max-width:700px){.account-brand-panel{grid-template-columns:minmax(0,1fr) 112px;padding:20px}.account-brand-panel img{width:108px;height:124px}}@media(max-width:480px){.account-brand-panel{grid-template-columns:1fr;padding:18px}.account-brand-panel img{grid-row:1;width:92px;height:104px;justify-self:start}.account-brand-panel h2{font-size:1.55rem}}
+.pro-celebration-dialog{width:min(880px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:0;border:0;border-radius:8px;background:#f8f7f1;color:var(--ink);box-shadow:0 30px 90px rgba(7,29,21,.42);overflow:auto}.pro-celebration-dialog::backdrop{background:rgba(7,29,21,.78)}.pro-celebration-card{position:relative;display:grid;grid-template-columns:minmax(250px,40%) minmax(0,1fr);min-height:510px;border:7px solid #0d392d;background:#f8f7f1}.pro-celebration-visual{display:grid;place-items:center;padding:28px 20px;background:#0d392d;overflow:hidden}.pro-celebration-visual img{display:block;width:min(100%,390px);height:auto;filter:drop-shadow(0 18px 22px rgba(0,0,0,.28));animation:pro-celebration-pop .7s cubic-bezier(.2,.8,.2,1) both}.pro-celebration-copy{display:flex;flex-direction:column;justify-content:center;padding:42px}.pro-celebration-copy .eyebrow{margin:0 0 8px;color:#a65c00}.pro-celebration-copy h2{margin:0 0 12px;font-size:clamp(2rem,5vw,3rem);line-height:1}.pro-celebration-copy>p:not(.eyebrow){margin:0;color:var(--muted);font-size:1.04rem}.pro-celebration-list{display:grid;gap:9px;margin:24px 0;padding:0;list-style:none}.pro-celebration-list li{display:flex;gap:9px;align-items:flex-start;font-weight:800}.pro-celebration-list li::before{content:"";flex:0 0 10px;width:10px;height:10px;margin-top:7px;border-radius:50%;background:var(--leaf)}.pro-celebration-go{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;min-height:50px;padding:0 22px;border-radius:7px;background:#f4ad32;color:#10251d;font-weight:950;text-decoration:none;box-shadow:0 6px 0 #b86b09}.pro-celebration-go:hover{transform:translateY(-1px);box-shadow:0 7px 0 #b86b09}.pro-celebration-go:focus-visible,.pro-celebration-close:focus-visible{outline:3px solid #fff;outline-offset:3px}.pro-celebration-close{position:absolute;z-index:2;top:12px;right:12px;display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line);border-radius:50%;background:#fff;color:var(--ink);font-size:1.45rem;line-height:1;cursor:pointer}@keyframes pro-celebration-pop{0%{opacity:0;transform:scale(.86) translateY(24px)}70%{opacity:1;transform:scale(1.025) translateY(-4px)}100%{opacity:1;transform:scale(1) translateY(0)}}@media(max-width:680px){.pro-celebration-card{grid-template-columns:1fr;min-height:0}.pro-celebration-visual{padding:16px 22px 4px}.pro-celebration-visual img{width:min(62vw,270px)}.pro-celebration-copy{padding:22px 20px 28px}.pro-celebration-copy h2{font-size:2rem}.pro-celebration-list{margin:18px 0}.pro-celebration-go{width:100%}.pro-celebration-close{top:8px;right:8px}}@media(prefers-reduced-motion:reduce){.pro-celebration-visual img{animation:none}.pro-celebration-go:hover{transform:none}}
 </style>
 </head>
 <body>
+<dialog class="pro-celebration-dialog" id="pipProCelebrationDialog" aria-labelledby="pipProCelebrationTitle">
+  <section class="pro-celebration-card">
+    <button class="pro-celebration-close" id="pipProCelebrationClose" type="button" aria-label="Close Pip Pro welcome">&#215;</button>
+    <div class="pro-celebration-visual"><img src="/assets/marketing/pip-pro-celebration-transparent.png" alt="Pip celebrating a new Pip Pro member"></div>
+    <div class="pro-celebration-copy">
+      <p class="eyebrow">Welcome to Pip Pro</p>
+      <h2 id="pipProCelebrationTitle">Your grow notebook is ready.</h2>
+      <p>Pip can now keep the details, decisions, and next steps for your grow together.</p>
+      <ul class="pro-celebration-list">
+        <li>Saved plans, Calendar tasks, and reminders</li>
+        <li>Grow logs, conversations, photos, and project history</li>
+        <li>Personalized guidance for HydroPip or another hydroponic system</li>
+      </ul>
+      <a class="pro-celebration-go" id="pipProCelebrationGo" href="https://www.hydropip.com/pip?pro=1" target="_top">Let's Go to Pip Pro</a>
+    </div>
+  </section>
+</dialog>
 <section class="pro-view" id="pipProView" aria-label="Pip Pro">
   <div class="pro-auth-loading" role="status" aria-live="polite"><div class="pro-auth-card"><img src="/assets/marketing/pip-pro-workspace-transparent.png" alt=""><strong>Opening your Pip workspace...</strong><span>Checking your HydroPip membership.</span><div class="pro-auth-dots" aria-hidden="true"><i></i><i></i><i></i></div></div></div>
   <header class="pip-top">
@@ -261,6 +279,10 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
     member: null,
     subscription: { active: false, plan: "visitor" }
   };
+  var pendingProCheckout = false;
+  var pendingProCelebrationId = "";
+  var proCheckoutRefreshTimer = 0;
+  var proCheckoutRefreshAttempts = 0;
   var projectTypes = {
     hydropip_build: { label: "My HydroPip Build", note: "Parts, setup, feeding, and grow guidance", pro: false },
     existing_system_setup: { label: "Map My System", note: "Pip Pro for other hydro setups", pro: true },
@@ -322,6 +344,9 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   var proCalendarDetails = document.querySelector("#proCalendarDetails");
   var proCalendarTitle = document.querySelector("#proCalendarTitle");
   var proView = document.querySelector("#pipProView");
+  var proCelebrationDialog = document.querySelector("#pipProCelebrationDialog");
+  var proCelebrationClose = document.querySelector("#pipProCelebrationClose");
+  var proCelebrationGo = document.querySelector("#pipProCelebrationGo");
   var returnTopHandle = document.querySelector("#pipReturnTop");
   var proScrollContext = document.querySelector("#pipProScrollContext");
   var proScrollLabel = document.querySelector("#pipProScrollLabel");
@@ -398,7 +423,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   function shouldGate(){return false}
   function setGate(open,mode){gate.classList.toggle("open",open);form.style.display=open?"none":"grid";var quick=document.querySelector(".quick");if(quick)quick.style.display=open?"none":"";if(projectRow)projectRow.style.display=open?"none":"";if(open){var pro=mode==="pro";gateText.textContent=pro?"I can definitely help with that, but this is Pip Pro subscription behavior. Pip Pro unlocks saved reminders, crop schedules, grow logs, and support for other hydro systems.":"Create a free HydroPip account to keep asking Pip and save your HydroPip build project.";gateButton.textContent=pro?"View Pip Pro":"Create free account"}}
   function trackConversion(name,metadata){if(window.HydroPipTracking)window.HydroPipTracking.track(name,metadata||{})}
-  function requestAccount(mode){mode=mode||"signup";if(mode==="pro")trackConversion("pro_checkout_started",{surface:proMode?"pip_pro":"pip_chat",mode:mode});else if(mode==="signup")trackConversion("signup_started",{surface:proMode?"pip_pro":"pip_chat",mode:mode});try{window.parent.postMessage({type:"HYDROPIP_PIP_LOGIN_REQUEST",mode:mode},"*")}catch(error){}}
+  function requestAccount(mode){mode=mode||"signup";if(mode==="pro"){trackConversion("pro_checkout_started",{surface:proMode?"pip_pro":"pip_chat",mode:mode});if(!isPro()){pendingProCheckout=true;pendingProCelebrationId="checkout-"+Date.now();proCheckoutRefreshAttempts=0;clearTimeout(proCheckoutRefreshTimer)}}else if(mode==="signup")trackConversion("signup_started",{surface:proMode?"pip_pro":"pip_chat",mode:mode});try{window.parent.postMessage({type:"HYDROPIP_PIP_LOGIN_REQUEST",mode:mode},"*")}catch(error){}if(mode==="pro"&&pendingProCheckout)refreshPendingProAccess()}
   var previewCopy={profile:{label:"Grow profile",title:"Pip remembers the system you are actually growing in.",text:"Save your zone, location, crops, tower count, reservoir, grow area, medium, and goals once so Pip can give advice that fits your setup.",color:"#79bd8b"},planner:{label:"Planner",title:"Turn the grow plan into clear next steps.",text:"Pip preloads practical planting, system-care, nutrient, harvest, and reset tasks. Open the nutrient calculator before each fresh batch, then change dates, repeat rhythms, or add your own jobs as the grow changes.",color:"#e6b547"},calendar:{label:"Calendar",title:"See the whole grow without leaving Pip.",text:"Switch between agenda, day, month, and year views. Open a task to mark it complete, edit it in Planner, or ask Pip what comes next.",color:"#a89c4c"},seeds:{label:"Seeds",title:"Keep the next planting ready.",text:"Track crop varieties, quantities, sources, sow dates, and reorder needs alongside the grow they belong to.",color:"#86a852"},log:{label:"Grow log",title:"Record what the crop is telling you.",text:"Save pH, EC/TDS, water temperature, symptoms, pruning, harvests, fixes, and observations so Pip has useful history next time.",color:"#68a8bb"},history:{label:"History",title:"Pick up where you left off.",text:"Keep recent Pip conversations, reminders, readings, and grow records connected to the correct project instead of starting over.",color:"#d98972"},build:{label:"Track My Build",title:"Keep the parts list connected to the grow.",text:"Open the full member checklist for quantities, affiliate links, local-pickup notes, and device-saved checkmarks, then return to your Pro notebook for the next task.",color:"#d88f58"},account:{label:"Account",title:"Keep membership and billing under your control.",text:"View renewal details, change the payment card, manage your member profile, or cancel Pip Pro from your HydroPip account.",color:"#758999"}};
   function showPreview(page){var item=previewCopy[page]||previewCopy.profile;previewTabs.forEach(function(tab){tab.classList.toggle("active",tab.dataset.previewPage===page)});previewPanel.style.setProperty("--preview-color",item.color);previewPanel.innerHTML='<span class="page-label">'+escapeHtml(item.label)+'</span><h3>'+escapeHtml(item.title)+'</h3><p>'+escapeHtml(item.text)+'</p><div class="preview-actions"><button class="btn primary" id="proPreviewJoin" type="button">Join Pip Pro for $7/month</button></div>';previewPanel.querySelector("#proPreviewJoin").addEventListener("click",function(){requestAccount("pro")})}
   function requestHeaders(){var headers={"Content-Type":"application/json"};if(sessionToken)headers.Authorization="Bearer "+sessionToken;return headers}
@@ -417,6 +442,8 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   function activateProPage(page){var allowed=["profile","planner","calendar","seeds","log","history","build","account"];if(isBeta())allowed.push("beta");if(allowed.indexOf(page)===-1)page="profile";proTabs.forEach(function(tab){var active=tab.getAttribute("data-pro-page")===page;tab.classList.toggle("active",active);if(tab.tagName==="BUTTON")tab.setAttribute("aria-selected",active?"true":"false")});proPages.forEach(function(panel){panel.classList.toggle("active",panel.getAttribute("data-pro-panel")===page)});if(page==="calendar")renderCalendar();try{sessionStorage.setItem("hydropipProTab",page)}catch(error){}}
   function updateProPage(){if(!proMode)return;var active=isPro()||(accountMode&&hasLead());document.body.classList.toggle("pro-active",active);proWorkspace.classList.toggle("open",active);betaTab.hidden=!isBeta();proJoinButton.textContent=active?"Open Pip Pro workspace":hasLead()?"Join Pip Pro":"Create account to join";proPlanButton.textContent=active?"Open workspace":hasLead()?"Start Pip Pro":"Create account to join";if(active){document.querySelector("#pipProView").scrollTop=0;activateProPage(savedProPage());if(!accountMode){loadProWorkspace();if(isBeta())loadBetaExperience()}}}
   function revealProPage(){if(!proMode)return;updateProPage();document.documentElement.classList.remove("pro-auth-pending")}
+  function showProCelebration(purchaseId){if(!isPro()||!proCelebrationDialog)return;var celebrationKey="hydropipProCelebration:"+String(purchaseId||"latest");try{if(sessionStorage.getItem(celebrationKey))return;sessionStorage.setItem(celebrationKey,"shown")}catch(error){}trackConversion("pro_purchase_completed",{purchaseId:purchaseId||null});if(!proCelebrationDialog.open)proCelebrationDialog.showModal()}
+  function refreshPendingProAccess(){if(!pendingProCheckout||isPro()||proCheckoutRefreshAttempts>=40)return;clearTimeout(proCheckoutRefreshTimer);proCheckoutRefreshTimer=setTimeout(function(){proCheckoutRefreshAttempts+=1;try{window.parent.postMessage({type:"HYDROPIP_PIP_READY"},"*")}catch(error){}},2500)}
   async function proRequest(path,options){var response=await fetch(pipApiBase+path,Object.assign({headers:requestHeaders()},options||{}));var data=await response.json().catch(function(){return{}});if(!response.ok)throw new Error(data.message||data.error||"Pip Pro request failed");return data}
   function normalizeWorkspaceTabOrder(order){var seen={};var next=[];(Array.isArray(order)?order:[]).forEach(function(key){key=String(key||"");if(workspaceTabDefaultOrder.indexOf(key)===-1||seen[key])return;seen[key]=true;next.push(key)});workspaceTabDefaultOrder.forEach(function(key){if(!seen[key])next.push(key)});return next}
   function applyWorkspaceTabOrder(order){workspaceTabOrder=normalizeWorkspaceTabOrder(order);workspaceTabOrder.forEach(function(key){var tab=proTabs.find(function(item){return item.dataset.proPage===key});if(tab)proWorkspaceTabs.appendChild(tab)});proWorkspaceTabs.appendChild(proArrangeTabs)}
@@ -728,6 +755,9 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   avatarUpload.addEventListener("change",async function(){var file=avatarUpload.files&&avatarUpload.files[0];if(!file)return;avatarStatus.textContent="Preparing your photo...";try{var resized=await resizeAvatarFile(file);await saveAccountAvatar(resized)}catch(error){avatarStatus.textContent=error.message}finally{avatarUpload.value=""}});
   document.querySelector("#pipAvatarUseWix").addEventListener("click",function(){saveAccountAvatar(null)});
   document.querySelector("#pipAvatarDone").addEventListener("click",function(){avatarDialog.close()});
+  proCelebrationClose.addEventListener("click",function(){proCelebrationDialog.close()});
+  proCelebrationDialog.addEventListener("click",function(event){if(event.target===proCelebrationDialog)proCelebrationDialog.close()});
+  proCelebrationGo.addEventListener("click",function(event){trackConversion("pro_workspace_opened_after_purchase",{});if(proMode&&!accountMode){event.preventDefault();proCelebrationDialog.close();updateProPage();activateProPage("profile");proView.scrollTo({top:0,behavior:"smooth"})}});
   document.addEventListener("click",function(event){if(!event.target.closest("[data-member-menu]"))closeMemberMenus()});
   window.addEventListener("message",async function(event){
     var data=event.data||{};
@@ -736,6 +766,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
     sessionToken=data.sessionToken||null;
     pipSession.member=data.member||null;
     pipSession.subscription=data.subscription||{active:false,plan:pipSession.member?"free_member":"visitor"};
+    if(pendingProCheckout&&!isPro()){refreshPendingProAccess();return}
     if(window.HydroPipTracking)window.HydroPipTracking.identify(sessionToken,pipSession.member,pipSession.subscription);
     renderMemberMenus();
     await loadAccountPreferences();
@@ -743,6 +774,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
     if(requestedTool==="nutrients"){if(!hasLead()){requestAccount("signup");return}requestedTool=null;window.open("/nutrient-calculator.html#session="+encodeURIComponent(sessionToken),"_top");return}
     if(requestedAvatarPicker&&hasLead()){requestedAvatarPicker=false;openAvatarPicker()}
     if(proMode)revealProPage();
+    if(pendingProCheckout&&isPro()){clearTimeout(proCheckoutRefreshTimer);pendingProCheckout=false;showProCelebration(pendingProCelebrationId)}
     await loadPhotoAllowance();
     if(hasLead())localStorage.setItem(countKey,"0");
     setGate(false);renderProjects();
@@ -796,6 +828,3 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
 </script>
 </body>
 </html>
-
-
-
