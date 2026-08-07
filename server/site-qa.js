@@ -232,10 +232,16 @@ assert.match(partsHtml, /Get your build organized\./, "Track My Build should ope
 assert.match(partsHtml, /Parts ready\? Start the build\./, "Track My Build should lead collected members into the build guide");
 assert.doesNotMatch(partsHtml, /supply-planner|Pip refill rhythm|data-filter=["']reorder["']/, "Recurring planning should stay in Pip Pro rather than Track My Build");
 assert.match(partsHtml, /\.top\{position:static;top:auto/, "Track My Build navigation should scroll with the page on touch devices");
+assert.match(partsHtml, /\[hidden\]\{display:none!important\}/, "Conditional calculator fields must remain hidden until their matching option is selected");
+assert.match(partsHtml, /id=["']sectionJump["']/, "Track My Build needs a directional section navigator");
+assert.match(partsHtml, /data-jump-to=["']#checklistTools["']/, "The calculator needs a clear continuation control into the parts list");
+assert.match(partsHtml, /form\.addEventListener\(["']input["']/, "Calculator quantity inputs should update the ordering list immediately");
+assert.match(partsHtml, /Ordering quantities synced for/, "The parts list should confirm the calculator quantity selection it is using");
 
 const wixTrackBridge = fs.readFileSync(new URL("../wix-track-my-build-page-code.js", import.meta.url), "utf8");
 assert.match(wixTrackBridge, /embed\.onMessage/, "The Wix Track My Build page must listen for live iframe height updates");
 assert.match(wixTrackBridge, /HYDROPIP_EMBED_HEIGHT/, "The Wix Track My Build page must recognize iframe height messages");
+assert.match(wixTrackBridge, /HYDROPIP_TRACK_SCROLL_SECTION/, "The Wix Track My Build bridge must let section controls move the outer page");
 assert.doesNotMatch(wixTrackBridge, /14950|25700/, "The Wix Track My Build page must not restore fixed legacy iframe heights");
 
 const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");

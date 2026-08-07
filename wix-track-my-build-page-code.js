@@ -2,7 +2,7 @@ import wixWindowFrontend from "wix-window-frontend";
 import { currentMember } from "wix-members-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
-const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260804c&embed=1";
+const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260807a&embed=1";
 const TRACK_EMBED_IDS = ["#trackHtml", "#partsHtml", "#html1", "#html2", "#iFrame1"];
 let lastEmbedHeight = 0;
 let lastSessionSignature = "";
@@ -16,6 +16,7 @@ $w.onReady(() => {
   embed.onMessage(async (event) => {
     const message = event.data || {};
     if (message.type === "HYDROPIP_EMBED_HEIGHT") syncEmbedHeight(embed, message);
+    if (message.type === "HYDROPIP_TRACK_SCROLL_SECTION") await scrollTrackSection(message);
     if (message.type === "HYDROPIP_TRACK_READY") await sendTrackSession(embed, true);
   });
   embed.src = HYDROPIP_TRACK_SRC;
@@ -32,6 +33,16 @@ function collapseOuterHeader() {
     } catch (error) {
       // Try the next known global header element ID.
     }
+  }
+}
+
+async function scrollTrackSection(message) {
+  const requestedTop = Math.floor(Number(message?.top));
+  if (!Number.isFinite(requestedTop)) return;
+  try {
+    await wixWindowFrontend.scrollTo(0, Math.max(0, requestedTop));
+  } catch (error) {
+    // The embedded control still scrolls its own document when Wix cannot move the outer page.
   }
 }
 
