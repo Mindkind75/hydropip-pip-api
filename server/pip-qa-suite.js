@@ -1,12 +1,25 @@
 ﻿import assert from "node:assert/strict";
-import { askPip } from "./pipAgent.js";
+import { askPip, classifyQuestionIntent } from "./pipAgent.js";
+import { classifyPhotoRequest } from "./pipPhotoAccess.js";
+import { assessSiteFit } from "./pipTools.js";
 
 const apiUrl = process.env.HYDROPIP_QA_API_URL || "";
 const proUrl = "https://www.hydropip.com/pip?pro=1";
 
+assert.equal(classifyQuestionIntent("Where should I put this system in my yard?"), "site_planning");
+assert.equal(classifyQuestionIntent("Can you check this proposed HydroPip location?", { image: true }), "site_photo");
+assert.equal(classifyPhotoRequest({ message: "Can you check this proposed HydroPip location?", projectType: "hydropip_build" }).access, "free_build");
+assert.equal(classifyPhotoRequest({ message: "Can you plan this DWC location?", projectType: "existing_system_setup" }).access, "pip_pro_required");
+assert.deepEqual(assessSiteFit({ towerCount: 4 }).recommended, { widthFeet: 12, depthFeet: 8 });
+assert.equal(assessSiteFit({ towerCount: 4, availableWidthFeet: 12, availableDepthFeet: 8 }).fit, "recommended");
+
 const cases = [
   { q: "Can I make the system shorter? What if I only wanted 2 five pot high towers?", type: "free", must: ["short", "four-pot"], avoid: ["Tell me the step"] },
   { q: "Will two towers fit on my patio if I only have 4 feet by 8 feet?", type: "free", must: ["space"], avoid: ["Tell me the step"] },
+  { q: "I am a new customer. Where should I put HydroPip in my yard and how much room does four towers need?", type: "free", must: ["12 x 8", "sun", "GFCI", "track-my-build"], avoid: ["Tell me the step", "Pip Pro"] },
+  { q: "Will four HydroPip towers fit in a 12 by 8 foot area?", type: "free", must: ["fits", "3 ft", "Track My Build"], avoid: ["Tell me the step", "Pip Pro"] },
+  { q: "Can I upload a picture of the yard spot so Pip can help me place HydroPip?", type: "free", must: ["photo", "measurement"], avoid: ["Pip Pro", "Tell me the step"] },
+  { q: "Can you review a photo and make a site plan for my NFT rails?", type: "pro", must: ["Pip Pro", proUrl] },
   { q: "My lettuce leaves are yellow but the pump is running. What should I check first?", type: "free", must: ["pH"], avoid: ["return plumbing"] },
   { q: "The roots smell bad and look brown. Is my system ruined?", type: "free", must: ["root"], avoid: ["recirculating"] },
   { q: "I have green slime in the IBC. What do I do?", type: "free", must: ["light"], avoid: ["return line"] },

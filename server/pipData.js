@@ -13,6 +13,7 @@ export const zonePlantingCalendar = JSON.parse(fs.readFileSync(path.join(kbDir, 
 export const setupWizardSchema = JSON.parse(fs.readFileSync(path.join(kbDir, "setup_wizard_schema.json"), "utf8"));
 export const hydropipSystem = JSON.parse(fs.readFileSync(path.join(dataDir, "hydropip-system.json"), "utf8"));
 export const buildCatalog = JSON.parse(fs.readFileSync(path.join(dataDir, "build-items.json"), "utf8"));
+export const sitePlanning = JSON.parse(fs.readFileSync(path.join(dataDir, "site-planning.json"), "utf8"));
 
 export const buildSteps = [
   {

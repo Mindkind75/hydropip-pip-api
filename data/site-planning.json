@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "lastReviewedDate": "2026-08-07",
+  "description": "HydroPip planning dimensions. These are working envelopes for layout decisions, not construction-survey measurements.",
+  "tower": {
+    "matureCanopyDiameterFeet": 2.5,
+    "recommendedCenterSpacingFeet": 3,
+    "standardHeightAboveGradeFeet": 5
+  },
+  "ibc": {
+    "planningWidthFeet": 4,
+    "planningDepthFeet": 3.5
+  },
+  "access": {
+    "recommendedServicePathFeet": 3,
+    "minimumCompactPathFeet": 2
+  },
+  "light": {
+    "leafyMinimumDirectSunHours": 6,
+    "fruitingPreferredDirectSunHours": 8
+  },
+  "workingEnvelope": {
+    "minimumWidthFeet": 8,
+    "widthPerTowerFeet": 3,
+    "depthFeet": 8
+  },
+  "compactEnvelope": {
+    "minimumWidthFeet": 6,
+    "widthPerTowerFeet": 2.5,
+    "depthFeet": 6.5
+  },
+  "notes": [
+    "The standard four-tower planning envelope is approximately 12 by 8 feet when the IBC is placed behind or beside the tower line.",
+    "The working envelope includes mature foliage and service access; exact placement changes with the IBC position, crop canopy, hose route, and obstacles.",
+    "Keep a usable route to the IBC opening, both pumps, hose-end flush valve, and the back and sides of the towers.",
+    "Mark the layout on the ground before driving supports and call 811 before digging or driving pipe."
+  ]
+}

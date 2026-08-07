@@ -25,6 +25,40 @@
       "required": false
     },
     {
+      "id": "siteWidthFeet",
+      "label": "Available site width in feet",
+      "type": "number",
+      "required": false
+    },
+    {
+      "id": "siteDepthFeet",
+      "label": "Available site depth in feet",
+      "type": "number",
+      "required": false
+    },
+    {
+      "id": "directSunHours",
+      "label": "Approximate direct sun hours",
+      "type": "number",
+      "required": false
+    },
+    {
+      "id": "windExposure",
+      "label": "How exposed is the site to wind?",
+      "type": "select",
+      "options": ["sheltered", "moderate", "exposed", "not sure"],
+      "default": "not sure",
+      "required": false
+    },
+    {
+      "id": "drainage",
+      "label": "How does the site drain?",
+      "type": "select",
+      "options": ["drains well", "sometimes wet", "standing water", "not sure"],
+      "default": "not sure",
+      "required": false
+    },
+    {
       "id": "towerCount",
       "label": "How many towers are you running?",
       "type": "number",

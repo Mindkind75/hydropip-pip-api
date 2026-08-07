@@ -28,7 +28,11 @@ const SYNONYMS = {
   tower: ["stack", "planter", "four-pot"],
   parts: ["amazon", "materials", "shopping", "buy"],
   safety: ["ibc", "chemical", "food-safe", "cleaning"],
-  nutrient: ["masterblend", "mix", "ph", "ec", "tds"]
+  nutrient: ["masterblend", "mix", "ph", "ec", "tds"],
+  site: ["yard", "location", "placement", "footprint", "space", "layout"],
+  space: ["footprint", "site", "layout", "clearance", "walkway"],
+  sun: ["light", "shade", "exposure", "direct sunlight"],
+  yard: ["site", "location", "placement", "drainage", "wind"]
 };
 
 let cachedIndex;

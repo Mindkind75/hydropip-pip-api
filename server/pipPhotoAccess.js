@@ -10,14 +10,14 @@ export function classifyPhotoRequest({ message, projectType, subscription = {} }
   if (!question) {
     return {
       access: "question_required",
-      message: "Tell Pip which HydroPip build step or part this photo shows, then send it again."
+      message: "Tell Pip which HydroPip build step, part, or proposed installation location this photo shows, then send it again."
     };
   }
 
   if ((projectType && projectType !== "hydropip_build") || proPhotoTopics.test(question) || otherSystemTopics.test(question)) {
     return {
       access: "pip_pro_required",
-      message: `I can help diagnose plant health, pests, roots, nutrients, and other hydro systems from photos with Pip Pro: ${PHOTO_UPGRADE_URL}\n\nYour five complimentary photo checks are reserved for the HydroPip build.`
+      message: `I can help diagnose plant health, pests, roots, nutrients, and other hydro systems from photos with Pip Pro: ${PHOTO_UPGRADE_URL}\n\nYour five complimentary photo checks are reserved for the HydroPip build and proposed HydroPip installation site.`
     };
   }
 

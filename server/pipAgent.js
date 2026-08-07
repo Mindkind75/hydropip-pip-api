@@ -1,6 +1,6 @@
 import { buildCatalog, hydropipSystem, systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
-import { calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
+import { assessSiteFit, calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
 import { affiliateProductLabel, appendNamedProductSearchLinks } from "./pipProductLinks.js";
 import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
@@ -13,6 +13,7 @@ const toolMap = {
   recommend_parts: recommendParts,
   calculate_nutrients: calculateNutrients,
   estimate_build: estimateBuild,
+  assess_site_fit: assessSiteFit,
   create_grow_plan: createGrowPlan,
   create_reminder: createReminder,
   manage_calendar: (args) => args,
@@ -122,6 +123,21 @@ const tools = [
         customReservoirPrice: { type: "number" },
         ownedItemIds: { type: "array", items: { type: "string" } },
         optionalItemIds: { type: "array", items: { type: "string" } }
+      },
+      additionalProperties: false
+    }
+  },
+  {
+    type: "function",
+    name: "assess_site_fit",
+    description: "Calculate the shared HydroPip working footprint and compare it with a proposed site's measured width and depth.",
+    parameters: {
+      type: "object",
+      properties: {
+        towerCount: { type: "number" },
+        availableWidthFeet: { type: ["number", "null"] },
+        availableDepthFeet: { type: ["number", "null"] },
+        dominantCropType: { type: "string", enum: ["leafy", "fruiting", "mixed"] }
       },
       additionalProperties: false
     }
@@ -332,7 +348,7 @@ export async function askPip({ message, image, profile, subscription, history = 
   const deterministicQuestion = questionIntent === "hydroponic_guidance" && isVagueFollowUp(trimmed)
     ? withRecentContext(trimmed, recentHistory)
     : trimmed;
-  const directAnswer = imageInput || (subscription?.active && ["reminder_action", "crop_plan_action"].includes(questionIntent)) ? null : highConfidenceAnswer(deterministicQuestion, retrieval);
+  const directAnswer = imageInput || (subscription?.active && ["reminder_action", "crop_plan_action"].includes(questionIntent)) ? null : highConfidenceAnswer(deterministicQuestion, retrieval, effectiveProfile);
   if (directAnswer) {
     const answer = compactAnswer(directAnswer, trimmed, retrieval);
     await rememberProjectMessage(projectContext, {
@@ -411,6 +427,9 @@ export async function askPip({ message, image, profile, subscription, history = 
       "For any shopping or 'what do I need' question, infer the most likely HydroPip part from the user's wording and conversation context. If there are two likely meanings, give the best guess first and name the alternate briefly with its link.",
       `For build-cost questions call estimate_build and use the centralized ${buildCatalog.lastPriceReviewDate} catalog. Do not invent a generic total that conflicts with the calculator. Ask or infer tower count, tiers, IBC ownership, support choice, owned components, and optional upgrades.`,
       "HydroPip scale, space, and variation questions are allowed in free mode when they are still based on the HydroPip timed-feed tower design. Answer practical questions such as shorter towers, fewer towers, tower spacing, footprint, partial builds, height limits, expansion, and whether a layout will fit. Do not punt these to a generic follow-up unless a key measurement is missing.",
+      "For HydroPip placement questions, call assess_site_fit when dimensions or tower count are available and use the same planning envelope shown in Track My Build. For four towers, the default working envelope is approximately 12 by 8 feet, including the IBC, mature foliage, and service access. Treat this as a planning estimate, not a guaranteed construction minimum.",
+      "A good outdoor HydroPip site is level, stable, well drained, close to water and GFCI-protected power, and reachable for pruning, harvest, pump service, hose flushing, and crop turnover. Plan about 3 feet between tower centers and preserve about 3 feet of service access. Aim for at least 6 hours of useful direct light for leafy crops and closer to 8 for fruiting crops; account for reflected heat, afternoon stress, shade changes, wind, standing water, roof runoff, and mature canopy.",
+      "When site dimensions are missing, give the default footprint and ask for only width, depth, tower count, and crop type. Invite a signed-in free HydroPip member to attach one wide photo of the proposed location as a complimentary Build Check, plus measurements and morning/afternoon sun information. Never claim a photo proves exact dimensions, all-day sun, drainage, buried utility clearance, or electrical safety.",
       "For shorter towers: explain that the system can be scaled down, but shorter towers reduce pocket count and may change stability, support height, pump head pressure, feed timing, and runoff behavior. Keep the center support pipe driven securely, keep the top hose guide removable, and recalibrate feed duration by runoff. If the user says five-pot-high, clarify that HydroPip uses four-pot stackable sections; five stack sections equals 20 planting pockets per tower. Two five-section towers are a reasonable small test if they are stable and easy to service.",
       "When a user asks for a part link, include the matching HydroPip Amazon affiliate URL directly. Use these known links when relevant: approved Mr. Stacky planters with a 1/2-inch center support opening https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20; rigid 1/4-inch tower feed tubing https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20; pumps https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20; smart plug https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20; nutrients https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20; vermiculite https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20; perlite https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20; pH meter https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20; pH calibration solution https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20; EC/TDS meter https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20; EC/TDS calibration solution https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20; pH Up/Down https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20; seeds https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20; yellow sticky traps https://www.amazon.com/s?k=yellow+sticky+traps+fungus+gnats+whiteflies+aphids&tag=hydrpip2002-20; Bt caterpillar control https://www.amazon.com/s?k=Bacillus+thuringiensis+kurstaki+caterpillar+control+vegetables&tag=hydrpip2002-20; Bti fungus-gnat control https://www.amazon.com/s?k=Bacillus+thuringiensis+israelensis+fungus+gnat+control+plants&tag=hydrpip2002-20; insecticidal soap https://www.amazon.com/s?k=insecticidal+soap+aphids+whiteflies+mites+vegetables&tag=hydrpip2002-20; spinosad https://www.amazon.com/s?k=spinosad+garden+insect+spray+vegetables+thrips+leaf+miners&tag=hydrpip2002-20; IBC cover https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20; IBC tote reference https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20; end-of-hose shutoff/flush valve https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20; hose connector adapters for extensions https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20. Include the disclosure 'As an Amazon Associate I earn from qualifying purchases.' when sharing direct Amazon links.",
       "For pest questions, identify the pest before recommending a treatment whenever possible. If you name Bt/Btk, Bti, insecticidal soap, spinosad, neem oil, horticultural oil, sticky traps, beneficial nematodes, or copper fungicide, include the exact matching Amazon affiliate search instead of a broad pest-control search. Remind the user to choose a product labeled for the identified pest, edible crop, and application site, and to follow that label.",
@@ -422,7 +441,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "For ambiguous wording, ask one concise clarifying question. For plant-health, troubleshooting, or schedule tuning, ask only for the next 2-4 critical facts needed, such as crop, pH, EC/TDS, feed duration, runoff, photos, weather/heat, or exact part.",
       "If the user is frustrated because a prior answer failed, acknowledge that briefly, correct course, and either answer the exact request or flag_review_item if the system lacks the capability.",
       "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
-      `Free-member photo checks are only for inspecting the HydroPip physical build, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
+      `Free-member photo checks are only for inspecting the HydroPip physical build, proposed HydroPip installation location, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "When create_reminder, create_grow_plan, or manage_calendar returns confirmation_required, say the change is ready to review and use the on-screen confirmation button. Never say it is saved, deleted, updated, queued for staff, or completed until the user confirms it and the server reports success.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
@@ -430,6 +449,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "For seasonal crop questions, use the supplied Zone Seasonal Planting Reference as the default answer source. Do not ask for today's temperature or perform a live weather lookup by default. Ask about current conditions only when the user reports unusual heat, frost, storms, or a crop near a temperature limit.",
       "USDA zones describe average annual extreme minimums rather than complete vegetable calendars. Use the saved location and area details to refine the zone calendar when relevant, but do not withhold a useful planting answer when the zone and month are known.",
       "When a photo is attached, inspect it directly and use visible details in the answer. Use this compact order: one sentence naming the most useful visible evidence; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Clearly separate visible evidence from anything the photo cannot confirm.",
+      "For a proposed-site photo, evaluate visible shade and obstructions, apparent slope or drainage concerns, tower and IBC placement options, service access, hose route, water and power proximity, reflected heat, wind exposure, and safe movement. Ask for measured width/depth and sun timing when missing. Remind the user to call 811 before supports are driven. Do not infer compass direction, exact sun hours, property lines, buried utilities, or scale from a single image.",
       "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
       `Retrieved HydroPip knowledge-base context (supporting reference only):\n${retrievedContext}`
       ].join("\n\n"),
@@ -1055,6 +1075,7 @@ function isClearlyOffTopic(message) {
 
 export function classifyQuestionIntent(message, { image = false, history = [] } = {}) {
   const normalized = String(message || "").toLowerCase();
+  if (image && isSitePlanningMessage(normalized)) return "site_photo";
   if (image) return "photo_diagnosis";
   if (wantsCalendarChange(normalized) || isCalendarFollowUp(normalized, history)) return /\b(crop plan|planting plan)\b/.test(normalized) ? "crop_plan_action" : "reminder_action";
   if (/\b(what|which|when|should|can)\b.*\b(plant|grow|sow|transplant|crop|variety|varieties)\b|\b(this time of year|right now|this season|crop rotation|succession planting)\b/.test(normalized)) return "crop_selection";
@@ -1062,6 +1083,7 @@ export function classifyQuestionIntent(message, { image = false, history = [] } 
   if (/\b(ph|ec|tds|ppm|nutrient|nutrients|masterblend|feed timing|feeding|runoff|water temperature)\b/.test(normalized)) return "feeding_nutrients";
   if (/\b(cost|price|estimate|how much.*build|build.*cheaper|already own|what.*still need)\b/.test(normalized)) return "parts_shopping";
   if (/\b(link|amazon|buy|purchase|order|where (?:can|do|should) i (?:find|get)|what part|which part|need the|parts? list)\b/.test(normalized)) return "parts_shopping";
+  if (isSitePlanningMessage(normalized)) return "site_planning";
   if (/\b(build|install|assemble|anchor|stack|plumb|pipe|tower setup|first step|next step|fit my space|footprint)\b/.test(normalized)) return "hydropip_build";
   return "hydroponic_guidance";
 }
@@ -1072,6 +1094,7 @@ function toolsForQuestion(intent, message) {
     requested.add("get_build_step");
     requested.add("recommend_parts");
   }
+  if (intent === "site_planning" || intent === "site_photo") requested.add("assess_site_fit");
   if (intent === "parts_shopping") {
     requested.add("recommend_parts");
     requested.add("estimate_build");
@@ -1095,7 +1118,9 @@ function selectIntentContext(retrieval, intent) {
     feeding_nutrients: ["feed_and_nutrient_guidance.md", "troubleshooting.md"],
     parts_shopping: ["build_guide.md", "pip_system_brain.md"],
     hydropip_build: ["build_guide.md", "pip_system_brain.md"],
-    photo_diagnosis: ["troubleshooting.md", "build_guide.md", "feed_and_nutrient_guidance.md"]
+    site_planning: ["site_planning.md", "build_guide.md", "pip_system_brain.md"],
+    site_photo: ["site_planning.md", "build_guide.md", "pip_system_brain.md"],
+    photo_diagnosis: ["troubleshooting.md", "build_guide.md", "feed_and_nutrient_guidance.md", "site_planning.md"]
   };
   const allowed = allowedSources[intent];
   const matches = (retrieval?.matches || [])
@@ -1143,6 +1168,14 @@ function formatAnswerContext(context = {}) {
     ["Location", profile.location],
     ["Growing area", profile.areaType || profile.indoorOutdoor],
     ["Exposure", profile.exposure],
+    ["Available site width (ft)", profile.siteWidthFeet],
+    ["Available site depth (ft)", profile.siteDepthFeet],
+    ["Direct sun hours", profile.directSunHours],
+    ["Wind exposure", profile.windExposure],
+    ["Drainage", profile.drainage],
+    ["Water access", profile.waterAccess],
+    ["GFCI power access", profile.powerAccess],
+    ["Service access", profile.serviceAccess],
     ["System stage", profile.systemStage],
     ["Planting date", profile.plantingDate],
     ["Tower count", profile.towerCount],
@@ -1237,7 +1270,19 @@ export function assessAnswerRelevance(message, answer, answerContext = {}, inten
   if (intent === "parts_shopping" && !/https?:\/\/|home depot|hardware store|local pickup/i.test(answer)) {
     return { ok: false, reason: "A shopping question did not include a useful source or product link." };
   }
+  if (intent === "site_planning" || intent === "site_photo") {
+    if (!/\b(space|footprint|layout|site|location|place|fit|feet|ft|sun|light|access|drainage|level|ibc|tower)\b/.test(normalized)) {
+      return { ok: false, reason: "A site-planning question did not receive placement or footprint guidance." };
+    }
+  }
   return { ok: true, reason: "" };
+}
+
+function isSitePlanningMessage(value) {
+  const normalized = String(value || "").toLowerCase();
+  const siteWords = /\b(where (?:should|can|could|do) i (?:put|place|install|build|set)|yard|patio|balcony|greenhouse|location|placement|site|spot|space|room|footprint|layout|fit|walk around|clearance|sunlight|direct sun|shade|wind exposure|drainage)\b/;
+  const systemWords = /\b(hydropip|system|tower|towers|ibc|reservoir|build|install|it)\b/;
+  return siteWords.test(normalized) && systemWords.test(normalized);
 }
 
 function contextualFallbackAnswer(question, retrieval, answerContext = {}) {

@@ -1,4 +1,4 @@
-import { buildCatalog, buildSteps, hydropipSystem, parts, schedulingRules, setupWizardSchema } from "./pipData.js";
+import { buildCatalog, buildSteps, hydropipSystem, parts, schedulingRules, setupWizardSchema, sitePlanning } from "./pipData.js";
 import { pestProductLinks } from "./pipProductLinks.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -128,12 +128,14 @@ export function estimateBuild({ towerCount = 4, tiersPerTower = 10, reservoir = 
   const ownedSupportSavings = support === "owned" ? towers * Number(buildCatalog.items.find((item) => item.id === "support-galvanized")?.typicalPrice || 0) : 0;
   const savings = Math.round(items.filter((item) => item.alreadyOwned).reduce((amount, item) => amount + item.quantity * (item.typicalPrice || 0), 0) + planterSavings + ownedReservoirSavings + ownedSupportSavings);
   const plantingPositions = towers * tiers * buildCatalog.pocketsPerTier;
+  const sitePlan = assessSiteFit({ towerCount: towers });
   return {
     towerCount: towers,
     tiersPerTower: tiers,
     planterTiersOwned,
     pocketsPerTier: buildCatalog.pocketsPerTier,
     plantingPositions,
+    sitePlan,
     items,
     requiredSubtotal: { low: sum(required, "lowTotal"), typical: sum(required, "typicalTotal"), high: sum(required, "highTotal") },
     optionalSubtotal: { low: sum(upgrades, "lowTotal"), typical: sum(upgrades, "typicalTotal"), high: sum(upgrades, "highTotal") },
@@ -144,6 +146,64 @@ export function estimateBuild({ towerCount = 4, tiersPerTower = 10, reservoir = 
     savingsFromOwnedItems: savings,
     disclaimer: buildCatalog.disclaimer
   };
+}
+
+export function assessSiteFit({ towerCount = 4, availableWidthFeet = null, availableDepthFeet = null, dominantCropType = "mixed" } = {}) {
+  const towers = Math.max(1, Math.min(40, Math.round(Number(towerCount) || 4)));
+  const width = positiveDimension(availableWidthFeet);
+  const depth = positiveDimension(availableDepthFeet);
+  const recommended = {
+    widthFeet: roundHalf(Math.max(sitePlanning.workingEnvelope.minimumWidthFeet, towers * sitePlanning.workingEnvelope.widthPerTowerFeet)),
+    depthFeet: Number(sitePlanning.workingEnvelope.depthFeet)
+  };
+  const compact = {
+    widthFeet: roundHalf(Math.max(sitePlanning.compactEnvelope.minimumWidthFeet, towers * sitePlanning.compactEnvelope.widthPerTowerFeet)),
+    depthFeet: Number(sitePlanning.compactEnvelope.depthFeet)
+  };
+  const towerRowLengthFeet = roundHalf(
+    sitePlanning.tower.matureCanopyDiameterFeet + Math.max(0, towers - 1) * sitePlanning.tower.recommendedCenterSpacingFeet
+  );
+  const fit = width && depth
+    ? fitsEitherOrientation(width, depth, recommended)
+      ? "recommended"
+      : fitsEitherOrientation(width, depth, compact)
+        ? "compact"
+        : "does_not_fit"
+    : "unknown";
+  const cropType = String(dominantCropType || "mixed").toLowerCase();
+  return {
+    towerCount: towers,
+    fit,
+    available: width && depth ? { widthFeet: width, depthFeet: depth } : null,
+    recommended,
+    compact,
+    towerRowLengthFeet,
+    ibcPlanningFootprint: {
+      widthFeet: Number(sitePlanning.ibc.planningWidthFeet),
+      depthFeet: Number(sitePlanning.ibc.planningDepthFeet)
+    },
+    towerCenterSpacingFeet: Number(sitePlanning.tower.recommendedCenterSpacingFeet),
+    servicePathFeet: Number(sitePlanning.access.recommendedServicePathFeet),
+    directSunHours: cropType.includes("fruit")
+      ? Number(sitePlanning.light.fruitingPreferredDirectSunHours)
+      : Number(sitePlanning.light.leafyMinimumDirectSunHours),
+    disclaimer: sitePlanning.description
+  };
+}
+
+function positiveDimension(value) {
+  if (value === "" || value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 && number <= 500 ? number : null;
+}
+
+function roundHalf(value) {
+  return Math.ceil(Number(value) * 2) / 2;
+}
+
+function fitsEitherOrientation(width, depth, envelope) {
+  return (width >= envelope.widthFeet && depth >= envelope.depthFeet)
+    || (depth >= envelope.widthFeet && width >= envelope.depthFeet);
 }
 
 function calculateItemQuantity(item, towers, tiersPerTower) {
@@ -204,9 +264,33 @@ export function getWizardSchema() {
   return setupWizardSchema;
 }
 
-export function highConfidenceAnswer(question = "", retrieval = { matches: [] }) {
+export function highConfidenceAnswer(question = "", retrieval = { matches: [] }, profile = {}) {
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
+
+  if (isSitePlanningQuestion(q)) {
+    const dimensions = parseSiteDimensions(q);
+    const towerCount = parseTowerCount(q) || Number(profile?.towerCount) || 4;
+    const dominantCropType = /\b(tomato|pepper|cucumber|squash|strawberr|fruiting)\b/.test(q) ? "fruiting" : profile?.dominantCropType || "mixed";
+    const plan = assessSiteFit({
+      towerCount,
+      availableWidthFeet: dimensions?.widthFeet,
+      availableDepthFeet: dimensions?.depthFeet,
+      dominantCropType
+    });
+    const trackUrl = "https://www.hydropip.com/track-my-build";
+    if (plan.available) {
+      const available = `${plan.available.widthFeet} x ${plan.available.depthFeet} ft`;
+      if (plan.fit === "recommended") {
+        return `${contextLead}Yes. A ${available} area fits the recommended ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft working envelope for ${plan.towerCount} HydroPip tower${plan.towerCount === 1 ? "" : "s"} in either orientation.\n- Keep about ${plan.servicePathFeet} ft of service access and ${plan.towerCenterSpacingFeet} ft between tower centers.\n- Confirm ${plan.directSunHours}+ hours of useful sun, level drainage, nearby water, GFCI power, and marked utilities.\n- Verify the layout in Track My Build: ${trackUrl}`;
+      }
+      if (plan.fit === "compact") {
+        return `${contextLead}A ${available} area can hold a compact ${plan.towerCount}-tower HydroPip layout, but it is tighter than the recommended ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft working envelope.\n- Protect a ${sitePlanning.access.minimumCompactPathFeet} ft service route and do not crowd mature foliage.\n- Mark the IBC and tower centers on the ground before driving pipe.\n- Compare the footprint in Track My Build: ${trackUrl}`;
+      }
+      return `${contextLead}A ${available} space is too tight for the full ${plan.towerCount}-tower HydroPip working layout, which plans around ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft.\n- Reduce tower count, move the IBC outside that rectangle, or choose another location.\n- Keep service access, sun, drainage, water, GFCI power, and utility clearance intact.\n- Recalculate in Track My Build: ${trackUrl}`;
+    }
+    return `${contextLead}Plan about ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft for ${plan.towerCount} HydroPip tower${plan.towerCount === 1 ? "" : "s"}, including the IBC, mature foliage, and a usable service path.\n- Choose level drainage with ${plan.directSunHours}+ hours of useful sun, nearby water, and GFCI power.\n- Keep about ${plan.servicePathFeet} ft to reach the IBC, pumps, hoses, and tower backs; call 811 before driving pipe.\n- You can upload a wide yard photo plus measurements, or check Track My Build: ${trackUrl}`;
+  }
 
   if (/\b(mixing pump|circulation pump|mixing hose|circulation hose|top discharge)\b/.test(q) && /\b(only one|small area|one area|weak circulation|barely moving|not circulating)\b/.test(q)) {
     return `${contextLead}Broaden the mixing-pump circulation.\n- Reposition the secured hose outlet near the top and aim it diagonally downward, away from the closest wall.\n- Check the hose for kinks, the intake or prefilter for debris, pump submersion, hose diameter, and lift height.\n- The goal is visible movement through more of the tank, not just around the pump.`;
@@ -310,6 +394,28 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] })
   }
 
   return null;
+}
+
+function isSitePlanningQuestion(value) {
+  const q = String(value || "").toLowerCase();
+  const siteWords = /\b(where (?:should|can|could|do) i (?:put|place|install|build|set)|yard|patio|balcony|greenhouse|location|placement|site|spot|space|room|footprint|layout|fit|walk around|clearance|sunlight|direct sun|shade|wind exposure|drainage)\b/;
+  const systemWords = /\b(hydropip|system|tower|towers|ibc|reservoir|build|install|it)\b/;
+  return siteWords.test(q) && systemWords.test(q);
+}
+
+function parseSiteDimensions(value) {
+  const q = String(value || "").toLowerCase();
+  const match = q.match(/\b(\d+(?:\.\d+)?)\s*(?:feet|foot|ft|')?\s*(?:x|by)\s*(\d+(?:\.\d+)?)\s*(?:feet|foot|ft|')?\b/);
+  if (!match) return null;
+  return { widthFeet: Number(match[1]), depthFeet: Number(match[2]) };
+}
+
+function parseTowerCount(value) {
+  const q = String(value || "").toLowerCase();
+  const numeric = q.match(/\b(\d{1,2})[- ]?tower/);
+  if (numeric) return Number(numeric[1]);
+  const word = q.match(/\b(one|two|three|four|five|six|seven|eight)[- ]?tower/);
+  return word ? ({ one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 })[word[1]] : null;
 }
 
 export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
