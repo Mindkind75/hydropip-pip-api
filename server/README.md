@@ -29,7 +29,7 @@ Production web service for Pip, the HydroPip AI Buddy.
 
 - `GET /api/pip/health`: verifies service status and AI mode.
 - `POST /api/pip/chat`: main Pip chat endpoint.
-- `GET /api/pip/knowledge/search?q=...`: QA endpoint for the local RAG matches.
+- `GET /api/pip/knowledge/search?q=...`: admin-authenticated QA endpoint for local RAG matches; raw retrieval is never exposed to public clients.
 - `GET /api/pip/wizard`: setup profile questions.
 - `GET /api/pip/build-steps`: HydroPip build steps.
 - `GET /api/pip/parts?towerCount=4`: parts and quantities.

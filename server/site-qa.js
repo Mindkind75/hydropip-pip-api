@@ -60,11 +60,16 @@ assert.match(joinHtml, /No spam email/, "The branded account page should state t
 assert.match(marketingHomeHtml, /class="navTrack"[^>]*>Track My Build<\/a>/, "The homepage should make Track My Build a primary navigation path");
 assert.match(marketingHomeHtml, /class="navPip"[^>]*>Ask Pip<\/a>/, "The homepage should name the Pip destination as Ask Pip");
 assert.match(marketingHomeHtml, /class="navPro"[^>]*><span>Pip<\/span><span class="navProBadge">PRO<\/span>/, "The homepage should give Pip Pro a premium navigation treatment without repeating Pro");
+assert.match(marketingHomeHtml, /class="navLogin"[^>]*pip\?pro=login[^>]*>Pro Login<\/a>/, "Returning Pip Pro members need a direct homepage login path");
+assert.match(marketingHomeHtml, /pip\?pro=feedback/, "The homepage account menu should open the signed improvement form");
 assert.match(marketingHomeHtml, /hydropipAccountAvatar/, "The homepage account circle should support the saved HydroPip profile picture");
 assert.match(marketingHomeHtml, /pip\?pro=avatar/, "The profile-picture shortcut should use a query value the Wix bridge already forwards");
 assert.match(pipHtml, /id="pipAvatarDialog"/, "Pip should provide a profile-picture picker");
 assert.match(pipHtml, /id="pipFeedbackImpact"/, "Member suggestions should record how strongly an issue affected the user");
 assert.match(pipHtml, /data-feedback-open/, "Signed-in members should have a clear Suggest an improvement action");
+assert.equal((pipHtml.match(/data-member-only data-feedback-open/g) || []).length, 2, "Every Pip Pro account dropdown should contain Suggest an improvement");
+assert.match(pipHtml, /pipQuery\.get\("pro"\) === "feedback"/, "Pip should support a direct signed feedback route");
+assert.match(pipHtml, /authMode==="login"[\s\S]*pip\?pro=1/, "Pro Login should continue directly to the workspace after Wix verifies the member");
 assert.match(pipHtml, /Pip organizes similar ideas/, "The feedback form should explain AI-assisted grouping without promising automatic changes");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "login" \? "login"/, "The branded account page should distinguish Wix login from signup");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "signup" \? "signup"/, "The branded account page should be able to open Wix signup through the Pip bridge");
@@ -109,6 +114,7 @@ assert.match(nutrientCalculatorJs, /hydropipToolSession/, "The calculator should
 assert.match(nutrientCalculatorHtml, /mixing a fresh reservoir batch/i, "The nutrient calculator must ask whether this is a fresh batch");
 assert.match(nutrientCalculatorJs, /Do not add a complete recipe to a partially depleted reservoir/, "The nutrient calculator must block full dosing into a partial HydroPip batch");
 assert.match(nutrientCalculatorHtml, /Calculate my nutrient mix/, "The nutrient calculator needs an explicit calculation action");
+assert.match(nutrientCalculatorJs, /HydroPip nutrient calculations are educational estimates for a fresh reservoir batch/, "Calculated nutrient results need the exact educational safety disclaimer");
 assert.match(nutrientCalculatorJs, /Another brand - use my label rate/, "The nutrient calculator should support growers using another labeled nutrient");
 assert.doesNotMatch(nutrientCalculatorJs, /addEventListener\(["']change["'],\s*render\)/, "Changing an input must not calculate a recipe before the button is pressed");
 assert.doesNotThrow(() => new Function(nutrientCalculatorJs), "The nutrient calculator JavaScript should parse");
