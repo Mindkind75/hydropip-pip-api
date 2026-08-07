@@ -30,7 +30,7 @@ services:
       - key: PIP_SESSION_TTL_SECONDS
         value: 3600
       - key: PIP_REQUIRE_EXCHANGE_NONCE
-        value: false
+        value: true
       - key: PIP_ENABLE_ADMIN_UI
         value: false
       - key: PIP_MODEL
