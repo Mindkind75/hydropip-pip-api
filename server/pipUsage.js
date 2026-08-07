@@ -101,10 +101,7 @@ export function aiUsageEventType({ message, hasPhoto } = {}) {
 }
 
 export function clientIpHash(req) {
-  const forwarded = req?.headers?.["x-forwarded-for"];
-  const ip = String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req?.ip || "unknown")
-    .split(",")[0]
-    .trim();
+  const ip = String(req?.ip || req?.socket?.remoteAddress || "unknown").trim();
   const salt = String(process.env.PIP_USAGE_HASH_SECRET || process.env.PIP_BRIDGE_SECRET || "hydropip-usage");
   return crypto.createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }

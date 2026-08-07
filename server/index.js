@@ -187,8 +187,7 @@ app.post("/api/pip/conversions", conversionRateLimit, async (req, res, next) => 
 });
 
 app.use("/api/pip/chat", (req, res, next) => {
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip = String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+  const ip = requestIp(req);
   const now = Date.now();
   const bucket = chatHits.get(ip) || [];
   const recent = bucket.filter((timestamp) => now - timestamp < chatWindowMs);
@@ -1143,15 +1142,13 @@ function consumeSessionExchange(req) {
 }
 
 function requestIp(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  return String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+  return String(req.ip || req.socket?.remoteAddress || "unknown").trim();
 }
 
 export { app };
 
 function betaApplicationRateLimit(req, res, next) {
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip = String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+  const ip = requestIp(req);
   const now = Date.now();
   const windowMs = 60 * 60 * 1000;
   const recent = (betaApplicationHits.get(ip) || []).filter((timestamp) => now - timestamp < windowMs);
@@ -1165,8 +1162,7 @@ function betaApplicationRateLimit(req, res, next) {
 }
 
 function conversionRateLimit(req, res, next) {
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip = String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+  const ip = requestIp(req);
   const now = Date.now();
   const windowMs = 60 * 60 * 1000;
   const recent = (conversionHits.get(ip) || []).filter((timestamp) => now - timestamp < windowMs);
