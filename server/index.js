@@ -174,6 +174,7 @@ app.get(["/admin-control-center", "/admin-control-center.html"], serveAdminPage(
 const publicPageRoutes = new Map([
   ["/field-guide", "field-guide.html"],
   ["/how-it-works", "how-it-works.html"],
+  ["/hydroponic-tower-placement", "hydroponic-tower-placement.html"],
   ["/nutrient-calculator", "nutrient-calculator.html"],
   ["/track-start", "track-start.html"]
 ]);

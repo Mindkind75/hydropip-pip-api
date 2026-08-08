@@ -36,6 +36,7 @@ function title(html) {
 const indexablePages = [
   { file: "field-guide.html", url: `${renderOrigin}/field-guide`, renderRoute: "/field-guide" },
   { file: "how-it-works.html", url: `${renderOrigin}/how-it-works`, renderRoute: "/how-it-works" },
+  { file: "hydroponic-tower-placement.html", url: `${renderOrigin}/hydroponic-tower-placement`, renderRoute: "/hydroponic-tower-placement" },
   { file: "track-start.html", url: `${renderOrigin}/track-start`, renderRoute: "/track-start" }
 ];
 
@@ -65,6 +66,8 @@ assert.match(title(home), /DIY Hydroponic Tower/i, "home title must target DIY h
 assert.match(home, /commercial-quality DIY hydroponic tower system/i, "home H1 must explain the product immediately");
 assert.match(read("field-guide.html"), /How to Build a DIY Hydroponic Tower/i, "Field Guide must target build intent");
 assert.match(read("how-it-works.html"), /FAQPage/, "How It Works must include FAQ structured data");
+assert.match(read("hydroponic-tower-placement.html"), /approximately 12 by 8 feet/i, "Placement guide must provide a practical four-tower footprint");
+assert.match(read("hydroponic-tower-placement.html"), /call 811/i, "Placement guide must include utility-location safety guidance");
 assert.match(read("track-start.html"), /DIY Hydroponic Tower Cost and Parts List/i, "Track My Build must target cost and parts intent");
 
 for (const [file, canonicalUrl] of [

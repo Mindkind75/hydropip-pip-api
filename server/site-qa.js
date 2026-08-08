@@ -271,8 +271,9 @@ const wixHomeBridge = fs.readFileSync(new URL("../wix-home-page-code.js", import
 assert.match(homeHtml, /postHeight\(true\)/, "Home must resend its measured height after the Wix bridge is ready");
 assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
 assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
-assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature the mature four-tower system");
-assert.match(homeHtml, /assets\/photos\/hydropip-mature-four-tower-system\.jpg/, "Home hero is missing the mature four-tower photo");
+assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature a real HydroPip harvest");
+assert.match(homeHtml, /assets\/photos\/hydropip-mustard-green-harvest-founder\.jpg/, "Home hero is missing the giant mustard green harvest photo");
+assert.match(homeHtml, /This giant mustard green came from HydroPip/i, "Home hero should connect the harvest result to HydroPip");
 assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");
 assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
