@@ -296,6 +296,8 @@ assert.match(homeHtml, /orientationchange/, "Home should react when a phone rota
 assert.match(homeHtml, /root\.classList\.toggle\("deviceMobile",forceMobile\|\|\(handheld&&!landscape\)\)/, "Landscape phones should not remain locked to the portrait mobile layout");
 assert.doesNotMatch(partsHtml, /html,body\{overflow-y:hidden\}/, "Track My Build must preserve vertical page scrolling");
 assert.match(partsHtml, /html,body\{overflow-y:auto\}/, "Track My Build should use natural vertical scrolling");
+assert.match(partsHtml, /if\(isWixEmbed\)return/, "Embedded Track My Build must not broadcast a document height to legacy resize listeners");
+assert.match(partsHtml, /html\.is-wix-embed body\{height:100%;min-height:0;overflow-y:auto/, "Embedded Track My Build must own one viewport-sized internal scroll area");
 assert.match(pipHtml, /\.pro-mode \.pro-view\{overscroll-behavior-y:contain\}/, "Pip Pro should not chain notebook scrolling into the surrounding Wix page");
 assert.match(pipHtml, /id=["']pipProScrollContext["']/, "Pip Pro mobile layouts should identify the notebook page scroll position");
 assert.match(pipHtml, /\.workspace-tabs\{overflow-y:hidden;overscroll-behavior-inline:contain;touch-action:pan-x\}/, "Notebook tab navigation should reserve swiping for horizontal movement");

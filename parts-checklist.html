@@ -16,8 +16,8 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 html{overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch}
 html,body{overflow-y:auto}
 body{touch-action:pan-y pinch-zoom}
-html.is-wix-embed{height:100%;overflow-y:auto;overscroll-behavior-y:contain}
-html.is-wix-embed body{min-height:100%;overflow:visible}
+html.is-wix-embed{height:100%;overflow:hidden;overscroll-behavior-y:none}
+html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
 .top{position:static;top:auto;backdrop-filter:none}
 @media(min-width:761px){
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -170,7 +170,8 @@ html.is-wix-embed body{min-height:100%;overflow:visible}
 </script>
 <script>
 (function(){
-  if(new URLSearchParams(location.search).get("embed")==="1")document.documentElement.classList.add("is-wix-embed");
+  var isWixEmbed=new URLSearchParams(location.search).get("embed")==="1";
+  if(isWixEmbed)document.documentElement.classList.add("is-wix-embed");
   var lastHeight=0;
   function contentHeight(){
     var bottom=Math.max(document.body.scrollHeight,document.body.offsetHeight,document.documentElement.scrollHeight,document.documentElement.offsetHeight);
@@ -183,6 +184,7 @@ html.is-wix-embed body{min-height:100%;overflow:visible}
     return Math.ceil(bottom);
   }
   function postHeight(){
+    if(isWixEmbed)return;
     var nextHeight=contentHeight();
     if(Math.abs(nextHeight-lastHeight)<8)return;
     lastHeight=nextHeight;
