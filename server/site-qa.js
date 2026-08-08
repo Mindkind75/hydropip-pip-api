@@ -270,6 +270,8 @@ const wixTrackBridge = fs.readFileSync(new URL("../wix-track-my-build-page-code.
 assert.match(wixTrackBridge, /embed\.onMessage/, "The Wix Track My Build page must listen for iframe readiness and session messages");
 assert.match(wixTrackBridge, /HYDROPIP_EMBED_HEIGHT/, "The Wix Track My Build page must recognize iframe resize messages");
 assert.match(wixTrackBridge, /sizeTrackToViewport/, "Track My Build should use one fixed viewport-sized iframe");
+assert.match(wixTrackBridge, /formFactor === "Desktop" \? 760 : 640/, "Track My Build needs an immediate viewport fallback when Wix geometry is late");
+assert.match(wixTrackBridge, /embed\.height = fallbackHeight/, "Track My Build should apply its fallback before asynchronous viewport measurement");
 assert.doesNotMatch(wixTrackBridge, /HYDROPIP_TRACK_SCROLL_SECTION/, "Track My Build section jumps should not move the outer Wix page");
 assert.doesNotMatch(wixTrackBridge, /14950|25700/, "The Wix Track My Build page must not restore fixed legacy iframe heights");
 
@@ -388,6 +390,8 @@ assert.match(wixPipBridge, /if \(member && !sessionToken\)/, "Wix Pip bridge sho
 assert.match(wixPipBridge, /if \(sessionRetryCount < 4\)/, "Wix Pip bridge should bound signed-member exchange retries");
 assert.match(wixPipBridge, /Boolean\(sessionToken\)/, "Wix Pip bridge should not cache a missing signed-member token as a successful exchange");
 assert.doesNotMatch(wixPipBridge, /formFactor === "Desktop" \? 860 : 800/, "Wix Pip must not force an iframe taller than common phone viewports");
+assert.match(wixPipBridge, /formFactor === "Desktop" \? 760 : 640/, "Wix Pip needs an immediate viewport fallback when Wix geometry is late");
+assert.match(wixPipBridge, /pip\.height = fallbackHeight/, "Wix Pip should apply its fallback before asynchronous viewport measurement");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");

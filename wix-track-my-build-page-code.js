@@ -64,6 +64,11 @@ function sizeTrackToViewport(embed) {
 }
 
 function settleTrackToViewport(embed) {
+  const fallbackHeight = wixWindowFrontend.formFactor === "Desktop" ? 760 : 640;
+  if (Math.abs(fallbackHeight - lastEmbedHeight) >= 8) {
+    lastEmbedHeight = fallbackHeight;
+    embed.height = fallbackHeight;
+  }
   sizeTrackToViewport(embed);
   setTimeout(() => sizeTrackToViewport(embed), 120);
   setTimeout(() => sizeTrackToViewport(embed), 420);

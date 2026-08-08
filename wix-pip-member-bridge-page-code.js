@@ -12,6 +12,7 @@ let lastSessionSignature = "";
 let sessionRetryCount = 0;
 let sessionRetryTimer;
 let sessionRequestInFlight;
+let lastPipHeight = 0;
 
 $w.onReady(() => {
   collapseOuterHeader();
@@ -104,11 +105,19 @@ function sizePipToViewport(pip) {
     if (!Number.isFinite(windowHeight)) return;
     const minimum = wixWindowFrontend.formFactor === "Desktop" ? 720 : 560;
     const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 8 : 16;
-    pip.height = Math.max(minimum, windowHeight - chromeAllowance);
+    const nextHeight = Math.max(minimum, windowHeight - chromeAllowance);
+    if (Math.abs(nextHeight - lastPipHeight) < 8) return;
+    lastPipHeight = nextHeight;
+    pip.height = nextHeight;
   }).catch(() => {});
 }
 
 function settlePipToViewport(pip) {
+  const fallbackHeight = wixWindowFrontend.formFactor === "Desktop" ? 760 : 640;
+  if (Math.abs(fallbackHeight - lastPipHeight) >= 8) {
+    lastPipHeight = fallbackHeight;
+    pip.height = fallbackHeight;
+  }
   sizePipToViewport(pip);
   setTimeout(() => sizePipToViewport(pip), 120);
   setTimeout(() => sizePipToViewport(pip), 420);
