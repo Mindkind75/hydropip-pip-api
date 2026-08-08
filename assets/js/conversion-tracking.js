@@ -108,6 +108,10 @@
     try { url = new URL(link.href, location.href); } catch (_error) { return null; }
     var host = url.hostname.replace(/^www\./, "");
     var label = String(link.textContent || link.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 160);
+    var declaredEvent = String(link.getAttribute("data-hp-event") || "").trim();
+    if (/^[a-z][a-z0-9_]{2,63}$/.test(declaredEvent)) {
+      return { name: declaredEvent, metadata: { destinationHost: host, linkLabel: label, surface: location.pathname } };
+    }
     if (host === "amazon.com" || host.endsWith(".amazon.com") || host === "a.co") {
       return { name: "affiliate_link_clicked", metadata: { destinationHost: host, productId: amazonProductId(url), linkLabel: label } };
     }

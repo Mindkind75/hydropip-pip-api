@@ -5,7 +5,7 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=beta-20260804a";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=launch-20260808-viewport1";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -77,11 +77,14 @@ $w.onReady(() => {
 });
 
 function collapseOuterHeader() {
-  try {
-    const header = $w("#section3");
-    if (header && typeof header.collapse === "function") header.collapse();
-  } catch (error) {
-    // The embedded header still works if this page uses a different Wix section ID.
+  const outerChromeIds = ["#section3", "#membersLoginBar1", "#header1", "#siteHeader"];
+  for (const selector of outerChromeIds) {
+    try {
+      const element = $w(/** @type {any} */ (selector));
+      if (element && typeof element.collapse === "function") element.collapse();
+    } catch (error) {
+      // Try the next known global header element ID.
+    }
   }
 }
 
@@ -99,8 +102,8 @@ function sizePipToViewport(pip) {
   return wixWindowFrontend.getBoundingRect().then((size) => {
     const windowHeight = Math.floor(Number(size?.window?.height));
     if (!Number.isFinite(windowHeight)) return;
-    const minimum = wixWindowFrontend.formFactor === "Desktop" ? 640 : 460;
-    const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 24 : 64;
+    const minimum = wixWindowFrontend.formFactor === "Desktop" ? 720 : 560;
+    const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 8 : 16;
     pip.height = Math.max(minimum, windowHeight - chromeAllowance);
   }).catch(() => {});
 }

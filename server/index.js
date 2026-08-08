@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import net from "node:net";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { askPip } from "./pipAgent.js";
 import { createGrowPlan, createReminder, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
@@ -117,6 +118,36 @@ const conversionHits = new Map();
 const sessionExchangeHits = new Map();
 const exchangeNonces = new Map();
 const adminPasskeyHits = new Map();
+const slowRequestMs = Math.max(250, Number(process.env.PIP_SLOW_REQUEST_MS || 2000));
+
+app.use((req, res, next) => {
+  const requestId = String(req.headers["x-request-id"] || randomUUID()).slice(0, 128);
+  const startedAt = Date.now();
+  req.requestId = requestId;
+  res.set("X-Request-Id", requestId);
+  res.set("X-Content-Type-Options", "nosniff");
+  res.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.set("Permissions-Policy", "camera=(self), microphone=(), geolocation=()");
+  res.set("Cross-Origin-Resource-Policy", "cross-origin");
+  res.set("Content-Security-Policy", contentSecurityPolicy());
+  if (process.env.NODE_ENV === "production") {
+    res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  res.on("finish", () => {
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= slowRequestMs || res.statusCode >= 500) {
+      console.warn(JSON.stringify({
+        event: res.statusCode >= 500 ? "http_server_error" : "http_slow_request",
+        requestId,
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        durationMs
+      }));
+    }
+  });
+  next();
+});
 
 app.use(
   cors({
@@ -184,7 +215,18 @@ for (const [route, file] of publicPageRoutes) {
   app.get(`/${file}`, (_req, res) => res.redirect(301, route));
 }
 
-app.use(express.static(rootDir));
+app.use(express.static(rootDir, {
+  setHeaders(res, filePath) {
+    const extension = path.extname(filePath).toLowerCase();
+    if (extension === ".html") {
+      res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
+      return;
+    }
+    if ([".css", ".js", ".json", ".png", ".jpg", ".jpeg", ".webp", ".avif", ".svg", ".ico"].includes(extension)) {
+      res.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+    }
+  }
+}));
 
 app.get("/beta-test", (_req, res) => res.sendFile(path.join(rootDir, "beta-test.html")));
 
@@ -1107,6 +1149,24 @@ app.use((error, _req, res, _next) => {
     message: error.statusCode ? error.message : "Pip hit a server-side issue. Check the backend logs."
   });
 });
+
+function contentSecurityPolicy() {
+  const directives = [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data: https:",
+    "connect-src 'self' https://www.hydropip.com https://hydropip.com https://*.wix.com https://*.wixsite.com https://*.wixstatic.com",
+    "frame-src 'self' https:",
+    "frame-ancestors 'self' https://www.hydropip.com https://hydropip.com https://*.wixsite.com https://*.wixstudio.com",
+    "form-action 'self' https://www.hydropip.com https://hydropip.com"
+  ];
+  if (process.env.NODE_ENV === "production") directives.push("upgrade-insecure-requests");
+  return directives.join("; ");
+}
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   app.listen(port, () => {

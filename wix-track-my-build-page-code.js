@@ -2,7 +2,7 @@ import wixWindowFrontend from "wix-window-frontend";
 import { currentMember } from "wix-members-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
-const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260807a&embed=1";
+const HYDROPIP_TRACK_SRC = "https://hydropip-pip-api.onrender.com/parts-checklist.html?v=launch-20260808-scroll1&embed=1";
 const TRACK_EMBED_IDS = ["#trackHtml", "#partsHtml", "#html1", "#html2", "#iFrame1"];
 let lastEmbedHeight = 0;
 let lastSessionSignature = "";
@@ -12,12 +12,14 @@ $w.onReady(() => {
   const embed = getEmbed();
   if (!embed) return;
 
-  setFallbackHeight(embed);
+  settleTrackToViewport(embed);
   embed.onMessage(async (event) => {
     const message = event.data || {};
-    if (message.type === "HYDROPIP_EMBED_HEIGHT") syncEmbedHeight(embed, message);
-    if (message.type === "HYDROPIP_TRACK_SCROLL_SECTION") await scrollTrackSection(message);
-    if (message.type === "HYDROPIP_TRACK_READY") await sendTrackSession(embed, true);
+    if (message.type === "HYDROPIP_EMBED_HEIGHT") settleTrackToViewport(embed);
+    if (message.type === "HYDROPIP_TRACK_READY") {
+      settleTrackToViewport(embed);
+      await sendTrackSession(embed, true);
+    }
   });
   embed.src = HYDROPIP_TRACK_SRC;
   setTimeout(() => sendTrackSession(embed), 1200);
@@ -36,16 +38,6 @@ function collapseOuterHeader() {
   }
 }
 
-async function scrollTrackSection(message) {
-  const requestedTop = Math.floor(Number(message?.top));
-  if (!Number.isFinite(requestedTop)) return;
-  try {
-    await wixWindowFrontend.scrollTo(0, Math.max(0, requestedTop));
-  } catch (error) {
-    // The embedded control still scrolls its own document when Wix cannot move the outer page.
-  }
-}
-
 function getEmbed() {
   for (const selector of TRACK_EMBED_IDS) {
     try {
@@ -58,24 +50,24 @@ function getEmbed() {
   return null;
 }
 
-function setFallbackHeight(embed) {
-  lastEmbedHeight = wixWindowFrontend.formFactor === "Mobile" ? 1800 : 1400;
-  embed.height = lastEmbedHeight;
+function sizeTrackToViewport(embed) {
+  return wixWindowFrontend.getBoundingRect().then((size) => {
+    const windowHeight = Math.floor(Number(size?.window?.height));
+    if (!Number.isFinite(windowHeight)) return;
+    const minimum = wixWindowFrontend.formFactor === "Desktop" ? 720 : 560;
+    const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 8 : 16;
+    const nextHeight = Math.max(minimum, windowHeight - chromeAllowance);
+    if (Math.abs(nextHeight - lastEmbedHeight) < 8) return;
+    lastEmbedHeight = nextHeight;
+    embed.height = nextHeight;
+  }).catch(() => {});
 }
 
-function syncEmbedHeight(embed, message) {
-  if (!message || message.type !== "HYDROPIP_EMBED_HEIGHT") return;
-
-  const measuredHeight = Math.ceil(Number(message.height));
-  if (!Number.isFinite(measuredHeight) || measuredHeight < 1) return;
-
-  const minimum = wixWindowFrontend.formFactor === "Mobile" ? 900 : 1000;
-  const maximum = wixWindowFrontend.formFactor === "Mobile" ? 24000 : 36000;
-  const nextHeight = Math.max(minimum, Math.min(maximum, measuredHeight + 12));
-  if (Math.abs(nextHeight - lastEmbedHeight) < 8) return;
-
-  lastEmbedHeight = nextHeight;
-  embed.height = nextHeight;
+function settleTrackToViewport(embed) {
+  sizeTrackToViewport(embed);
+  setTimeout(() => sizeTrackToViewport(embed), 120);
+  setTimeout(() => sizeTrackToViewport(embed), 420);
+  setTimeout(() => sizeTrackToViewport(embed), 900);
 }
 
 async function sendTrackSession(embed, force = false) {

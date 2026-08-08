@@ -16,6 +16,8 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 html{overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch}
 html,body{overflow-y:auto}
 body{touch-action:pan-y pinch-zoom}
+html.is-wix-embed{height:100%;overflow-y:auto;overscroll-behavior-y:contain}
+html.is-wix-embed body{min-height:100%;overflow:visible}
 .top{position:static;top:auto;backdrop-filter:none}
 @media(min-width:761px){
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -98,6 +100,7 @@ body{touch-action:pan-y pinch-zoom}
   var form=document.querySelector("#estimateForm"),results=document.querySelector("#estimateResults"),status=document.querySelector("#estimateStatus"),optionalPicks=document.querySelector("#optionalPicks"),quantitySync=document.querySelector("#quantitySync");
   var sectionJump=document.querySelector("#sectionJump"),sectionJumpArrow=document.querySelector("#sectionJumpArrow"),sectionJumpHint=document.querySelector("#sectionJumpHint"),sectionJumpLabel=document.querySelector("#sectionJumpLabel"),sectionTargets=[],sectionDirection=1,lastScrollY=window.scrollY;
   var active="all";
+  function track(eventName,metadata){if(window.HydroPipTracking)window.HydroPipTracking.track(eventName,metadata||{})}
   function esc(value){return String(value||"").replace(/[&<>\"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
   function save(){localStorage.setItem(key,JSON.stringify(checked))}
   function requestHeaders(){var headers={"Content-Type":"application/json"};if(sessionToken)headers.Authorization="Bearer "+sessionToken;return headers}
@@ -114,11 +117,12 @@ body{touch-action:pan-y pinch-zoom}
   function renderEstimate(){var e=estimate,site=siteEnvelope(e.opts.towers),siteStat=site?'<div><strong>About '+site.width+' x '+site.depth+' ft</strong>working footprint with '+site.spacing+' ft tower spacing</div>':'';results.innerHTML='<p class="eyebrow">Planning estimate</p><div class="totals"><div class="total"><small>Low</small><strong>$'+e.low+'</strong></div><div class="total"><small>Typical</small><strong>$'+e.typical+'</strong></div><div class="total"><small>High</small><strong>$'+e.high+'</strong></div></div><div class="estimate-stats"><div><strong>'+e.opts.towers+' towers</strong>'+e.opts.tiers+' tiers each</div><div><strong>'+e.positions+' planting pockets</strong>'+catalog.pocketsPerTier+' pockets per tier</div>'+siteStat+'<div><strong>$'+e.requiredTypical+' required</strong>$'+e.optionalTypical+' selected upgrades</div><div><strong>$'+e.savings+' owned savings</strong>$'+Math.round(e.typical/e.opts.towers)+' typical per tower</div></div><p class="estimate-note">A tier is one four-pocket planter component, not one plant. The footprint is a planning envelope for the IBC, mature foliage, and service access; exact placement varies. Estimated cost per planting pocket: $'+(e.typical/e.positions).toFixed(2)+'. '+esc(catalog.disclaimer)+'</p><p><a class="link local" href="https://www.hydropip.com/pip" target="_top">Ask Pip if this fits my space</a></p>'}
   function displayCategory(item){if(item.category==="structure")return"structure";if(["reservoir","pumps","plumbing"].indexOf(item.category)!==-1)return"flow";if(item.category==="growing")return"care";if(item.category==="electrical")return"tools";return"optional"}
   function render(){
-    var shown=parts.filter(function(part){return active==="all"||displayCategory(part)===active});
+    var categoryOrder=["structure","flow","care","optional","tools"];
+    var shown=parts.filter(function(part){return active==="all"||displayCategory(part)===active}).sort(function(a,b){return categoryOrder.indexOf(displayCategory(a))-categoryOrder.indexOf(displayCategory(b))});
     var html="";
-    var last="";
+    var seen={};
     shown.forEach(function(part){
-      var category=displayCategory(part);if(category!==last){last=category;html+='<h2 class="section-title" id="parts-'+category+'" data-track-section data-section-label="'+esc(labels[last])+'">'+labels[last]+'</h2>'}
+      var category=displayCategory(part);if(!seen[category]){seen[category]=true;html+='<h2 class="section-title" id="parts-'+category+'" data-track-section data-section-label="'+esc(labels[category])+'">'+labels[category]+'</h2>'}
       var done=!!checked[part.id],record=purchases[part.id]||{},local=!part.url||part.url.indexOf("amazon.com")===-1;
       html+='<article class="part '+(done?"done":"")+'" data-category="'+category+'"><input class="check" type="checkbox" data-id="'+part.id+'" '+(done?"checked":"")+' aria-label="Mark '+esc(part.name)+' collected"><div><span class="tag">'+(part.required?'Required':'Optional')+'</span><h3>'+esc(part.name)+'</h3><p>'+esc(part.description)+'</p><p class="detail">Quantity for this estimate: '+part.quantity+' '+esc(part.unit)+'</p><span class="part-cost">Typical line estimate: $'+Math.round(part.quantity*part.typicalPrice)+'</span><label class="owned-row"><input class="owned" type="checkbox" data-id="'+part.id+'" '+(record.owned?'checked':'')+'>I already own this</label><details class="purchase"><summary>Record purchase details</summary><div class="purchase-fields"><input class="paid" data-id="'+part.id+'" type="number" min="0" step=".01" value="'+esc(record.paid||'')+'" placeholder="Actual paid ($)" aria-label="Actual amount paid for '+esc(part.name)+'"><input class="date" data-id="'+part.id+'" type="date" value="'+esc(record.date||'')+'" aria-label="Purchase date for '+esc(part.name)+'"><input class="retailer" data-id="'+part.id+'" value="'+esc(record.retailer||'')+'" placeholder="Retailer or saved link" aria-label="Retailer or link for '+esc(part.name)+'"></div></details></div><div class="part-actions"><span class="source">'+(local?'Local / selected retailer':'Affiliate link')+'</span>'+(part.url?'<a class="link '+(local?'local':'')+'" href="'+part.url+'" target="_blank" rel="noopener sponsored">'+(local?'Open retailer':'View option')+'</a>':'<span class="link local">Source locally</span>')+'</div></article>';
     });
@@ -142,21 +146,21 @@ body{touch-action:pan-y pinch-zoom}
   });
   grid.addEventListener("change",function(event){
     var box=event.target.closest(".check");
-    if(box){checked[box.dataset.id]=box.checked;save();box.closest(".part").classList.toggle("done",box.checked);updateProgress();return}
+    if(box){checked[box.dataset.id]=box.checked;save();box.closest(".part").classList.toggle("done",box.checked);updateProgress();if(box.checked)track("build_part_collected",{partId:box.dataset.id,collected:parts.filter(function(part){return checked[part.id]}).length,total:parts.length});return}
     var owned=event.target.closest(".owned");if(owned){purchases[owned.dataset.id]=Object.assign({},purchases[owned.dataset.id],{owned:owned.checked});localStorage.setItem(purchaseKey,JSON.stringify(purchases));estimateNow();return}
     if(event.target.matches(".paid,.date,.retailer")){var id=event.target.dataset.id,record=purchases[id]||{};record[event.target.className]=event.target.value;purchases[id]=record;localStorage.setItem(purchaseKey,JSON.stringify(purchases))}
   });
-  form.addEventListener("submit",function(event){event.preventDefault();estimateNow()});
+  form.addEventListener("submit",function(event){event.preventDefault();estimateNow();track("build_estimate_updated",{towers:estimate&&estimate.opts.towers,tiers:estimate&&estimate.opts.tiers,typical:estimate&&estimate.typical})});
   document.querySelector("#systemSize").addEventListener("change",function(){syncConditionalFields();estimateNow()});
   document.querySelector("#planterChoice").addEventListener("change",function(){syncConditionalFields();estimateNow()});
   document.querySelector("#reservoirChoice").addEventListener("change",function(){syncConditionalFields();estimateNow()});
   form.addEventListener("change",function(event){if(["systemSize","planterChoice","reservoirChoice"].indexOf(event.target.id)===-1)estimateNow()});
   form.addEventListener("input",function(event){if(["towerCount","tiersPerTower","ownedPlanterTiers","customReservoirPrice"].indexOf(event.target.id)!==-1)estimateNow()});
-  document.querySelector("#saveEstimate").addEventListener("click",saveAccountEstimate);
+  document.querySelector("#saveEstimate").addEventListener("click",function(){track("build_estimate_saved",{signedIn:Boolean(sessionToken),towers:estimate&&estimate.opts.towers});saveAccountEstimate()});
   function refreshSectionTargets(){sectionTargets=Array.from(document.querySelectorAll("[data-track-section]")).filter(function(item){return item.offsetParent!==null});updateSectionJump()}
   function currentSectionIndex(){var marker=window.scrollY+Math.min(window.innerHeight*.42,320),current=0;sectionTargets.forEach(function(item,index){if(item.getBoundingClientRect().top+window.scrollY<=marker)current=index});return current}
   function updateSectionJump(){if(!sectionTargets.length)return;var current=currentSectionIndex(),targetIndex=sectionDirection>0?current+1:current-1;if(targetIndex<0){sectionDirection=1;targetIndex=Math.min(1,sectionTargets.length-1)}if(targetIndex>=sectionTargets.length){sectionDirection=-1;targetIndex=Math.max(0,sectionTargets.length-2)}var target=sectionTargets[targetIndex];if(!target||target===sectionTargets[current]){sectionJump.classList.remove("visible");return}sectionJump.dataset.targetId=target.id||"";sectionJump._target=target;sectionJumpArrow.textContent=sectionDirection>0?"\u2193":"\u2191";sectionJumpHint.textContent=sectionDirection>0?"Next section":"Previous section";sectionJumpLabel.textContent=target.dataset.sectionLabel||target.textContent.trim();sectionJump.setAttribute("aria-label",sectionJumpHint.textContent+": "+sectionJumpLabel.textContent);sectionJump.classList.toggle("visible",window.scrollY>120||current>0)}
-  function jumpToSection(target){if(!target)return;try{window.parent.postMessage({type:"HYDROPIP_TRACK_SCROLL_SECTION",top:Math.max(0,target.getBoundingClientRect().top+window.scrollY-12),label:target.dataset.sectionLabel||""},"*")}catch(error){}target.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});setTimeout(updateSectionJump,250)}
+  function jumpToSection(target){if(!target)return;target.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});setTimeout(updateSectionJump,250)}
   document.addEventListener("click",function(event){var trigger=event.target.closest("[data-jump-to]");if(!trigger)return;var target=document.querySelector(trigger.dataset.jumpTo);if(target){event.preventDefault();jumpToSection(target)}});
   sectionJump.addEventListener("click",function(){jumpToSection(sectionJump._target)});
   window.addEventListener("scroll",function(){var next=window.scrollY;if(Math.abs(next-lastScrollY)>5)sectionDirection=next>lastScrollY?1:-1;lastScrollY=next;updateSectionJump()},{passive:true});

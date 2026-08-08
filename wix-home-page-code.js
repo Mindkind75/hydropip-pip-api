@@ -2,7 +2,7 @@ import wixWindowFrontend from "wix-window-frontend";
 import wixLocation from "wix-location";
 import { currentMember, authentication } from "wix-members-frontend";
 
-const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260806-gapfix1";
+const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260808-scroll1&embed=1";
 const HOME_EMBED_IDS = ["#homeHtml", "#html1", "#html2", "#iFrame1"];
 let hasMeasuredHomeHeight = false;
 
@@ -34,11 +34,14 @@ $w.onReady(() => {
 });
 
 function collapseOuterHeader() {
-  try {
-    const header = $w("#section3");
-    if (header && typeof header.collapse === "function") header.collapse();
-  } catch (error) {
-    // The embedded header still works if this page uses a different Wix section ID.
+  const outerChromeIds = ["#section3", "#membersLoginBar1", "#header1", "#siteHeader"];
+  for (const selector of outerChromeIds) {
+    try {
+      const element = $w(/** @type {any} */ (selector));
+      if (element && typeof element.collapse === "function") element.collapse();
+    } catch (error) {
+      // Try the next known global header element ID.
+    }
   }
 }
 
@@ -98,7 +101,7 @@ function getEmbed() {
 
 function setFallbackHeight(embed) {
   if (hasMeasuredHomeHeight) return;
-  setEmbedHeight(embed, wixWindowFrontend.formFactor === "Mobile" ? 9400 : 5800);
+  setEmbedHeight(embed, wixWindowFrontend.formFactor === "Mobile" ? 1500 : 1200);
   wixWindowFrontend.getBoundingRect().then((size) => {
     if (!hasMeasuredHomeHeight && size?.window?.width) {
       setEmbedHeight(embed, heightForWidth(size.window.width));
@@ -107,14 +110,13 @@ function setFallbackHeight(embed) {
 }
 
 function heightForWidth(width) {
-  if (width <= 560) return 9400;
-  if (width <= 900) return 8000;
-  if (width <= 1100) return 6500;
-  return 5800;
+  if (width <= 560) return 1500;
+  if (width <= 900) return 1400;
+  return 1200;
 }
 
 function setEmbedHeight(embed, requestedHeight) {
   const height = Math.ceil(Number(requestedHeight));
-  if (!Number.isFinite(height) || height < 900 || height > 20000) return;
+  if (!Number.isFinite(height) || height < 600 || height > 16000) return;
   embed.height = height + 4;
 }

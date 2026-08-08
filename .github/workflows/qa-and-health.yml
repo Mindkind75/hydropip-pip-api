@@ -1,0 +1,35 @@
+name: HydroPip QA and health
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */4 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  regression-qa:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --ignore-scripts
+      - run: npm run qa:all
+
+  live-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify Render health endpoint
+        shell: bash
+        run: |
+          response="$(curl --fail --silent --show-error --max-time 25 https://hydropip-pip-api.onrender.com/api/pip/health)"
+          node -e 'const value=JSON.parse(process.argv[1]); if(value.ok!==true) process.exit(1)' "$response"

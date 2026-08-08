@@ -59,7 +59,7 @@ for (const asset of ["pip-take-a-pic-illustration.jpg", "pip-planning-illustrati
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-photo-guidance-poster.jpg", import.meta.url)), true, "The social photo-guidance poster should remain in the marketing library");
 assert.match(marketingHomeHtml, /pip-photo-guidance-poster\.jpg/, "The homepage should use the Pip photo-guidance poster");
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster-transparent.png", import.meta.url)), true, "The transparent Pip history poster should exist");
-assert.match(marketingHomeHtml, /pip-history-poster-transparent\.png/, "The homepage should explain Pip Pro grow memory with the transparent history poster");
+assert.match(marketingHomeHtml, /pip-history-poster-transparent\.webp/, "The homepage should use the optimized Pip Pro grow-memory artwork");
 assert.match(marketingHomeHtml, /class="navField"[^>]*>Field Guide<\/a>/, "The homepage should distinguish the Field Guide in primary navigation");
 assert.match(marketingHomeHtml, /class="navHow"[^>]*href="https:\/\/hydropip-pip-api\.onrender\.com\/how-it-works\.html"[^>]*>How It Works<\/a>/, "How It Works should open its concise overview instead of duplicating the Field Guide");
 assert.match(howItWorksHtml, /href="https:\/\/www\.hydropip\.com\/"[^>]*>Home<\/a>/, "How It Works should provide a clear Home action");
@@ -101,7 +101,7 @@ for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", 
   assert.match(pipHtml, new RegExp(`/assets/marketing/pro-tabs/${asset.replaceAll(".", "\\.")}`), `Pip Pro should use the ${asset} notebook guide`);
 }
 assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/historian.png", import.meta.url)), true, "The History notebook needs its transparent historian Pip");
-assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/historian\.png/, "The History notebook should use historian Pip beside saved activity");
+assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/historian\.webp/, "The History notebook should use optimized historian Pip beside saved activity");
 assert.deepEqual(
   fs.readFileSync(new URL("../assets/marketing/pro-tabs/calendar.png", import.meta.url)),
   fs.readFileSync(new URL("../assets/marketing/pro-tabs/planner.png", import.meta.url)),
@@ -169,7 +169,7 @@ assert.notEqual(buildConfig.items.find((item) => item.id === "mix-return-hose").
 const notebookVisualGuideCount = (pipHtml.match(/class=["'][^"']*notebook-guide[^"']*["']/g) || []).length
   + (pipHtml.match(/class=["'][^"']*account-brand-panel[^"']*["']/g) || []).length;
 assert.equal(notebookVisualGuideCount, 8, "Every main Pip Pro notebook section should have a visual guide");
-assert.match(pipHtml, /account-brand-panel[\s\S]*pip-pro-workspace-transparent\.png/, "The branded account hub should feature Pip");
+assert.match(pipHtml, /account-brand-panel[\s\S]*pip-pro-workspace-transparent\.webp/, "The branded account hub should feature optimized Pip artwork");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
@@ -196,15 +196,21 @@ assert.match(pipHtml, /function bestSavedProject\(/, "Pip chat should choose the
 assert.match(pipHtml, /requestedProjectId\?projects\.find/, "Pip chat should prioritize an explicitly selected notebook");
 assert.match(pipHtml, /\.top-actions a/, "Pip Pro shortcuts should link to the selected notebook");
 assert.match(pipHtml, /body:not\(\.pro-mode\) \.return-top-handle\{display:none!important\}/, "Chat should use its persistent navigation instead of the floating top handle");
-assert.match(pipHtml, /pip-pro-workspace-transparent\.png/, "The Pip Pro notebook heading should feature the transparent Pro mascot");
+assert.match(pipHtml, /pip-pro-workspace-transparent\.webp/, "The Pip Pro notebook heading should feature the optimized Pro mascot");
 assert.match(pipHtml, /class=["']pro-auth-loading["']/, "Pip Pro should show a neutral loading state while Wix resolves membership");
 assert.match(pipHtml, /pro-auth-pending \.pro-view>\.pip-top/, "Pip Pro must hide public content while membership is unresolved");
 assert.match(pipHtml, /function revealProPage\(\)/, "Pip Pro should reveal the correct view only after session resolution");
 assert.match(pipHtml, /HYDROPIP_PIP_LOGIN_REQUEST/, "Pip Pro checkout bridge message is missing");
 assert.match(pipHtml, /id=["']pipProCelebrationDialog["']/, "Pip Pro needs a successful-upgrade celebration");
-assert.match(pipHtml, /pip-pro-celebration-transparent\.png/, "The successful-upgrade celebration should feature celebratory Pip");
+assert.match(pipHtml, /pip-pro-celebration-transparent\.webp/, "The successful-upgrade celebration should feature optimized celebratory Pip");
 assert.match(pipHtml, /Let's Go to Pip Pro/, "The successful-upgrade celebration needs a clear workspace call to action");
 assert.match(pipHtml, /pendingProCheckout&&isPro\(\)/, "The celebration must wait until the member has verified Pip Pro access");
+assert.match(pipHtml, /What do you want to do next\?/, "A newly signed-in member needs an obvious next-step choice");
+assert.match(pipHtml, /post_signup_build_selected/, "Post-signup Track My Build activation must be measurable");
+assert.match(pipHtml, /post_signup_pip_selected/, "Post-signup Pip activation must be measurable");
+assert.match(pipHtml, /post_signup_grow_selected/, "Post-signup grow activation must be measurable");
+assert.match(pipHtml, /data-account-action=["']subscriptions["']/, "Pro members need a subscription-management action");
+assert.match(pipHtml, /data-account-action=["']wallet["']/, "Pro members need a payment-method action");
 assert.match(pipHtml, /HYDROPIP_PIP_READY/, "The completed checkout flow should recheck Wix while Pro access propagates");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");
@@ -225,7 +231,7 @@ assert.match(pipHtml, /function addUpgradeCta/, "Pip should show an inline Pip P
 assert.match(pipHtml, /className=["']chat-upgrade["']/, "Pip Pro nudges should use a compact chat action instead of replacing the chat controls");
 assert.doesNotMatch(pipHtml, /data\.subscriptionRequired&&!isPro\(\)\)setGate\(true,["']pro["']\)/, "A Pip Pro nudge must not lock free HydroPip build help");
 assert.match(pipHtml, /your HydroPip grow partner/, "Pip should open with a clear capability-focused introduction");
-assert.match(pipHtml, /class=["']chat-head["'][^>]*>[\s\S]*?pip-head-transparent\.png/, "Pip chat header should use the head-only avatar");
+assert.match(pipHtml, /class=["']chat-head["'][^>]*>[\s\S]*?pip-head-transparent\.webp/, "Pip chat header should use the optimized head-only avatar");
 assert.match(pipHtml, /var mascot = ["']\/assets\/branding\/pip-head-transparent\.png["']/, "Pip replies should use the head-only avatar");
 assert.match(pipHtml, /proPipFloat/, "The Pip Pro conversion hero should give Pip restrained motion");
 assert.match(pipHtml, /Build the system step by step/, "Pip's introduction should explain build guidance");
@@ -261,9 +267,10 @@ assert.match(partsHtml, /form\.addEventListener\(["']input["']/, "Calculator qua
 assert.match(partsHtml, /Ordering quantities synced for/, "The parts list should confirm the calculator quantity selection it is using");
 
 const wixTrackBridge = fs.readFileSync(new URL("../wix-track-my-build-page-code.js", import.meta.url), "utf8");
-assert.match(wixTrackBridge, /embed\.onMessage/, "The Wix Track My Build page must listen for live iframe height updates");
-assert.match(wixTrackBridge, /HYDROPIP_EMBED_HEIGHT/, "The Wix Track My Build page must recognize iframe height messages");
-assert.match(wixTrackBridge, /HYDROPIP_TRACK_SCROLL_SECTION/, "The Wix Track My Build bridge must let section controls move the outer page");
+assert.match(wixTrackBridge, /embed\.onMessage/, "The Wix Track My Build page must listen for iframe readiness and session messages");
+assert.match(wixTrackBridge, /HYDROPIP_EMBED_HEIGHT/, "The Wix Track My Build page must recognize iframe resize messages");
+assert.match(wixTrackBridge, /sizeTrackToViewport/, "Track My Build should use one fixed viewport-sized iframe");
+assert.doesNotMatch(wixTrackBridge, /HYDROPIP_TRACK_SCROLL_SECTION/, "Track My Build section jumps should not move the outer Wix page");
 assert.doesNotMatch(wixTrackBridge, /14950|25700/, "The Wix Track My Build page must not restore fixed legacy iframe heights");
 
 const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");
@@ -271,6 +278,9 @@ const wixHomeBridge = fs.readFileSync(new URL("../wix-home-page-code.js", import
 assert.match(homeHtml, /postHeight\(true\)/, "Home must resend its measured height after the Wix bridge is ready");
 assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
 assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
+assert.match(wixHomeBridge, /1500/, "Home should use a compact loading height before its real content measurement arrives");
+assert.match(homeHtml, /Start My Free Build/, "The mobile-first homepage CTA should state that build guidance is free");
+assert.match(homeHtml, /is-wix-embed/, "Home should explicitly disable inner scrolling when embedded in Wix");
 assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature a real HydroPip harvest");
 assert.match(homeHtml, /assets\/photos\/hydropip-mustard-green-harvest-founder\.jpg/, "Home hero is missing the giant mustard green harvest photo");
 assert.match(homeHtml, /This giant mustard green came from HydroPip/i, "Home hero should connect the harvest result to HydroPip");
@@ -304,7 +314,7 @@ for (const section of ["system-map", "quick-start", "care", "red-flags", "turnov
 assert.match(fieldGuideHtml, /call 811/i, "Field Guide should put utility safety before support installation");
 assert.match(fieldGuideHtml, /tower runoff does not return to the IBC/i, "Field Guide should explain the timed-feed runoff model");
 assert.match(fieldGuideHtml, /\/print-build-guide\.html/, "Field Guide should open the dedicated printable build guide");
-assert.match(fieldGuideHtml, /hydropip-system-map-v2\.png/, "Field Guide should use the accurate Pip-style system map");
+assert.match(fieldGuideHtml, /hydropip-system-map-v2\.webp/, "Field Guide should use the optimized accurate Pip-style system map");
 assert.doesNotMatch(fieldGuideHtml, /class=["']systemStage["']/, "Field Guide should not render the old CSS tower diagram");
 assert.match(fieldGuideHtml, /prefers-reduced-motion/, "Field Guide animation should respect reduced-motion preferences");
 assert.match(fieldGuideHtml, /\.pipCue \.btn\{color:var\(--ink\)\}/, "Field Guide closing buttons need readable text contrast");

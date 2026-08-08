@@ -202,6 +202,11 @@ try {
 
   const nullOriginResponse = await fetch(`${baseUrl}/api/pip/health`, { headers: { Origin: "null" } });
   assert.notEqual(nullOriginResponse.headers.get("access-control-allow-origin"), "null");
+  assert.equal(nullOriginResponse.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(nullOriginResponse.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+  assert.match(String(nullOriginResponse.headers.get("permissions-policy")), /microphone=\(\)/);
+  assert.match(String(nullOriginResponse.headers.get("content-security-policy")), /frame-ancestors 'self' https:\/\/www\.hydropip\.com/);
+  assert.match(String(nullOriginResponse.headers.get("x-request-id")), /^[a-z0-9-]{8,128}$/i);
 
   const memberResponse = await fetch(`${baseUrl}/api/pip/users/me/preferences`, {
     headers: { Authorization: `Bearer ${signedToken}` }
