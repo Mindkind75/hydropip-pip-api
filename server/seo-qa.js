@@ -34,9 +34,9 @@ function title(html) {
 }
 
 const indexablePages = [
-  { file: "field-guide.html", url: `${renderOrigin}/field-guide`, structured: true },
-  { file: "how-it-works.html", url: `${renderOrigin}/how-it-works`, structured: true },
-  { file: "track-start.html", url: `${renderOrigin}/track-start`, structured: true }
+  { file: "field-guide.html", url: `${renderOrigin}/field-guide`, renderRoute: "/field-guide" },
+  { file: "how-it-works.html", url: `${renderOrigin}/how-it-works`, renderRoute: "/how-it-works" },
+  { file: "track-start.html", url: `${renderOrigin}/track-start`, renderRoute: "/track-start" }
 ];
 
 for (const page of indexablePages) {
@@ -59,6 +59,13 @@ for (const page of indexablePages) {
   assert.ok(jsonLdBlocks.length > 0, `${page.file} needs structured data`);
   for (const block of jsonLdBlocks) assert.doesNotThrow(() => JSON.parse(block[1]), `${page.file} contains invalid JSON-LD`);
 }
+
+const home = read("home.html");
+assert.match(title(home), /DIY Hydroponic Tower/i, "home title must target DIY hydroponic tower intent");
+assert.match(home, /commercial-quality DIY hydroponic tower system/i, "home H1 must explain the product immediately");
+assert.match(read("field-guide.html"), /How to Build a DIY Hydroponic Tower/i, "Field Guide must target build intent");
+assert.match(read("how-it-works.html"), /FAQPage/, "How It Works must include FAQ structured data");
+assert.match(read("track-start.html"), /DIY Hydroponic Tower Cost and Parts List/i, "Track My Build must target cost and parts intent");
 
 for (const [file, canonicalUrl] of [
   ["home.html", "https://www.hydropip.com/"],
@@ -99,7 +106,7 @@ for (const file of [
 
 const sitemap = read("sitemap.xml");
 const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-assert.deepEqual(sitemapUrls, indexablePages.map((page) => page.url), "Render sitemap must contain only canonical public pages");
+assert.deepEqual(sitemapUrls, indexablePages.map((page) => page.url), "Render sitemap must contain its canonical public discovery pages");
 
 const robots = read("robots.txt");
 assert.match(robots, /Disallow: \/api\//, "robots.txt should keep API routes out of crawler queues");
@@ -107,7 +114,7 @@ assert.match(robots, new RegExp(`Sitemap: ${renderOrigin.replaceAll(".", "\\.")}
 
 const server = read("server/index.js");
 for (const page of indexablePages) {
-  const route = new URL(page.url).pathname;
+  const route = page.renderRoute;
   assert.match(server, new RegExp(`\\["${route.replaceAll("/", "\\/")}\"`), `Express must serve the clean route ${route}`);
 }
 assert.match(server, /X-Robots-Tag/, "API and admin responses need crawler-blocking headers");
