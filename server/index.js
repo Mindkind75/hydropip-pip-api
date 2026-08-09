@@ -88,6 +88,7 @@ import {
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { getSeedPlanningDashboard, getSeedSowRecommendation, seedPlanReminders } from "./plantingCalendar.js";
 import { analyzeFeedbackSuggestion, feedbackPortfolioInsights } from "./feedbackTriage.js";
+import { buildRhythmOverview } from "./rhythm.js";
 import {
   adminPasskeyStatus,
   beginAdminPasskeyAuthentication,
@@ -111,7 +112,11 @@ const serviceOrigins = new Set([
   process.env.RENDER_EXTERNAL_URL,
   "https://hydropip-pip-api.onrender.com",
   "https://hydropip.com",
-  "https://www.hydropip.com"
+  "https://www.hydropip.com",
+  ...(process.env.NODE_ENV === "production" ? [] : [
+    `http://127.0.0.1:${port}`,
+    `http://localhost:${port}`
+  ])
 ].filter(Boolean));
 const chatWindowMs = Number(process.env.PIP_RATE_LIMIT_WINDOW_MS || 60_000);
 const chatMaxRequests = Number(process.env.PIP_RATE_LIMIT_MAX || 20);
@@ -987,6 +992,29 @@ app.get("/api/pip/projects/:projectId/seed-plan", async (req, res, next) => {
       });
     }
     res.json({ projectId: project.id, dashboard, recommendation });
+  } catch (error) { next(error); }
+});
+
+app.get("/api/pip/projects/:projectId/rhythm", async (req, res, next) => {
+  try {
+    if (!req.pipSubscription?.active) {
+      res.status(402).json({ error: "subscription_required", message: "The personalized growing rhythm is available in Pip Pro." });
+      return;
+    }
+    const project = await getProject({ userId: req.pipUser.id, projectId: req.params.projectId });
+    if (!project) return res.status(404).json({ error: "project_not_found" });
+    const [reminders, seeds, readings] = await Promise.all([
+      listProjectReminders({ userId: req.pipUser.id, projectId: project.id }),
+      listProjectSeeds({ userId: req.pipUser.id, projectId: project.id }),
+      listProjectReadings({ userId: req.pipUser.id, projectId: project.id })
+    ]);
+    const profile = project.systemProfile || {};
+    const seedDashboard = profile.growZone ? getSeedPlanningDashboard({
+      growZone: profile.growZone,
+      location: profile.location,
+      areaType: profile.areaType
+    }) : null;
+    res.json({ rhythm: buildRhythmOverview({ project, reminders, seeds, readings, seedDashboard }) });
   } catch (error) { next(error); }
 });
 

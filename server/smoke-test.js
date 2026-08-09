@@ -60,6 +60,7 @@ import { getSeedPlanningDashboard, getSeedSowRecommendation, getZonePlantingGuid
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { feedbackPortfolioInsights, heuristicFeedbackAnalysis } from "./feedbackTriage.js";
 import { parseSeedPackInventory } from "./seedInventory.js";
+import { buildRhythmOverview } from "./rhythm.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 process.env.PIP_APPROVED_TRAINING_FILE ||= path.join(process.cwd(), "server", ".data", "approved-training-test.md");
@@ -90,6 +91,30 @@ assert.deepEqual(parseSeedPackInventory("Add 3 packs of lettuce and one pack of 
 });
 assert.equal(parseSeedPackInventory("How many seed packs should I buy?"), null);
 assert.equal(parseSeedPackInventory("I bought two packs of zip ties"), null);
+const rhythmFixture = buildRhythmOverview({
+  now: new Date("2026-08-09T12:00:00Z"),
+  project: { id: "project-rhythm", systemProfile: { growZone: "9", systemStage: "resetting", nutrientStage: "growing", expectedRefillWindow: "late August" } },
+  reminders: [
+    { id: "due", title: "Weekly system check", category: "maintenance", dueAt: "2026-08-08T13:00:00Z", status: "active" },
+    { id: "later", title: "Succession review", category: "grow", dueAt: "2026-08-20T13:00:00Z", status: "active" }
+  ],
+  seeds: [
+    { id: "beans", crop: "Green beans", packsOnHand: 2, status: "on_hand" },
+    { id: "lettuce", crop: "Lettuce", packsOnHand: 1, status: "sprouted", plantingLocation: "nursery_for_hydropip", sowDate: "2026-08-01" },
+    { id: "basil-vault", crop: "Basil", packsOnHand: 1, status: "on_hand", plantingLocation: "seed_vault" },
+    { id: "kale-bed", crop: "Kale", packsOnHand: 0, status: "growing", plantingLocation: "raised_bed" }
+  ],
+  readings: [],
+  seedDashboard: { groups: { plantNow: [{ crop: "Green Bean", reason: "Fits Zone 9 now.", bestSowDate: "2026-08-09", method: "direct_sow" }], startNext: [], hold: [] } }
+});
+assert.equal(rhythmFixture.summary.overdueCount, 1);
+assert.equal(rhythmFixture.sowNow[0].packsOnHand, 2);
+assert.equal(rhythmFixture.transferChecks.some((item) => item.seedId === "lettuce"), true);
+assert.equal(rhythmFixture.currentCrops.some((item) => item.seedId === "lettuce"), true);
+assert.equal(rhythmFixture.currentCrops.some((item) => item.seedId === "basil-vault"), false);
+assert.equal(rhythmFixture.currentCrops.some((item) => item.seedId === "kale-bed"), false);
+assert.equal(rhythmFixture.turnover.active, true);
+assert.equal(rhythmFixture.comingNext.some((item) => item.sourceId === "later"), true);
 const freeNutrientCatalog = nutrientProgramsForSubscription({ active: false });
 assert.deepEqual(Object.keys(freeNutrientCatalog.systems), ["hydropip"]);
 assert.deepEqual(Object.keys(freeNutrientCatalog.programs), ["hydropip_masterblend"]);

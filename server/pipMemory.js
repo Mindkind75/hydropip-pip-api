@@ -2265,6 +2265,7 @@ export async function buildProjectContext({ userId, projectId, conversationId } 
       variety: item.variety,
       packsOnHand: item.packsOnHand,
       status: item.status,
+      plantingLocation: item.plantingLocation,
       sowDate: item.sowDate
     })).slice(0, 40)
   };
@@ -3275,6 +3276,11 @@ function subscriptionRequired(message) {
 function normalizeSeed(seed = {}) {
   const seedsSown = normalizeOptionalNumber(seed.seedsSown);
   const seedsSprouted = normalizeOptionalNumber(seed.seedsSprouted);
+  const status = cleanOptionalText(seed.status, 40) || "on_hand";
+  const requestedLocation = cleanOptionalText(seed.plantingLocation, 40);
+  const plantingLocation = ["seed_vault", "hydropip_tower", "nursery_for_hydropip", "raised_bed", "finished"].includes(requestedLocation)
+    ? requestedLocation
+    : (["sown", "germinating", "sprouted", "growing"].includes(status) ? "hydropip_tower" : "seed_vault");
   return {
     id: seed.id,
     crop: cleanOptionalText(seed.crop, 80) || "Seed batch",
@@ -3282,7 +3288,8 @@ function normalizeSeed(seed = {}) {
     source: cleanOptionalText(seed.source, 160),
     packsOnHand: normalizePackCount(seed.packsOnHand),
     sowDate: cleanOptionalText(seed.sowDate, 20),
-    status: cleanOptionalText(seed.status, 40) || "on_hand",
+    status,
+    plantingLocation,
     method: cleanOptionalText(seed.method, 40) || "direct_sow",
     seedsSown,
     seedsSprouted,
