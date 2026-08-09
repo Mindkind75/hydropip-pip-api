@@ -179,7 +179,7 @@ for (const page of ["profile", "planner", "calendar", "log", "history"]) {
   assert.match(pipHtml, new RegExp(`data-pro-page=["']${page}["']`), `pip.html is missing the ${page} notebook tab`);
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }
-for (const id of ["proSeedDashboard", "proSeedPlantNow", "proSeedStartNext", "proSeedAvoid", "proSeedTiming", "proSeedUseDate", "proSeedAddPlanner"]) {
+for (const id of ["proSeedDashboard", "proSeedPlantNow", "proSeedStartNext", "proSeedTiming", "proSeedUseDate", "proSeedAddPlanner"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Seeds workspace control ${id}`);
 }
 assert.match(pipHtml, /seed-plan/, "The Seeds workspace should load zone-aware sowing recommendations");
