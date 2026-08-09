@@ -17,7 +17,7 @@
     aside { padding:24px 18px; background:var(--deep); color:#fff; }
     aside h1 { margin:0 0 8px; font-size:2.15rem; line-height:.96; }
     aside p { margin:0 0 18px; color:#d7e9de; line-height:1.45; }
-    .controls,.training,.main-col,.recommendations,.recovery { display:grid; gap:12px; }
+    .controls,.training,.main-col,.recommendations,.recovery,.quick-panel { display:grid; gap:12px; }
     .field { display:grid; gap:6px; font-size:.82rem; font-weight:900; }
     .field span { color:#d7e9de; }
     .training .field span { color:var(--deep); }
@@ -26,6 +26,7 @@
     textarea { min-height:86px; padding:10px; resize:vertical; }
     button { min-height:42px; padding:9px 13px; border:0; border-radius:7px; background:var(--leaf); color:#fff; font-weight:950; cursor:pointer; }
     button.secondary { background:#24483b; }
+    button.danger { background:var(--bad); }
     button.light { background:#fff; color:var(--deep); }
     .control-link { display:grid; place-items:center; min-height:42px; padding:9px 13px; border-radius:7px; background:#fff; color:var(--deep); font-weight:950; text-decoration:none; }
     button.option { display:grid; gap:5px; width:100%; padding:10px; border:1px solid var(--line); background:#fff; color:var(--ink); text-align:left; }
@@ -57,13 +58,17 @@
     .work-body { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:14px; padding:14px; overflow:auto; }
     .card { padding:14px; }
     .card h3 { margin:0 0 10px; }
+    .card p.hint { margin:0; color:var(--muted); line-height:1.42; }
     .question { margin:0 0 10px; font-size:1.1rem; font-weight:950; line-height:1.35; }
     .answer,.meta { white-space:pre-wrap; color:var(--muted); line-height:1.45; }
     .meta { max-height:230px; overflow:auto; padding:10px; border:1px solid var(--line); border-radius:7px; background:#f9fbf9; font-size:.82rem; }
     .two { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .decision-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .decision-grid button { min-height:54px; }
     .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
     .empty { padding:28px; text-align:center; color:var(--muted); }
     .recovery[hidden] { display:none; }
+    .training[hidden] { display:none; }
     @media(max-width:980px) {
       .shell,.grid,.work-body,.stats { grid-template-columns:1fr; }
       .queue,.workbench { min-height:auto; }
@@ -75,12 +80,12 @@
   <div class="shell">
     <aside>
       <h1>Suggestion Hub</h1>
-      <p>Review Pip behavior, site feedback, bugs, ideas, and tool gaps from one private workspace.</p>
+      <p>Make quick decisions first. Open the detailed correction editor only when a fix needs custom instructions.</p>
       <div class="controls">
         <a class="control-link" href="/admin-control-center">Back to Control</a>
         <div class="recovery" id="recoveryBox" hidden><label class="field"><span>Recovery key</span><input id="adminKey" type="password" autocomplete="current-password" placeholder="PIP_ADMIN_KEY"></label></div>
         <label class="field"><span>Area</span><select id="areaFilter"><option value="all">All suggestions</option><option value="pip_behavior">Pip behavior</option><option value="site_feedback">Site feedback</option><option value="bugs">Bugs/confusing</option><option value="ideas">Ideas</option><option value="calendar_tools">Calendar/tools</option><option value="parts_links">Parts/links</option></select></label>
-        <label class="field"><span>Status</span><select id="statusFilter"><option value="new">New</option><option value="reviewing">Reviewing</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="">All</option></select></label>
+        <label class="field"><span>Status</span><select id="statusFilter"><option value="new">New</option><option value="reviewing">Deep review</option><option value="planned">Planned</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="closed">Closed</option><option value="archived">Archived</option><option value="">All</option></select></label>
         <label class="field"><span>Limit</span><select id="limitFilter"><option>50</option><option>100</option><option>250</option></select></label>
         <button id="loadButton" type="button" class="light">Refresh</button>
       </div>
@@ -133,7 +138,8 @@
           keyInput.value = "";
         }
         const params = new URLSearchParams();
-        if (statusFilter.value) params.set("status", statusFilter.value);
+        const reviewStatus = ["new","reviewing","reviewed","resolved","archived"].includes(statusFilter.value) ? statusFilter.value : "";
+        if (reviewStatus) params.set("status", reviewStatus);
         params.set("limit", limitFilter.value);
         const [response, feedbackResponse] = await Promise.all([
           fetch("/api/pip/admin/review-items?" + params.toString(), { credentials:"same-origin" }),
@@ -220,9 +226,19 @@
     }
 
     function renderStats() {
-      const groups = { new:0, reviewing:0, reviewed:0, resolved:0 };
-      items.forEach((item) => { groups[item.status] = Number(groups[item.status] || 0) + 1; });
-      stats.innerHTML = ["new","reviewing","reviewed","resolved"].map((key) => `<div class="stat"><strong>${groups[key] || 0}</strong><small>${key}</small></div>`).join("");
+      const groups = { new:0, deep:0, planned:0, done:0 };
+      items.forEach((item) => {
+        if (item.status === "new") groups.new += 1;
+        else if (item.status === "reviewing") groups.deep += 1;
+        else if (item.status === "planned") groups.planned += 1;
+        else if (["reviewed","resolved","closed","archived"].includes(item.status)) groups.done += 1;
+      });
+      stats.innerHTML = [
+        ["new", "Need decision"],
+        ["deep", "Deeper review"],
+        ["planned", "Planned fixes"],
+        ["done", "Closed/archived"]
+      ].map(([key, label]) => `<div class="stat"><strong>${groups[key] || 0}</strong><small>${label}</small></div>`).join("");
     }
 
     function renderQueue() {
@@ -231,7 +247,7 @@
         const button = document.createElement("button");
         button.className = "queue-item" + (item.id === selectedId ? " active" : "");
         button.type = "button";
-        button.innerHTML = `<div class="badges"><span class="badge">${escapeHtml(item.status || "new")}</span><span class="badge ${escapeHtml(item.priority || "normal")}">${escapeHtml(item.priority || "normal")}</span></div><strong></strong><small>${escapeHtml(item.reason || "needs_review")} | ${item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}</small>`;
+        button.innerHTML = `<div class="badges"><span class="badge">${escapeHtml(displayStatus(item.status || "new"))}</span><span class="badge ${escapeHtml(item.priority || "normal")}">${escapeHtml(item.priority || "normal")}</span></div><strong></strong><small>${escapeHtml(item.problemLabel || "Suggestion")} | ${escapeHtml(item.reason || "needs_review")} | ${item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}</small>`;
         button.querySelector("strong").textContent = item.question || "(No question saved)";
         button.addEventListener("click", () => { selectedId = item.id; render(); });
         queueList.appendChild(button);
@@ -247,6 +263,16 @@
       workTitle.textContent = "Review " + item.id;
       workBody.innerHTML = `
         <div class="main-col">
+          <section class="card quick-panel">
+            <h3>Quick Decision</h3>
+            <p class="hint">Use these for most items. Send anything unclear or larger than a simple rule/content fix to deeper review.</p>
+            <div class="decision-grid">
+              <button id="quickFix" type="button">Use Suggested Fix</button>
+              <button id="deepReview" type="button" class="secondary">Add to Deeper Review</button>
+              <button id="dismissItem" type="button" class="danger">Dismiss / Archive</button>
+              <button id="toggleDetails" type="button" class="light">Open Detailed Editor</button>
+            </div>
+          </section>
           <section class="card">
             <h3>Problem</h3><p class="question"></p>
             <h3>Current Behavior</h3><p class="answer"></p>
@@ -259,7 +285,7 @@
         </div>
         <aside class="card training">
           <h3>Correction</h3>
-          <p>Pick a suggested fix, edit the correction, or add your own instructions.</p>
+          <p class="hint">Use this only when the suggested action needs your own wording or implementation notes.</p>
           <label class="field"><span>Issue type</span><select id="issueType"><option value="knowledge_gap">Knowledge gap</option><option value="bad_intent">Misunderstood intent</option><option value="missing_context">Needed follow-up question</option><option value="tool_gap">Tool/action gap</option><option value="bad_affiliate">Wrong product/link</option><option value="calendar_error">Calendar/reminder error</option><option value="no_change">No change needed</option></select></label>
           <label class="field"><span>Approved ideal answer</span><textarea id="idealAnswer" placeholder="Write the answer Pip should give next time."></textarea></label>
           <label class="field"><span>Training update</span><select id="trainingUpdate"><option value="knowledge_base">Auto-apply: knowledge base</option><option value="affiliate_fix">Auto-apply: product/link rule</option><option value="prompt_rule">Manual: prompt/routing rule</option><option value="tool_fix">Manual: create or fix a tool</option><option value="calendar_fix">Manual: calendar workflow</option><option value="no_change">No change</option></select></label>
@@ -275,6 +301,15 @@
       const existing = parseResolution(item.resolution);
       setForm(existing.issueType || inferIssueType(item), existing.idealAnswer || "", existing.trainingUpdate || inferTrainingUpdate(item), item.status === "new" ? "reviewed" : item.status || "reviewed", item.priority || "normal", existing.internalNote || "");
       renderRecommendations(item);
+      const trainingPanel = workBody.querySelector(".training");
+      trainingPanel.hidden = true;
+      document.getElementById("quickFix").addEventListener("click", () => applySuggestedFix(item.id));
+      document.getElementById("deepReview").addEventListener("click", () => sendToDeepReview(item.id));
+      document.getElementById("dismissItem").addEventListener("click", () => dismissItem(item.id));
+      document.getElementById("toggleDetails").addEventListener("click", () => {
+        trainingPanel.hidden = !trainingPanel.hidden;
+        document.getElementById("toggleDetails").textContent = trainingPanel.hidden ? "Open Detailed Editor" : "Hide Detailed Editor";
+      });
       document.getElementById("saveReview").addEventListener("click", () => saveItem(item.id));
       document.getElementById("markReviewing").addEventListener("click", () => quickStatus(item.id, "reviewing"));
     }
@@ -439,6 +474,10 @@
       document.getElementById("internalNote").value = internalNote || "";
     }
 
+    function displayStatus(status) {
+      return status === "reviewing" ? "deep review" : status;
+    }
+
     function inferIssueType(item) {
       const text = `${item.question || ""} ${item.reason || ""}`.toLowerCase();
       if (/calendar|reminder|schedule/.test(text)) return "calendar_error";
@@ -454,6 +493,50 @@
       if (issue === "tool_gap") return "tool_fix";
       if (issue === "bad_affiliate") return "affiliate_fix";
       return "knowledge_base";
+    }
+
+    async function applySuggestedFix(id) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) return;
+      const option = recommendationsFor(item)[0];
+      if (option) setForm(option.issueType, option.idealAnswer, option.trainingUpdate, option.status, option.priority, option.internalNote);
+      await saveItem(id);
+    }
+
+    async function sendToDeepReview(id) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) return;
+      const payload = {
+        decision: "deeper_review",
+        issueType: inferIssueType(item),
+        idealAnswer: item.source === "site_feedback" ? item.question || "" : "Needs deeper HydroPip review before this behavior changes.",
+        trainingUpdate: inferTrainingUpdate(item),
+        internalNote: "Sent from Suggestion Hub quick decision. Define expected behavior, affected pages/tools, edge cases, and the smallest implementable fix.",
+        approvedAt: new Date().toISOString()
+      };
+      if (item.source === "site_feedback") {
+        await patchFeedback(item.rawId, { status:"planned", priority:item.priority === "urgent" ? "urgent" : "high", adminNotes:JSON.stringify(payload, null, 2) });
+        return;
+      }
+      await patchItem(item.rawId, { status:"reviewing", priority:item.priority === "urgent" ? "urgent" : "high", resolution:JSON.stringify(payload, null, 2) });
+    }
+
+    async function dismissItem(id) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) return;
+      const payload = {
+        decision: "dismissed",
+        issueType: "no_change",
+        idealAnswer: "",
+        trainingUpdate: "no_change",
+        internalNote: "Dismissed from Suggestion Hub quick decision. No action needed unless similar items repeat.",
+        approvedAt: new Date().toISOString()
+      };
+      if (item.source === "site_feedback") {
+        await patchFeedback(item.rawId, { status:"closed", priority:"low", adminNotes:JSON.stringify(payload, null, 2) });
+        return;
+      }
+      await patchItem(item.rawId, { status:"archived", priority:"low", resolution:JSON.stringify(payload, null, 2) });
     }
 
     async function saveItem(id) {
