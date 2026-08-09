@@ -294,6 +294,251 @@ export async function getConversionSummary({ days = 30 } = {}) {
   };
 }
 
+export async function getAdminCommandCenter({ days = 30 } = {}) {
+  const safeDays = [7, 30, 90, 365].includes(Number(days)) ? Number(days) : 30;
+  const start = new Date(Date.now() - safeDays * 24 * 60 * 60 * 1000).toISOString();
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const [usersResult, projectsResult, reviewsResult, conversionsResult, usageResult, betaApplicationsResult, betaFeedbackResult] = await Promise.all([
+      pool.query("select id, email, name, wix_member_id, created_at, updated_at from pip_users"),
+      pool.query("select id, user_id, type, title, status, access, system_profile, created_at, updated_at from pip_projects"),
+      pool.query("select id, user_id, project_id, question, answer, reason, context, status, priority, resolution, created_at, updated_at from pip_review_items"),
+      pool.query("select * from pip_conversion_events where created_at >= $1 order by created_at desc limit 100000", [start]),
+      pool.query("select * from pip_usage_events where created_at >= $1 order by created_at desc limit 100000", [start]),
+      pool.query("select id, status, created_at, updated_at from pip_beta_applications"),
+      pool.query("select id, review_status, priority, rating, category, created_at, updated_at from pip_feedback")
+    ]);
+    return summarizeCommandCenter({
+      users: usersResult.rows.map(rowToUser),
+      projects: projectsResult.rows.map(rowToProject),
+      reviews: reviewsResult.rows.map(rowToReviewItem),
+      conversions: conversionsResult.rows.map(rowToConversionEvent),
+      usage: usageResult.rows.map(rowToUsageEvent),
+      betaApplications: betaApplicationsResult.rows.map((row) => ({ status: row.status, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at) })),
+      betaFeedback: betaFeedbackResult.rows.map((row) => ({ reviewStatus: row.review_status, priority: row.priority, rating: row.rating, category: row.category, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at) })),
+      storageMode: "postgres",
+      days: safeDays
+    });
+  }
+
+  const state = readState();
+  return summarizeCommandCenter({
+    users: Object.values(state.users || {}),
+    projects: Object.values(state.projects || {}),
+    reviews: Object.values(state.reviewItems || {}),
+    conversions: Object.values(state.conversionEvents || {}).filter((item) => String(item.createdAt) >= start),
+    usage: Object.values(state.usageEvents || {}).filter((item) => String(item.createdAt) >= start),
+    betaApplications: Object.values(state.betaApplications || {}),
+    betaFeedback: Object.values(state.feedback || {}),
+    storageMode: "file",
+    days: safeDays
+  });
+}
+
+export async function searchAdminMembers({ q = "", limit = 25 } = {}) {
+  const query = String(q || "").trim().toLowerCase();
+  const safeLimit = Math.max(1, Math.min(100, Number(limit || 25)));
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select
+         u.id, u.email, u.name, u.wix_member_id, u.created_at, u.updated_at,
+         count(distinct p.id)::int as project_count,
+         count(distinct ue.id)::int as usage_count,
+         max(greatest(coalesce(ue.created_at, u.updated_at), coalesce(ce.created_at, u.updated_at), u.updated_at)) as last_seen_at,
+         bool_or(ue.session_tier = 'pip_pro' or ce.session_tier = 'pip_pro') as has_active_subscription
+       from pip_users u
+       left join pip_projects p on p.user_id = u.id
+       left join pip_usage_events ue on ue.user_id = u.id
+       left join pip_conversion_events ce on ce.user_id = u.id
+       where $1::text = ''
+          or lower(coalesce(u.email, '')) like '%' || $1 || '%'
+          or lower(coalesce(u.name, '')) like '%' || $1 || '%'
+          or lower(u.id) like '%' || $1 || '%'
+       group by u.id, u.email, u.name, u.wix_member_id, u.created_at, u.updated_at
+       order by coalesce(max(greatest(coalesce(ue.created_at, u.updated_at), coalesce(ce.created_at, u.updated_at), u.updated_at)), u.updated_at) desc
+       limit $2`,
+      [query, safeLimit]
+    );
+    return result.rows.map((row) => ({
+      id: row.id,
+      email: redactAdminEmail(row.email),
+      name: row.name,
+      wixMemberId: row.wix_member_id ? `${String(row.wix_member_id).slice(0, 8)}...` : null,
+      createdAt: toIso(row.created_at),
+      updatedAt: toIso(row.updated_at),
+      lastSeenAt: toIso(row.last_seen_at || row.updated_at),
+      projectCount: Number(row.project_count || 0),
+      usageCount: Number(row.usage_count || 0),
+      subscription: { active: Boolean(row.has_active_subscription), plan: row.has_active_subscription ? "pip_pro" : "free_member" }
+    }));
+  }
+
+  const state = readState();
+  const projects = Object.values(state.projects || {});
+  const usage = Object.values(state.usageEvents || {});
+  const conversions = Object.values(state.conversionEvents || {});
+  return Object.values(state.users || {})
+    .filter((user) => {
+      const haystack = [user.id, user.email, user.name, user.wixMemberId].join(" ").toLowerCase();
+      return !query || haystack.includes(query);
+    })
+    .map((user) => {
+      const userUsage = usage.filter((event) => event.userId === user.id);
+      const userConversions = conversions.filter((event) => event.userId === user.id);
+      const pro = [...userUsage, ...userConversions].some((event) => event.sessionTier === "pip_pro");
+      return {
+        id: user.id,
+        email: redactAdminEmail(user.email),
+        name: user.name || null,
+        wixMemberId: user.wixMemberId ? `${String(user.wixMemberId).slice(0, 8)}...` : null,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        lastSeenAt: latestAdminDate([user.updatedAt, ...userUsage.map((event) => event.createdAt), ...userConversions.map((event) => event.createdAt)]),
+        projectCount: projects.filter((project) => project.userId === user.id).length,
+        usageCount: userUsage.length,
+        subscription: { active: pro, plan: pro ? "pip_pro" : "free_member" }
+      };
+    })
+    .sort((a, b) => String(b.lastSeenAt || "").localeCompare(String(a.lastSeenAt || "")))
+    .slice(0, safeLimit);
+}
+
+function summarizeCommandCenter({ users, projects, reviews, conversions, usage, betaApplications, betaFeedback, storageMode, days }) {
+  const pageViews = conversions.filter((event) => event.eventName === "page_view");
+  const subscriberIds = new Set([
+    ...usage.filter((event) => event.sessionTier === "pip_pro").map((event) => event.userId),
+    ...conversions.filter((event) => event.sessionTier === "pip_pro").map((event) => event.userId)
+  ].filter(Boolean));
+  const freeMemberIds = new Set([
+    ...users.map((user) => user.id),
+    ...usage.filter((event) => event.userId && event.sessionTier !== "pip_pro").map((event) => event.userId),
+    ...conversions.filter((event) => event.userId && event.sessionTier !== "pip_pro").map((event) => event.userId)
+  ].filter((id) => !subscriberIds.has(id)));
+  const visitorIds = new Set(conversions.map((event) => event.userId || event.visitorId).filter(Boolean));
+  const questions = usage.map((event) => event.metadata?.mode || event.eventType || "").filter(Boolean);
+  const estimatedCost = usage.reduce((sum, event) => sum + Number(event.estimatedCostUsd || 0), 0);
+  const usedCredits = usage.reduce((sum, event) => sum + Number(event.creditsUsed || 0), 0);
+  const openReviews = reviews.filter((item) => ["new", "reviewing"].includes(item.status));
+  const openFeedback = betaFeedback.filter((item) => ["new", "reviewing", "planned"].includes(item.reviewStatus));
+  const newApplications = betaApplications.filter((item) => item.status === "new");
+
+  return {
+    generatedAt: nowIso(),
+    days,
+    storageMode,
+    overview: {
+      totalUsers: users.length,
+      freeMembers: freeMemberIds.size,
+      activeSubscribers: subscriberIds.size,
+      knownVisitors: visitorIds.size,
+      projects: projects.length,
+      activeProjects: projects.filter((project) => project.status === "active").length,
+      openReviews: openReviews.length,
+      openFeedback: openFeedback.length,
+      newApplications: newApplications.length
+    },
+    traffic: {
+      pageViews: pageViews.length,
+      uniqueVisitors: new Set(pageViews.map((event) => event.userId || event.visitorId).filter(Boolean)).size,
+      topPages: adminTopCounts(pageViews.map((event) => event.page || "/"), 8),
+      sources: adminTopCounts(conversions.map((event) => event.utmSource || event.referrerHost || "direct"), 8)
+    },
+    funnel: {
+      pageViews: pageViews.length,
+      pipOpens: eventCount(conversions, "pip_opened"),
+      chatStarts: eventCount(conversions, "pip_question_asked"),
+      signupClicks: eventCount(conversions, "signup_started"),
+      proViews: eventCount(conversions, "pip_pro_viewed"),
+      proCheckoutStarts: eventCount(conversions, "pro_checkout_started"),
+      affiliateClicks: eventCount(conversions, "affiliate_link_clicked")
+    },
+    pipUsage: {
+      events: usage.length,
+      creditsUsed: usedCredits,
+      estimatedCostUsd: Number(estimatedCost.toFixed(4)),
+      subscriberEvents: usage.filter((event) => event.sessionTier === "pip_pro").length,
+      freeMemberEvents: usage.filter((event) => event.userId && event.sessionTier !== "pip_pro").length,
+      visitorEvents: usage.filter((event) => !event.userId).length,
+      byTier: adminTopCounts(usage.map((event) => event.sessionTier), 8),
+      byType: adminTopCounts(usage.map((event) => event.eventType), 8),
+      topics: adminTopCounts(questions, 8)
+    },
+    revenue: {
+      activeSubscribers: subscriberIds.size,
+      estimatedMrr: subscriberIds.size * Number(process.env.PIP_PRO_MONTHLY_PRICE || 9),
+      monthlyPrice: Number(process.env.PIP_PRO_MONTHLY_PRICE || 9),
+      affiliateClicks: eventCount(conversions, "affiliate_link_clicked"),
+      proCheckoutStarts: eventCount(conversions, "pro_checkout_started")
+    },
+    review: {
+      byStatus: adminTopCounts(reviews.map((item) => item.status || "new"), 8),
+      byReason: adminTopCounts(reviews.map((item) => item.reason || "needs_review"), 8),
+      highPriorityOpen: openReviews.filter((item) => item.priority === "high").length,
+      newest: reviews
+        .slice()
+        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+        .slice(0, 6)
+        .map((item) => ({
+          id: item.id,
+          status: item.status,
+          priority: item.priority,
+          reason: item.reason,
+          question: item.question,
+          createdAt: item.createdAt
+        }))
+    },
+    members: users
+      .slice()
+      .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))
+      .slice(0, 8)
+      .map(redactAdminUser),
+    projects: {
+      byType: adminTopCounts(projects.map((project) => project.type), 8),
+      byAccess: adminTopCounts(projects.map((project) => project.access), 8)
+    }
+  };
+}
+
+function eventCount(events, name) {
+  return events.filter((event) => event.eventName === name).length;
+}
+
+function adminTopCounts(values, limit = 10) {
+  const counts = new Map();
+  for (const raw of values) {
+    const value = String(raw || "").trim();
+    if (!value) continue;
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([label, count]) => ({ label, count }));
+}
+
+function redactAdminUser(user = {}) {
+  return {
+    id: user.id,
+    email: redactAdminEmail(user.email),
+    name: user.name || null,
+    wixMemberId: user.wixMemberId ? `${String(user.wixMemberId).slice(0, 8)}...` : null,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
+  };
+}
+
+function redactAdminEmail(email) {
+  const value = String(email || "");
+  const [name, domain] = value.split("@");
+  if (!name || !domain) return value || null;
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+function latestAdminDate(values) {
+  return values.filter(Boolean).sort().at(-1) || null;
+}
+
 export async function getDailyAiUsageSummary({ userId, ipHash, tier } = {}) {
   const identity = normalizeUsageIdentity({ userId, ipHash });
   const normalizedTier = normalizeUsageTier(tier);
@@ -636,6 +881,9 @@ export async function upsertUser(user = {}) {
   state.users[normalized.id] = {
     ...existing,
     ...normalized,
+    email: normalized.email || existing.email || null,
+    name: normalized.name || existing.name || null,
+    wixMemberId: normalized.wixMemberId || existing.wixMemberId || null,
     createdAt: existing.createdAt || now,
     updatedAt: now
   };
@@ -2157,9 +2405,9 @@ async function upsertUserPg(normalized) {
     `insert into pip_users (id, email, name, wix_member_id, created_at, updated_at)
      values ($1, $2, $3, $4, now(), now())
      on conflict (id) do update set
-       email = excluded.email,
-       name = excluded.name,
-       wix_member_id = excluded.wix_member_id,
+       email = coalesce(excluded.email, pip_users.email),
+       name = coalesce(excluded.name, pip_users.name),
+       wix_member_id = coalesce(excluded.wix_member_id, pip_users.wix_member_id),
        updated_at = now()
      returning id, email, name, wix_member_id, build_photo_checks_used, beta_welcome_seen_at, beta_activity, preferences, created_at, updated_at`,
     [normalized.id, normalized.email, normalized.name, normalized.wixMemberId]

@@ -38,6 +38,7 @@ import {
   getMemoryHealth,
   getBuildPhotoAllowance,
   getBetaExperience,
+  getAdminCommandCenter,
   getConversionSummary,
   getProject,
   getProjectTemplates,
@@ -57,6 +58,7 @@ import {
   refundBuildPhotoCheck,
   recordConversionEvent,
   reserveAiUsage,
+  searchAdminMembers,
   seedProjectConversationDefaults,
   seedProjectDefaults,
   updateProject,
@@ -483,6 +485,28 @@ app.get("/api/pip/admin/review-items", requirePipAdmin, async (req, res, next) =
     res.json({
       reviewItems: await listReviewItems({
         status: req.query.status,
+        limit: req.query.limit
+      }),
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/admin/command-center", requirePipAdmin, async (req, res, next) => {
+  try {
+    res.json(await getAdminCommandCenter({ days: req.query.days }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/admin/members", requirePipAdmin, async (req, res, next) => {
+  try {
+    res.json({
+      members: await searchAdminMembers({
+        q: req.query.q || "",
         limit: req.query.limit
       }),
       generatedAt: new Date().toISOString()
