@@ -27,6 +27,7 @@
     button { min-height:42px; padding:9px 13px; border:0; border-radius:7px; background:var(--leaf); color:#fff; font-weight:950; cursor:pointer; }
     button.secondary { background:#24483b; }
     button.light { background:#fff; color:var(--deep); }
+    .control-link { display:grid; place-items:center; min-height:42px; padding:9px 13px; border-radius:7px; background:#fff; color:var(--deep); font-weight:950; text-decoration:none; }
     button.option { display:grid; gap:5px; width:100%; padding:10px; border:1px solid var(--line); background:#fff; color:var(--ink); text-align:left; }
     button.option strong { color:var(--deep); }
     button.option small { color:var(--muted); font-weight:800; line-height:1.35; }
@@ -75,6 +76,7 @@
       <h1>Pip Training</h1>
       <p>Pick a suggested fix, approve the training note, and let safe updates apply themselves.</p>
       <div class="controls">
+        <a class="control-link" href="/admin-control-center">Back to Control</a>
         <label class="field"><span>Recovery key (only if locked)</span><input id="adminKey" type="password" autocomplete="current-password" placeholder="PIP_ADMIN_KEY"></label>
         <label class="field"><span>Status</span><select id="statusFilter"><option value="new">New</option><option value="reviewing">Reviewing</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="">All</option></select></label>
         <label class="field"><span>Limit</span><select id="limitFilter"><option>50</option><option>100</option><option>250</option></select></label>
