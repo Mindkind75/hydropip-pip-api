@@ -85,7 +85,7 @@
         <a class="control-link" href="/admin-control-center">Back to Control</a>
         <div class="recovery" id="recoveryBox" hidden><label class="field"><span>Recovery key</span><input id="adminKey" type="password" autocomplete="current-password" placeholder="PIP_ADMIN_KEY"></label></div>
         <label class="field"><span>Area</span><select id="areaFilter"><option value="all">All suggestions</option><option value="pip_behavior">Pip behavior</option><option value="site_feedback">Site feedback</option><option value="bugs">Bugs/confusing</option><option value="ideas">Ideas</option><option value="calendar_tools">Calendar/tools</option><option value="parts_links">Parts/links</option></select></label>
-        <label class="field"><span>Status</span><select id="statusFilter"><option value="new">New</option><option value="reviewing">Deep review</option><option value="planned">Planned</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="closed">Closed</option><option value="archived">Archived</option><option value="">All</option></select></label>
+        <label class="field"><span>Status</span><select id="statusFilter"><option value="needs_attention">Needs attention</option><option value="new">New</option><option value="reviewing">Deep review</option><option value="planned">Planned</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="closed">Closed</option><option value="archived">Archived</option><option value="">All</option></select></label>
         <label class="field"><span>Limit</span><select id="limitFilter"><option>50</option><option>100</option><option>250</option></select></label>
         <button id="loadButton" type="button" class="light">Refresh</button>
       </div>
@@ -180,8 +180,14 @@
       const status = statusFilter.value || "";
       return rawReviewItems.concat(rawFeedbackItems)
         .filter((item) => area === "all" || item.area === area)
-        .filter((item) => !status || item.status === status)
+        .filter((item) => matchesStatusFilter(item.status, status))
         .sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority) || String(b.createdAt).localeCompare(String(a.createdAt)));
+    }
+
+    function matchesStatusFilter(itemStatus, filter) {
+      if (!filter) return true;
+      if (filter === "needs_attention") return ["new","reviewing","planned"].includes(itemStatus);
+      return itemStatus === filter;
     }
 
     function priorityRank(priority) {
