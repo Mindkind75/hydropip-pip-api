@@ -17,7 +17,7 @@
     aside { padding:24px 18px; background:var(--deep); color:#fff; }
     aside h1 { margin:0 0 8px; font-size:2.15rem; line-height:.96; }
     aside p { margin:0 0 18px; color:#d7e9de; line-height:1.45; }
-    .controls,.training,.main-col,.recommendations { display:grid; gap:12px; }
+    .controls,.training,.main-col,.recommendations,.recovery { display:grid; gap:12px; }
     .field { display:grid; gap:6px; font-size:.82rem; font-weight:900; }
     .field span { color:#d7e9de; }
     .training .field span { color:var(--deep); }
@@ -63,6 +63,7 @@
     .two { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
     .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
     .empty { padding:28px; text-align:center; color:var(--muted); }
+    .recovery[hidden] { display:none; }
     @media(max-width:980px) {
       .shell,.grid,.work-body,.stats { grid-template-columns:1fr; }
       .queue,.workbench { min-height:auto; }
@@ -73,18 +74,19 @@
 <body>
   <div class="shell">
     <aside>
-      <h1>Pip Training</h1>
-      <p>Pick a suggested fix, approve the training note, and let safe updates apply themselves.</p>
+      <h1>Suggestion Hub</h1>
+      <p>Review Pip behavior, site feedback, bugs, ideas, and tool gaps from one private workspace.</p>
       <div class="controls">
         <a class="control-link" href="/admin-control-center">Back to Control</a>
-        <label class="field"><span>Recovery key (only if locked)</span><input id="adminKey" type="password" autocomplete="current-password" placeholder="PIP_ADMIN_KEY"></label>
+        <div class="recovery" id="recoveryBox" hidden><label class="field"><span>Recovery key</span><input id="adminKey" type="password" autocomplete="current-password" placeholder="PIP_ADMIN_KEY"></label></div>
+        <label class="field"><span>Area</span><select id="areaFilter"><option value="all">All suggestions</option><option value="pip_behavior">Pip behavior</option><option value="site_feedback">Site feedback</option><option value="bugs">Bugs/confusing</option><option value="ideas">Ideas</option><option value="calendar_tools">Calendar/tools</option><option value="parts_links">Parts/links</option></select></label>
         <label class="field"><span>Status</span><select id="statusFilter"><option value="new">New</option><option value="reviewing">Reviewing</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="">All</option></select></label>
         <label class="field"><span>Limit</span><select id="limitFilter"><option>50</option><option>100</option><option>250</option></select></label>
-        <button id="loadButton" type="button" class="light">Load Dashboard</button>
+        <button id="loadButton" type="button" class="light">Refresh</button>
       </div>
     </aside>
     <main>
-      <div class="top"><div><h2>Review Queue</h2><p class="status" id="statusText"></p></div></div>
+      <div class="top"><div><h2>Suggestion Queue</h2><p class="status" id="statusText"></p></div></div>
       <section class="stats" id="stats"></section>
       <section class="grid">
         <div class="queue">
@@ -101,6 +103,8 @@
 
   <script>
     const keyInput = document.getElementById("adminKey");
+    const recoveryBox = document.getElementById("recoveryBox");
+    const areaFilter = document.getElementById("areaFilter");
     const statusFilter = document.getElementById("statusFilter");
     const limitFilter = document.getElementById("limitFilter");
     const loadButton = document.getElementById("loadButton");
@@ -110,10 +114,14 @@
     const workBody = document.getElementById("workBody");
     const workTitle = document.getElementById("workTitle");
     let items = [];
+    let rawReviewItems = [];
+    let rawFeedbackItems = [];
     let selectedId = null;
     let adminNetworkText = "";
 
     loadButton.addEventListener("click", loadDashboard);
+    areaFilter.addEventListener("change", render);
+    statusFilter.addEventListener("change", loadDashboard);
 
     async function loadDashboard() {
       const key = keyInput.value.trim();
@@ -127,15 +135,25 @@
         const params = new URLSearchParams();
         if (statusFilter.value) params.set("status", statusFilter.value);
         params.set("limit", limitFilter.value);
-        const response = await fetch("/api/pip/admin/review-items?" + params.toString(), { credentials:"same-origin" });
-        if (!response.ok) throw new Error("Review API returned " + response.status);
+        const [response, feedbackResponse] = await Promise.all([
+          fetch("/api/pip/admin/review-items?" + params.toString(), { credentials:"same-origin" }),
+          fetch("/api/pip/admin/beta/overview?limit=" + encodeURIComponent(limitFilter.value) + "&conversionDays=30", { credentials:"same-origin" })
+        ]);
+        if (!response.ok || !feedbackResponse.ok) {
+          recoveryBox.hidden = false;
+          throw new Error("Session expired. Go back through Control Center or enter the recovery key.");
+        }
         const mode = response.headers.get("x-pip-admin-ip-mode");
         const match = response.headers.get("x-pip-admin-ip-match");
         const ip = response.headers.get("x-pip-admin-observed-ip");
         adminNetworkText = mode && ip ? ` Admin network: ${ip} · ${mode}${match === "true" ? " · allowed" : " · not yet allowed"}.` : "";
         const data = await response.json();
-        items = data.reviewItems || [];
+        const feedbackData = await feedbackResponse.json();
+        rawReviewItems = (data.reviewItems || []).map(normalizeReviewItem);
+        rawFeedbackItems = (feedbackData.feedback || []).map(normalizeFeedbackItem);
+        items = combinedItems();
         selectedId = items.some((item) => item.id === selectedId) ? selectedId : items[0]?.id || null;
+        recoveryBox.hidden = true;
         render();
       } catch (error) {
         statusText.textContent = error.message;
@@ -143,10 +161,62 @@
     }
 
     function render() {
+      items = combinedItems();
+      selectedId = items.some((item) => item.id === selectedId) ? selectedId : items[0]?.id || null;
       statusText.textContent = (items.length ? items.length + " item" + (items.length === 1 ? "" : "s") + " loaded." : "No items in this view.") + adminNetworkText;
       renderStats();
       renderQueue();
       renderWorkbench(items.find((item) => item.id === selectedId));
+    }
+
+    function combinedItems() {
+      const area = areaFilter.value || "all";
+      const status = statusFilter.value || "";
+      return rawReviewItems.concat(rawFeedbackItems)
+        .filter((item) => area === "all" || item.area === area)
+        .filter((item) => !status || item.status === status)
+        .sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority) || String(b.createdAt).localeCompare(String(a.createdAt)));
+    }
+
+    function priorityRank(priority) {
+      return { urgent:0, high:1, normal:2, low:3 }[priority] ?? 2;
+    }
+
+    function normalizeReviewItem(item) {
+      const area = areaForText(`${item.question || ""} ${item.reason || ""}`);
+      return { ...item, source:"pip_review", rawId:item.id, area, problemLabel:"Pip behavior", status:item.status || "new", priority:item.priority || "normal" };
+    }
+
+    function normalizeFeedbackItem(item) {
+      const category = item.category || "site_feedback";
+      const area = category === "idea" ? "ideas" : ["broken","confusing","mobile"].includes(category) ? "bugs" : "site_feedback";
+      return {
+        id:"feedback:" + item.id,
+        rawId:item.id,
+        source:"site_feedback",
+        area,
+        problemLabel:label(category),
+        question:item.message || item.prompt || "Member feedback",
+        answer:item.response || "",
+        reason:category,
+        context:{ page:item.page, rating:item.rating, impact:item.impact, includeContext:item.includeContext, analysis:item.analysis || {}, device:item.device },
+        status:item.reviewStatus || "new",
+        priority:item.priority || "normal",
+        resolution:item.adminNotes || "",
+        createdAt:item.createdAt,
+        updatedAt:item.updatedAt
+      };
+    }
+
+    function areaForText(text) {
+      const value = String(text || "").toLowerCase();
+      if (/calendar|reminder|schedule|tool/.test(value)) return "calendar_tools";
+      if (/gasket|washer|hose|adapter|connector|part|amazon|link|affiliate/.test(value)) return "parts_links";
+      return "pip_behavior";
+    }
+
+    function label(value) {
+      return String(value || "").replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
     }
 
     function renderStats() {
@@ -178,8 +248,8 @@
       workBody.innerHTML = `
         <div class="main-col">
           <section class="card">
-            <h3>User Question</h3><p class="question"></p>
-            <h3>Pip Attempt</h3><p class="answer"></p>
+            <h3>Problem</h3><p class="question"></p>
+            <h3>Current Behavior</h3><p class="answer"></p>
             <h3>Context</h3><pre class="meta"></pre>
           </section>
           <section class="card recommendations">
@@ -188,18 +258,18 @@
           </section>
         </div>
         <aside class="card training">
-          <h3>Training Helper</h3>
-          <p>Pick a recommendation, edit if needed, then approve. Knowledge-base and product-link approvals auto-apply.</p>
+          <h3>Correction</h3>
+          <p>Pick a suggested fix, edit the correction, or add your own instructions.</p>
           <label class="field"><span>Issue type</span><select id="issueType"><option value="knowledge_gap">Knowledge gap</option><option value="bad_intent">Misunderstood intent</option><option value="missing_context">Needed follow-up question</option><option value="tool_gap">Tool/action gap</option><option value="bad_affiliate">Wrong product/link</option><option value="calendar_error">Calendar/reminder error</option><option value="no_change">No change needed</option></select></label>
           <label class="field"><span>Approved ideal answer</span><textarea id="idealAnswer" placeholder="Write the answer Pip should give next time."></textarea></label>
           <label class="field"><span>Training update</span><select id="trainingUpdate"><option value="knowledge_base">Auto-apply: knowledge base</option><option value="affiliate_fix">Auto-apply: product/link rule</option><option value="prompt_rule">Manual: prompt/routing rule</option><option value="tool_fix">Manual: create or fix a tool</option><option value="calendar_fix">Manual: calendar workflow</option><option value="no_change">No change</option></select></label>
-          <div class="two"><label class="field"><span>Status</span><select id="nextStatus"><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="reviewing">Reviewing</option><option value="new">New</option></select></label><label class="field"><span>Priority</span><select id="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></label></div>
+          <div class="two"><label class="field"><span>Status</span><select id="nextStatus"><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="reviewing">Reviewing</option><option value="planned">Planned</option><option value="closed">Closed</option><option value="new">New</option></select></label><label class="field"><span>Priority</span><select id="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></label></div>
           <label class="field"><span>Internal note</span><textarea id="internalNote" placeholder="Why this matters, edge cases, or where to update Pip."></textarea></label>
-          <div class="actions"><button id="saveReview" type="button">Approve Training Note</button><button id="markReviewing" type="button" class="secondary">Mark Reviewing</button></div>
+          <div class="actions"><button id="saveReview" type="button">Save Correction</button><button id="markReviewing" type="button" class="secondary">Mark Reviewing</button></div>
         </aside>`;
 
-      workBody.querySelector(".question").textContent = item.question || "(No question saved)";
-      workBody.querySelector(".answer").textContent = item.answer || "No answer was saved.";
+      workBody.querySelector(".question").textContent = `${item.problemLabel || "Suggestion"}: ${item.question || "(No problem saved)"}`;
+      workBody.querySelector(".answer").textContent = item.answer || (item.source === "site_feedback" ? "Member feedback does not include a Pip answer." : "No answer was saved.");
       workBody.querySelector(".meta").textContent = JSON.stringify(item.context || {}, null, 2);
 
       const existing = parseResolution(item.resolution);
@@ -223,6 +293,7 @@
     }
 
     function recommendationsFor(item) {
+      if (item.source === "site_feedback") return feedbackRecommendations(item);
       const q = String(item.question || "").toLowerCase();
       if (/calendar|reminder|clear|delete|remove|tuesday|schedule/.test(q)) {
         return [
@@ -282,6 +353,42 @@
         ];
       }
       return [genericClarify(item), genericKnowledge(item), genericManual(item)];
+    }
+
+    function feedbackRecommendations(item) {
+      const analysis = item.context?.analysis || {};
+      return [
+        {
+          title: analysis.summary || "Turn this into a focused site fix",
+          summary: analysis.recommendation || "Use this when the feedback points to a clear UX, copy, or workflow improvement.",
+          issueType: item.area === "bugs" ? "tool_gap" : "bad_intent",
+          trainingUpdate: item.area === "bugs" ? "tool_fix" : "prompt_rule",
+          status: "reviewing",
+          priority: item.priority || "normal",
+          idealAnswer: item.question || "",
+          internalNote: analysis.rationale || "Define the smallest site/app fix that resolves this member feedback. If it affects navigation, copy, signup, checkout, or Pip behavior, route it into a focused implementation task."
+        },
+        {
+          title: "Mark as planned quick win",
+          summary: "Use when this is small enough to schedule directly.",
+          issueType: "tool_gap",
+          trainingUpdate: "tool_fix",
+          status: "planned",
+          priority: item.priority || "normal",
+          idealAnswer: item.question || "",
+          internalNote: "Planned quick win. Implement the smallest change, verify mobile behavior, then mark resolved."
+        },
+        {
+          title: "Close as no change",
+          summary: "Use when this is not actionable or not aligned.",
+          issueType: "no_change",
+          trainingUpdate: "no_change",
+          status: "closed",
+          priority: "low",
+          idealAnswer: "",
+          internalNote: "No product change needed. Keep this note for context if similar feedback appears again."
+        }
+      ];
     }
 
     function genericClarify(item) {
@@ -350,6 +457,7 @@
     }
 
     async function saveItem(id) {
+      const item = items.find((entry) => entry.id === id);
       const payload = {
         issueType: value("issueType"),
         idealAnswer: value("idealAnswer"),
@@ -357,11 +465,37 @@
         internalNote: value("internalNote"),
         approvedAt: new Date().toISOString()
       };
+      if (item?.source === "site_feedback") {
+        await patchFeedback(item.rawId, { status:value("nextStatus"), priority:value("priority"), adminNotes:JSON.stringify(payload, null, 2) });
+        return;
+      }
       await patchItem(id, { status:value("nextStatus"), priority:value("priority"), resolution:JSON.stringify(payload, null, 2) });
     }
 
     async function quickStatus(id, status) {
-      await patchItem(id, { status });
+      const item = items.find((entry) => entry.id === id);
+      if (item?.source === "site_feedback") await patchFeedback(item.rawId, { status });
+      else await patchItem(id, { status });
+    }
+
+    async function patchFeedback(id, patch) {
+      const button = document.activeElement;
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch("/api/pip/admin/beta/feedback/" + encodeURIComponent(id), {
+          method:"PATCH",
+          credentials:"same-origin",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify(patch)
+        });
+        if (!response.ok) throw new Error("Save returned " + response.status);
+        statusText.textContent = "Site suggestion saved.";
+        await loadDashboard();
+      } catch (error) {
+        statusText.textContent = error.message;
+      } finally {
+        if (button) button.disabled = false;
+      }
     }
 
     async function patchItem(id, patch) {
