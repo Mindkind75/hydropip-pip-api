@@ -196,6 +196,10 @@ for (const id of ["pipProOnboardingDialog", "pipProOnboardingForm", "proFocusPan
 }
 for (const mode of ["guided", "standard", "detailed"]) assert.match(pipHtml, new RegExp(`value=["']${mode}["']`), `Pip Pro is missing ${mode} guidance mode`);
 assert.match(pipHtml, /stageFocus/, "Pip Pro should promote tools based on the current grow stage");
+assert.match(pipHtml, /function focusProPage/, "Focus Now actions should align the selected notebook panel in view");
+assert.doesNotMatch(pipHtml, /proView\.scrollTo\(\{top:proWorkspace\.offsetTop/, "Focus Now actions must not jump to the workspace header");
+assert.match(pipHtml, /Green dots mark the best tools for this grow stage/, "Recommended-tab dots need a visible explanation");
+assert.match(pipHtml, /Recommended for the current grow stage/, "Recommended tabs need an accessible explanation");
 assert.match(pipHtml, /proMilestones/, "Pip Pro should celebrate meaningful grow-stage unlocks");
 assert.match(pipHtml, /celebratedMilestones/, "Pip Pro milestone celebrations should persist to the member account");
 assert.match(pipHtml, /pro_milestone_unlocked/, "Pip Pro should track milestone unlock engagement");
