@@ -5,6 +5,7 @@ import { affiliateProductLabel, appendNamedProductSearchLinks } from "./pipProdu
 import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 import { combineOpenAiUsage, getPipUsageConfig, pipAiDisabled } from "./pipUsage.js";
+import { formatSeedPackSummary, parseSeedPackInventory } from "./seedInventory.js";
 
 let clientPromise;
 
@@ -302,6 +303,29 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
   }
 
+  const seedPackInventory = parseSeedPackInventory(trimmed);
+  if (seedPackInventory && !subscription?.active) {
+    const answer = "I can add seed packs to your saved Seeds area and keep them connected to your grow in Pip Pro. Free Pip can still help choose and sow seeds for the HydroPip build.";
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
+      mode: "subscription_gate",
+      sources: []
+    });
+    return {
+      answer,
+      mode: "subscription_gate",
+      sources: [],
+      subscriptionRequired: true,
+      upgradeReason: "Pip Pro saves seed-pack inventory and personalized seed plans with your grow.",
+      upgradeUrl: proSignupUrl,
+      upgradeCta: proUpgradeCta,
+      projectMemory
+    };
+  }
+
   if (wantsTracking(trimmed) && !subscription?.active) {
     const answer = [
       "I can help with that in Pip Pro, where schedules, reminders, grow logs, and history stay connected to your grow.",
@@ -324,6 +348,32 @@ export async function askPip({ message, image, profile, subscription, history = 
       upgradeUrl: proSignupUrl,
       upgradeCta: proUpgradeCta,
       projectMemory
+    };
+  }
+
+  if (seedPackInventory && subscription?.active && projectContext) {
+    const summary = formatSeedPackSummary(seedPackInventory.items);
+    const answer = `I found ${summary}. Review the list below, then I can add those packs to this grow's Seeds area.`;
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: answer,
+      mode: "seed_inventory_confirmation",
+      sources: []
+    });
+    return {
+      answer,
+      mode: "seed_inventory_confirmation",
+      sources: [],
+      projectMemory,
+      actions: [{
+        type: "seed_pack_inventory",
+        operation: "add",
+        label: "Add seed packs",
+        items: seedPackInventory.items,
+        preview: seedPackInventory.items.map((item) => `${item.crop}: ${item.packsOnHand} pack${item.packsOnHand === 1 ? "" : "s"}`)
+      }]
     };
   }
 
@@ -452,6 +502,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "When create_reminder, create_grow_plan, or manage_calendar returns confirmation_required, say the change is ready to review and use the on-screen confirmation button. Never say it is saved, deleted, updated, queued for staff, or completed until the user confirms it and the server reports success.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
+      "When projectContext.seedPacks is present, treat it as the user's current saved seed-pack inventory. Use packs on hand rather than pretending to know the number of individual seeds. Do not claim inventory was changed until the user confirms the on-screen seed-pack action and the server reports success.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action.",
       "For seasonal crop questions, use the supplied Zone Seasonal Planting Reference as the default answer source. Do not ask for today's temperature or perform a live weather lookup by default. Ask about current conditions only when the user reports unusual heat, frost, storms, or a crop near a temperature limit.",
       "USDA zones describe average annual extreme minimums rather than complete vegetable calendars. Use the saved location and area details to refine the zone calendar when relevant, but do not withhold a useful planting answer when the zone and month are known.",
@@ -1368,6 +1419,7 @@ function compactProjectContext(projectContext) {
     activeReminders: projectContext.activeReminders,
     reminderCount: projectContext.reminderCount,
     recentReadings: projectContext.recentReadings,
+    seedPacks: projectContext.seedPacks,
     recentMessages: projectContext.recentMessages.map(({ role, content, createdAt }) => ({ role, content, createdAt }))
   };
 }

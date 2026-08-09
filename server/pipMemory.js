@@ -2083,6 +2083,55 @@ export async function createProjectSeed({ userId, projectId, seed = {}, subscrip
   return { status: "saved", seed: saved };
 }
 
+export async function addProjectSeedPacks({ userId, projectId, items = [], subscription = {} } = {}) {
+  const existingSeeds = await listProjectSeeds({ userId, projectId });
+  if (!existingSeeds) return null;
+  if (!subscription?.active) return subscriptionRequired("Saving seed-pack inventory requires Pip Pro.");
+  const grouped = new Map();
+  for (const item of Array.isArray(items) ? items.slice(0, 30) : []) {
+    const crop = cleanOptionalText(item?.crop, 80);
+    const variety = cleanOptionalText(item?.variety, 120);
+    const packsOnHand = normalizePackCount(item?.packsOnHand);
+    if (!crop || !packsOnHand) continue;
+    const key = `${crop.toLowerCase()}|${String(variety || "").toLowerCase()}`;
+    const current = grouped.get(key);
+    if (current) current.packsOnHand += packsOnHand;
+    else grouped.set(key, { crop, variety, packsOnHand });
+  }
+  const saved = [];
+  let addedCount = 0;
+  let updatedCount = 0;
+  for (const item of grouped.values()) {
+    const existing = existingSeeds.find((seed) => String(seed.crop || "").trim().toLowerCase() === item.crop.toLowerCase()
+      && String(seed.variety || "").trim().toLowerCase() === String(item.variety || "").toLowerCase());
+    if (existing) {
+      const result = await updateProjectSeed({
+        userId,
+        projectId,
+        seedId: existing.id,
+        patch: { packsOnHand: (normalizePackCount(existing.packsOnHand) || 0) + item.packsOnHand },
+        subscription
+      });
+      if (result?.seed) {
+        saved.push(result.seed);
+        updatedCount += 1;
+      }
+    } else {
+      const result = await createProjectSeed({
+        userId,
+        projectId,
+        seed: { ...item, status: "on_hand", method: "direct_sow" },
+        subscription
+      });
+      if (result?.seed) {
+        saved.push(result.seed);
+        addedCount += 1;
+      }
+    }
+  }
+  return { status: "saved", seeds: saved, addedCount, updatedCount };
+}
+
 export async function updateProjectSeed({ userId, projectId, seedId, patch = {}, subscription = {} } = {}) {
   const seeds = await listProjectSeeds({ userId, projectId });
   if (!seeds) return null;
@@ -2196,10 +2245,11 @@ export async function buildProjectContext({ userId, projectId, conversationId } 
   if (!userId || !projectId) return null;
   const project = await getProject({ userId, projectId });
   if (!project) return null;
-  const [conversation, reminders, readings] = await Promise.all([
+  const [conversation, reminders, readings, seeds] = await Promise.all([
     resolveConversation({ userId, projectId, conversationId }),
     listProjectReminders({ userId, projectId }),
-    listProjectReadings({ userId, projectId })
+    listProjectReadings({ userId, projectId }),
+    listProjectSeeds({ userId, projectId })
   ]);
   if (!conversation) return null;
   const messages = (await listProjectMessages({ userId, projectId, conversationId: conversation.id, limit: 8 })) || [];
@@ -2209,7 +2259,14 @@ export async function buildProjectContext({ userId, projectId, conversationId } 
     recentMessages: messages,
     activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
     reminderCount: (reminders || []).length,
-    recentReadings: (readings || []).slice(-10)
+    recentReadings: (readings || []).slice(-10),
+    seedPacks: (seeds || []).map((item) => ({
+      crop: item.crop,
+      variety: item.variety,
+      packsOnHand: item.packsOnHand,
+      status: item.status,
+      sowDate: item.sowDate
+    })).slice(0, 40)
   };
 }
 
@@ -3223,7 +3280,7 @@ function normalizeSeed(seed = {}) {
     crop: cleanOptionalText(seed.crop, 80) || "Seed batch",
     variety: cleanOptionalText(seed.variety, 120),
     source: cleanOptionalText(seed.source, 160),
-    quantity: normalizeOptionalNumber(seed.quantity),
+    packsOnHand: normalizePackCount(seed.packsOnHand),
     sowDate: cleanOptionalText(seed.sowDate, 20),
     status: cleanOptionalText(seed.status, 40) || "on_hand",
     method: cleanOptionalText(seed.method, 40) || "direct_sow",
@@ -3240,6 +3297,11 @@ function normalizeSeed(seed = {}) {
     createdAt: seed.createdAt || nowIso(),
     updatedAt: seed.updatedAt || nowIso()
   };
+}
+
+function normalizePackCount(value) {
+  const numeric = normalizeOptionalNumber(value);
+  return numeric === null ? null : Math.max(0, Math.min(999, Math.round(numeric)));
 }
 
 function standardReminderDefaults(profile = {}) {

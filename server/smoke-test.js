@@ -3,6 +3,7 @@ import path from "node:path";
 import { askPip, assessAnswerRelevance, buildDirectCalendarConfirmation, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
 import { fallbackAnswer } from "./pipTools.js";
 import {
+  addProjectSeedPacks,
   applyProjectReminderAction,
   appendProjectMessage,
   claimBuildPhotoCheck,
@@ -58,6 +59,7 @@ import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyL
 import { getSeedPlanningDashboard, getSeedSowRecommendation, getZonePlantingGuidance, seedPlanReminders } from "./plantingCalendar.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { feedbackPortfolioInsights, heuristicFeedbackAnalysis } from "./feedbackTriage.js";
+import { parseSeedPackInventory } from "./seedInventory.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 process.env.PIP_APPROVED_TRAINING_FILE ||= path.join(process.cwd(), "server", ".data", "approved-training-test.md");
@@ -73,6 +75,21 @@ assert.equal(verifyPipSession(signedSession).sub, "test-user");
 assert.equal(verifyPipSession(signedSession).beta, true);
 assert.equal(verifyPipSession(signedSession).planName, "Pip Pro Beta Tester");
 assert.equal(verifyPipSession(`${signedSession}tampered`), null);
+
+assert.deepEqual(parseSeedPackInventory("Green beans, two packs, tomatoes, two packs"), {
+  items: [
+    { crop: "Green Beans", packsOnHand: 2 },
+    { crop: "Tomatoes", packsOnHand: 2 }
+  ]
+});
+assert.deepEqual(parseSeedPackInventory("Add 3 packs of lettuce and one pack of basil"), {
+  items: [
+    { crop: "Lettuce", packsOnHand: 3 },
+    { crop: "Basil", packsOnHand: 1 }
+  ]
+});
+assert.equal(parseSeedPackInventory("How many seed packs should I buy?"), null);
+assert.equal(parseSeedPackInventory("I bought two packs of zip ties"), null);
 const freeNutrientCatalog = nutrientProgramsForSubscription({ active: false });
 assert.deepEqual(Object.keys(freeNutrientCatalog.systems), ["hydropip"]);
 assert.deepEqual(Object.keys(freeNutrientCatalog.programs), ["hydropip_masterblend"]);
@@ -736,14 +753,44 @@ assert.equal(updatedReminder.reminder.notify, true);
 const savedSeed = await createProjectSeed({
   userId: "test-user",
   projectId: paidProject.project.id,
-  seed: { crop: "Lettuce", variety: "Buttercrunch", quantity: 100, method: "direct_sow", seedsSown: 20, seedsSprouted: 16, succession: true, successionIntervalDays: 21, recommendedWindowStart: "2026-09-01", expectedHarvestDate: "2026-10-12", timingSource: "hydropip_zone_calendar" },
+  seed: { crop: "Lettuce", variety: "Buttercrunch", packsOnHand: 2, method: "direct_sow", seedsSown: 20, seedsSprouted: 16, succession: true, successionIntervalDays: 21, recommendedWindowStart: "2026-09-01", expectedHarvestDate: "2026-10-12", timingSource: "hydropip_zone_calendar" },
   subscription: { active: true }
 });
 assert.equal(savedSeed.status, "saved");
 assert.equal(savedSeed.seed.germinationRate, 80);
+assert.equal(savedSeed.seed.packsOnHand, 2);
 assert.equal(savedSeed.seed.succession, true);
 assert.equal(savedSeed.seed.expectedHarvestDate, "2026-10-12");
 assert.equal((await listProjectSeeds({ userId: "test-user", projectId: paidProject.project.id })).length, 1);
+const importedSeedPacks = await addProjectSeedPacks({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  items: [{ crop: "Green Beans", packsOnHand: 2 }, { crop: "Tomatoes", packsOnHand: 2 }],
+  subscription: { active: true }
+});
+assert.equal(importedSeedPacks.addedCount, 2);
+const mergedSeedPacks = await addProjectSeedPacks({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  items: [{ crop: "Green Beans", packsOnHand: 1 }],
+  subscription: { active: true }
+});
+assert.equal(mergedSeedPacks.updatedCount, 1);
+assert.equal(mergedSeedPacks.seeds[0].packsOnHand, 3);
+const seedPackChat = await askPip({
+  message: "I have green beans, two packs, tomatoes, two packs",
+  user: { id: "test-user" },
+  projectId: paidProject.project.id,
+  subscription: { active: true },
+  history: []
+});
+assert.equal(seedPackChat.mode, "seed_inventory_confirmation");
+assert.equal(seedPackChat.actions[0].type, "seed_pack_inventory");
+assert.equal(seedPackChat.actions[0].items.length, 2);
+for (const seed of await listProjectSeeds({ userId: "test-user", projectId: paidProject.project.id })) {
+  if (seed.id === savedSeed.seed.id) continue;
+  await deleteProjectSeed({ userId: "test-user", projectId: paidProject.project.id, seedId: seed.id, subscription: { active: true } });
+}
 await deleteProjectSeed({
   userId: "test-user",
   projectId: paidProject.project.id,

@@ -20,6 +20,7 @@ import {
   signedSessionsRequired
 } from "./pipAuth.js";
 import {
+  addProjectSeedPacks,
   createBetaApplication,
   createProject,
   createProjectConversation,
@@ -994,6 +995,19 @@ app.post("/api/pip/projects/:projectId/seeds", async (req, res, next) => {
     const result = await createProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seed: req.body?.seed || req.body || {}, subscription: req.pipSubscription });
     if (!result) return res.status(404).json({ error: "project_not_found" });
     res.status(result.status === "saved" ? 201 : 402).json(result);
+  } catch (error) { next(error); }
+});
+
+app.post("/api/pip/projects/:projectId/seeds/batch", async (req, res, next) => {
+  try {
+    const result = await addProjectSeedPacks({
+      userId: req.pipUser.id,
+      projectId: req.params.projectId,
+      items: req.body?.items,
+      subscription: req.pipSubscription
+    });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.status(result.status === "subscription_required" ? 402 : 200).json(result);
   } catch (error) { next(error); }
 });
 
