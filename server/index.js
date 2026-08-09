@@ -85,6 +85,7 @@ import {
   validateChatPayload
 } from "./pipUsage.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
+import { getSeedPlanningDashboard, getSeedSowRecommendation, seedPlanReminders } from "./plantingCalendar.js";
 import { analyzeFeedbackSuggestion, feedbackPortfolioInsights } from "./feedbackTriage.js";
 import {
   adminPasskeyStatus,
@@ -953,6 +954,38 @@ app.get("/api/pip/projects/:projectId/seeds", async (req, res, next) => {
     const seeds = await listProjectSeeds({ userId: req.pipUser.id, projectId: req.params.projectId });
     if (!seeds) return res.status(404).json({ error: "project_not_found" });
     res.json({ seeds });
+  } catch (error) { next(error); }
+});
+
+app.get("/api/pip/projects/:projectId/seed-plan", async (req, res, next) => {
+  try {
+    if (!req.pipSubscription?.active) {
+      res.status(402).json({ error: "subscription_required", message: "Personalized sowing windows and saved seed plans require Pip Pro." });
+      return;
+    }
+    const project = await getProject({ userId: req.pipUser.id, projectId: req.params.projectId });
+    if (!project) return res.status(404).json({ error: "project_not_found" });
+    const profile = project.systemProfile || {};
+    if (!profile.growZone) {
+      res.status(422).json({ error: "grow_zone_required", message: "Add the USDA grow zone on the Profile tab so Pip can estimate sowing windows." });
+      return;
+    }
+    const context = {
+      growZone: profile.growZone,
+      location: profile.location,
+      areaType: profile.areaType,
+      date: req.query.date,
+      preferredWeekday: req.query.preferredWeekday
+    };
+    const dashboard = getSeedPlanningDashboard(context);
+    const recommendation = req.query.crop ? getSeedSowRecommendation({ ...context, crop: req.query.crop }) : null;
+    if (recommendation?.status === "recommended") {
+      recommendation.reminders = seedPlanReminders(recommendation, {
+        includeSuccession: req.query.succession === "1",
+        successionIntervalDays: req.query.successionIntervalDays
+      });
+    }
+    res.json({ projectId: project.id, dashboard, recommendation });
   } catch (error) { next(error); }
 });
 

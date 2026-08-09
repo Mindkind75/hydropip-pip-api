@@ -162,9 +162,12 @@ Pip Pro is the persistent grow-management workspace. It is designed to help seri
 
 ### Seeds
 
-- Tracks crop, variety, source, quantity, sow date, status, and notes.
-- Supports editing and removal as inventory or planting plans change.
-- Creates a natural path to curated or affiliate seed sources.
+- Uses the grow's saved USDA zone, location, and area type to estimate what can be planted now, started next, or held for a later window.
+- Produces crop-specific sow dates, direct-sow or protected-start guidance, germination and first-harvest windows, and optional succession intervals.
+- Tracks crop, variety, source, seeds on hand, sow date, status, seeds sown, sprouts, germination rate, and notes.
+- Adds approved sowing, germination-check, harvest-review, and succession tasks directly to Planner and Calendar.
+- Keeps seed timing explicitly educational: seed-packet directions, local weather, microclimate, and extension guidance can override a zone estimate.
+- Supports editing and removal as inventory or planting plans change, with a restrained path to seed sources when restocking is actually needed.
 
 ### Grow Log
 
@@ -281,4 +284,3 @@ These items belong on the roadmap and should not be described as currently avail
 **Short statement:** Build it. Grow it. Reset it. Pip remembers what comes next.
 
 **Pip statement:** Pip is your HydroPip build guide and grow-management partner. Ask a question, share a photo, find the right part, or let Pip Pro keep the plan, calendar, seeds, notes, and grow history together.
-

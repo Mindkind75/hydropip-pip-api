@@ -55,7 +55,7 @@ import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
 import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
-import { getZonePlantingGuidance } from "./plantingCalendar.js";
+import { getSeedPlanningDashboard, getSeedSowRecommendation, getZonePlantingGuidance, seedPlanReminders } from "./plantingCalendar.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { feedbackPortfolioInsights, heuristicFeedbackAnalysis } from "./feedbackTriage.js";
 
@@ -144,6 +144,19 @@ const zone5August = getZonePlantingGuidance({ growZone: "5b", date: "2026-08-04"
 assert.equal(zone5August.phaseId, "fall_transition");
 const zone9January = getZonePlantingGuidance({ growZone: "9", date: "2026-01-15" });
 assert.equal(zone9January.phaseId, "cool_prime");
+const seedDashboard = getSeedPlanningDashboard({ growZone: "9b", location: "Lakeland, FL", areaType: "outdoor_open", date: "2026-08-09" });
+assert.equal(seedDashboard.groups.plantNow.some((item) => item.crop === "Basil"), true);
+assert.equal(seedDashboard.crops.includes("Leaf lettuce"), true);
+const lettuceTiming = getSeedSowRecommendation({ crop: "lettuce", growZone: "9b", location: "Lakeland, FL", areaType: "outdoor_open", date: "2026-08-09" });
+assert.equal(lettuceTiming.status, "recommended");
+assert.equal(["start_protected", "start_next", "wait"].includes(lettuceTiming.decision), true);
+assert.match(lettuceTiming.methodLabel, /HydroPip|protected/i);
+const basilTiming = getSeedSowRecommendation({ crop: "basil", growZone: "9b", location: "Lakeland, FL", areaType: "outdoor_open", date: "2026-08-09" });
+assert.equal(basilTiming.decision, "plant_now");
+const successionTasks = seedPlanReminders(basilTiming, { includeSuccession: true, successionIntervalDays: 14 });
+assert.equal(successionTasks.length, 4);
+assert.equal(successionTasks.every((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.dueDate)), true);
+assert.equal(getSeedPlanningDashboard({ growZone: "", date: "2026-08-09" }), null);
 
 const steps = getBuildStep();
 assert.equal(steps.steps.length >= 5, true);
@@ -723,10 +736,13 @@ assert.equal(updatedReminder.reminder.notify, true);
 const savedSeed = await createProjectSeed({
   userId: "test-user",
   projectId: paidProject.project.id,
-  seed: { crop: "Lettuce", variety: "Buttercrunch", quantity: 100 },
+  seed: { crop: "Lettuce", variety: "Buttercrunch", quantity: 100, method: "direct_sow", seedsSown: 20, seedsSprouted: 16, succession: true, successionIntervalDays: 21, recommendedWindowStart: "2026-09-01", expectedHarvestDate: "2026-10-12", timingSource: "hydropip_zone_calendar" },
   subscription: { active: true }
 });
 assert.equal(savedSeed.status, "saved");
+assert.equal(savedSeed.seed.germinationRate, 80);
+assert.equal(savedSeed.seed.succession, true);
+assert.equal(savedSeed.seed.expectedHarvestDate, "2026-10-12");
 assert.equal((await listProjectSeeds({ userId: "test-user", projectId: paidProject.project.id })).length, 1);
 await deleteProjectSeed({
   userId: "test-user",

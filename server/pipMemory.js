@@ -3216,6 +3216,8 @@ function subscriptionRequired(message) {
 }
 
 function normalizeSeed(seed = {}) {
+  const seedsSown = normalizeOptionalNumber(seed.seedsSown);
+  const seedsSprouted = normalizeOptionalNumber(seed.seedsSprouted);
   return {
     id: seed.id,
     crop: cleanOptionalText(seed.crop, 80) || "Seed batch",
@@ -3224,6 +3226,16 @@ function normalizeSeed(seed = {}) {
     quantity: normalizeOptionalNumber(seed.quantity),
     sowDate: cleanOptionalText(seed.sowDate, 20),
     status: cleanOptionalText(seed.status, 40) || "on_hand",
+    method: cleanOptionalText(seed.method, 40) || "direct_sow",
+    seedsSown,
+    seedsSprouted,
+    germinationRate: seedsSown > 0 && seedsSprouted !== null ? Math.min(100, Number(((seedsSprouted / seedsSown) * 100).toFixed(1))) : null,
+    succession: Boolean(seed.succession),
+    successionIntervalDays: normalizeOptionalNumber(seed.successionIntervalDays),
+    recommendedWindowStart: cleanOptionalText(seed.recommendedWindowStart, 20),
+    recommendedWindowEnd: cleanOptionalText(seed.recommendedWindowEnd, 20),
+    expectedHarvestDate: cleanOptionalText(seed.expectedHarvestDate, 20),
+    timingSource: cleanOptionalText(seed.timingSource, 80),
     notes: String(seed.notes || "").slice(0, 1000),
     createdAt: seed.createdAt || nowIso(),
     updatedAt: seed.updatedAt || nowIso()

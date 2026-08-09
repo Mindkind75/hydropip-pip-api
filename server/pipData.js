@@ -10,6 +10,7 @@ const dataDir = path.join(rootDir, "data");
 export const systemBrain = fs.readFileSync(path.join(kbDir, "pip_system_brain.md"), "utf8");
 export const schedulingRules = JSON.parse(fs.readFileSync(path.join(kbDir, "scheduling_rules.json"), "utf8"));
 export const zonePlantingCalendar = JSON.parse(fs.readFileSync(path.join(kbDir, "zone_planting_calendar.json"), "utf8"));
+export const seedPlanningCatalog = JSON.parse(fs.readFileSync(path.join(dataDir, "seed-planning.json"), "utf8"));
 export const setupWizardSchema = JSON.parse(fs.readFileSync(path.join(kbDir, "setup_wizard_schema.json"), "utf8"));
 export const hydropipSystem = JSON.parse(fs.readFileSync(path.join(dataDir, "hydropip-system.json"), "utf8"));
 export const buildCatalog = JSON.parse(fs.readFileSync(path.join(dataDir, "build-items.json"), "utf8"));
