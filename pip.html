@@ -329,6 +329,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   var requestedProjectType = pipQuery.get("project");
   var requestedTool = pipQuery.get("tool");
   var requestedProjectId = pipQuery.get("projectId");
+  var requestedProFocus = pipQuery.get("focus");
   var requestedPrompt = String(pipQuery.get("prompt") || "").trim().slice(0,500);
   var requestedAvatarPicker = pipQuery.get("avatar") === "1" || pipQuery.get("pro") === "avatar";
   var requestedAuthMode = pipQuery.get("pro") === "login" ? "login" : pipQuery.get("pro") === "signup" ? "signup" : null;
@@ -657,6 +658,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
       if(preferred&&proProjects.some(function(project){return project.id===preferred}))proProjectSelect.value=preferred;
       if(proProjects.length){await loadSelectedProject();proWorkspaceStatus.textContent="Grow profile and account memory ready."}
       else{editingProjectId=null;proProfileForm.reset();setProfileDefaults();renderProFocus(null);proWorkspaceStatus.textContent="Pip is ready to set up your first grow.";if(!proOnboardingDialog.open)setTimeout(openProOnboarding,250)}
+      if(requestedProFocus==="notebooks"){requestedProFocus=null;setTimeout(function(){proProjectSelect.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"});proProjectSelect.focus({preventScroll:true})},160)}
       updateProChatLink()
     }catch(error){proWorkspaceStatus.textContent=error.message;showProNotice(error.message,"error")}
   }
