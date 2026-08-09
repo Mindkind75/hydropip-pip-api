@@ -1,5 +1,5 @@
 ﻿import assert from "node:assert/strict";
-import { askPip, classifyQuestionIntent } from "./pipAgent.js";
+import { askPip, classifyQuestionIntent, compactAnswer } from "./pipAgent.js";
 import { classifyPhotoRequest } from "./pipPhotoAccess.js";
 import { assessSiteFit } from "./pipTools.js";
 
@@ -12,6 +12,16 @@ assert.equal(classifyPhotoRequest({ message: "Can you check this proposed HydroP
 assert.equal(classifyPhotoRequest({ message: "Can you plan this DWC location?", projectType: "existing_system_setup" }).access, "pip_pro_required");
 assert.deepEqual(assessSiteFit({ towerCount: 4 }).recommended, { widthFeet: 12, depthFeet: 8 });
 assert.equal(assessSiteFit({ towerCount: 4, availableWidthFeet: 12, availableDepthFeet: 8 }).fit, "recommended");
+const proCropQuestion = "So when it is time to do tomatoes, what other items should I put in what towers and what order?";
+assert.equal(classifyQuestionIntent(proCropQuestion), "crop_selection");
+const proCropAnswer = compactAnswer(
+  "Put tomatoes in a dedicated fruiting tower, plus parts to have ready.\n- Tower order: tomatoes; herbs; greens; succession crops.\n- Approved Mr. Stacky planters: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20\n- Pump: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20\n\nAs an Amazon Associate I earn from qualifying purchases.",
+  proCropQuestion,
+  { matches: [] },
+  { membership: "pip_pro", questionIntent: "crop_selection" }
+);
+assert.match(proCropAnswer, /Tower order/i);
+assert.doesNotMatch(proCropAnswer, /amazon|affiliate|Mr\. Stacky|Pump:/i);
 
 const cases = [
   { q: "Can I make the system shorter? What if I only wanted 2 five pot high towers?", type: "free", must: ["short", "four-pot"], avoid: ["Tell me the step"] },
