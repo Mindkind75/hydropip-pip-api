@@ -377,6 +377,27 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
   }
 
+  const directRhythmSetup = subscription?.active
+    ? buildDirectRhythmSetupAction({ message: trimmed, projectContext })
+    : null;
+  if (directRhythmSetup) {
+    await rememberProjectMessage(projectContext, {
+      userId,
+      projectId,
+      role: "assistant",
+      content: directRhythmSetup.answer,
+      mode: "rhythm_setup",
+      sources: []
+    });
+    return {
+      answer: directRhythmSetup.answer,
+      mode: "rhythm_setup",
+      sources: [],
+      projectMemory,
+      actions: directRhythmSetup.actions
+    };
+  }
+
   const directCalendar = subscription?.active
     ? buildDirectCalendarConfirmation({ message: trimmed, history: recentHistory, projectContext })
     : null;
@@ -744,10 +765,27 @@ async function fallbackResult({ trimmed, recentHistory, retrieval, subscription,
 function wantsTracking(message) {
   const normalized = String(message || "").toLowerCase();
   if (/\btrack my build\b/.test(normalized)) return false;
+  if (/\b(?:set ?up|start|build|populate|fill|refresh|rebuild|update)\b.{0,50}\b(?:my )?rhythm\b|\brhythm\b.{0,50}\b(?:set ?up|start|populate|refresh|rebuild|update)\b/.test(normalized)) return true;
   if (/\b(notify me|remind me|schedule this|add (?:this|it) to (?:my )?(?:calendar|planner)|every (?:day|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|over the next month)\b/.test(normalized)) return true;
   const wantsPersistence = /\b(save|store|remember|record|track|log|keep|create|add|update|delete|remove|clear|replace)\b/.test(normalized);
   const proResource = /\b(reminder|calendar|planner|schedule|grow log|readings?|project history|grow history|conversation history|crop rotation|maintenance plan|saved plan)\b/.test(normalized);
   return wantsPersistence && proResource;
+}
+
+export function buildDirectRhythmSetupAction({ message, projectContext } = {}) {
+  if (!projectContext) return null;
+  const normalized = String(message || "").toLowerCase();
+  const requested = /\b(?:set ?up|start|build|populate|fill|refresh|rebuild|update)\b.{0,50}\b(?:my )?rhythm\b|\brhythm\b.{0,50}\b(?:set ?up|start|populate|refresh|rebuild|update)\b/.test(normalized);
+  if (!requested) return null;
+  return {
+    answer: "I can build that from this grow's saved profile. Open the guided check below; I will prefill what I know and only leave the current crops, tank fill, or last care details for you to confirm.",
+    actions: [{
+      type: "open_rhythm_setup",
+      operation: "review",
+      label: "Set up my Rhythm",
+      projectId: projectContext.project?.id || null
+    }]
+  };
 }
 
 function wantsCalendarChange(message) {

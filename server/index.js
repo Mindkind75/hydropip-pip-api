@@ -59,6 +59,7 @@ import {
   refundBuildPhotoCheck,
   recordConversionEvent,
   reserveAiUsage,
+  saveProjectRhythmSetup,
   searchAdminMembers,
   seedProjectConversationDefaults,
   seedProjectDefaults,
@@ -1016,6 +1017,25 @@ app.get("/api/pip/projects/:projectId/rhythm", async (req, res, next) => {
     }) : null;
     res.json({ rhythm: buildRhythmOverview({ project, reminders, seeds, readings, seedDashboard }) });
   } catch (error) { next(error); }
+});
+
+app.post("/api/pip/projects/:projectId/rhythm/setup", async (req, res, next) => {
+  try {
+    if (!req.pipSubscription?.active) {
+      res.status(402).json({ error: "subscription_required", message: "Pip-led Rhythm setup is available in Pip Pro." });
+      return;
+    }
+    const result = await saveProjectRhythmSetup({
+      userId: req.pipUser.id,
+      projectId: req.params.projectId,
+      input: req.body?.setup || req.body || {},
+      subscription: req.pipSubscription
+    });
+    if (!result) return res.status(404).json({ error: "project_not_found" });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post("/api/pip/projects/:projectId/seeds", async (req, res, next) => {

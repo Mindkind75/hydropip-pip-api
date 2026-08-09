@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import path from "node:path";
-import { askPip, assessAnswerRelevance, buildDirectCalendarConfirmation, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
+import { askPip, assessAnswerRelevance, buildDirectCalendarConfirmation, buildDirectRhythmSetupAction, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
 import { fallbackAnswer } from "./pipTools.js";
 import {
   addProjectSeedPacks,
@@ -38,6 +38,7 @@ import {
   resetMemoryForTests,
   refundBuildPhotoCheck,
   reserveAiUsage,
+  saveProjectRhythmSetup,
   grantPipCredits,
   seedProjectConversationDefaults,
   seedProjectDefaults,
@@ -61,6 +62,7 @@ import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { feedbackPortfolioInsights, heuristicFeedbackAnalysis } from "./feedbackTriage.js";
 import { parseSeedPackInventory } from "./seedInventory.js";
 import { buildRhythmOverview } from "./rhythm.js";
+import { buildRhythmSetupPlan } from "./rhythmSetup.js";
 
 process.env.PIP_BRIDGE_SECRET ||= "hydropip-smoke-test-secret";
 process.env.PIP_APPROVED_TRAINING_FILE ||= path.join(process.cwd(), "server", ".data", "approved-training-test.md");
@@ -168,6 +170,43 @@ assert.equal(calendarStarterConfirmation.actions[0].operation, "add");
 assert.equal(calendarStarterConfirmation.actions[0].label, "Load my calendar");
 assert.equal(calendarStarterConfirmation.actions[0].reminders.length, 3);
 assert.equal(calendarStarterConfirmation.actions[0].reminders[1].dueTime, "15:00");
+const rhythmSetupAction = buildDirectRhythmSetupAction({
+  message: "Can you populate my Rhythm?",
+  projectContext: { project: { id: "project-rhythm", systemProfile: { growZone: "9" } } }
+});
+assert.equal(rhythmSetupAction.actions[0].type, "open_rhythm_setup");
+assert.equal(rhythmSetupAction.actions[0].projectId, "project-rhythm");
+const freeRhythmGate = await askPip({
+  message: "Can you set up my Rhythm?",
+  subscription: { active: false }
+});
+assert.equal(freeRhythmGate.subscriptionRequired, true);
+assert.equal(freeRhythmGate.upgradeCta.label, "See Pip Pro");
+const undatedRhythmPlan = buildRhythmSetupPlan({
+  profile: { growZone: "9", systemStage: "growing" },
+  input: { currentCrops: [{ crop: "Lettuce" }], nutrientStage: "growing", currentTankLevel: "half full" },
+  now: new Date("2026-08-09T12:00:00Z")
+});
+assert.equal(undatedRhythmPlan.reminders.length, 0);
+assert.equal(undatedRhythmPlan.missing.includes("last tank fill or batch start date"), true);
+assert.equal(undatedRhythmPlan.missing.includes("last maintenance date"), true);
+const datedRhythmPlan = buildRhythmSetupPlan({
+  input: {
+    growZone: "9",
+    systemStage: "growing",
+    currentCrops: [{ crop: "Lettuce", sowDate: "2026-08-01" }, { crop: "Lettuce", sowDate: "2026-08-01" }],
+    batchStartDate: "2026-08-02",
+    nutrientStage: "growing",
+    currentTankLevel: "three quarters full",
+    lastMaintenanceDate: "2026-08-08",
+    preferredTaskDay: "sunday",
+    preferredTaskTime: "09:00"
+  },
+  now: new Date("2026-08-09T12:00:00Z")
+});
+assert.equal(datedRhythmPlan.currentCrops.length, 1);
+assert.equal(datedRhythmPlan.reminders.length, 3);
+assert.equal(datedRhythmPlan.ready, true);
 assert.equal(
   assessAnswerRelevance(
     "Got the towers set. What should I plant this time of year?",
@@ -715,6 +754,62 @@ const updatedCalendar = await applyProjectReminderAction({
 });
 assert.equal(updatedCalendar.updatedCount, 1);
 assert.equal(updatedCalendar.updated[0].dueAt, "2026-08-11T20:00:00.000Z");
+
+const rhythmSetupProject = await createProject({
+  user: { id: "test-user" },
+  type: "crop_schedule",
+  title: "Rhythm setup test",
+  systemProfile: { towerCount: 4, reservoirGallons: 275 },
+  subscription: { active: true, plan: "pip_pro" }
+});
+const rhythmSetupInput = {
+  growZone: "9",
+  systemStage: "growing",
+  currentCrops: [{ crop: "Lettuce", variety: "Buttercrunch", sowDate: "2026-08-01" }],
+  batchStartDate: "2026-08-02",
+  nutrientStage: "growing",
+  currentTankLevel: "three quarters full",
+  expectedRefillWindow: "late August",
+  lastMaintenanceDate: "2026-08-08",
+  preferredTaskDay: "sunday",
+  preferredTaskTime: "09:00",
+  timezone: "America/New_York",
+  timezoneOffsetMinutes: 240
+};
+const firstRhythmSave = await saveProjectRhythmSetup({
+  userId: "test-user",
+  projectId: rhythmSetupProject.project.id,
+  input: rhythmSetupInput,
+  subscription: { active: true }
+});
+assert.equal(firstRhythmSave.status, "saved");
+assert.equal(firstRhythmSave.cropsAdded, 1);
+assert.equal(firstRhythmSave.remindersAdded, 3);
+assert.equal(firstRhythmSave.setup.ready, true);
+const secondRhythmSave = await saveProjectRhythmSetup({
+  userId: "test-user",
+  projectId: rhythmSetupProject.project.id,
+  input: rhythmSetupInput,
+  subscription: { active: true }
+});
+assert.equal(secondRhythmSave.cropsAdded, 0);
+assert.equal(secondRhythmSave.cropsUpdated, 1);
+assert.equal(secondRhythmSave.remindersAdded, 0);
+assert.equal(secondRhythmSave.remindersUpdated, 3);
+const varietyRefresh = await saveProjectRhythmSetup({
+  userId: "test-user",
+  projectId: rhythmSetupProject.project.id,
+  input: {
+    ...rhythmSetupInput,
+    currentCrops: [{ crop: "Lettuce", variety: "Red Sails", sowDate: "2026-08-01" }]
+  },
+  subscription: { active: true }
+});
+assert.equal(varietyRefresh.cropsAdded, 0);
+assert.equal(varietyRefresh.cropsUpdated, 1);
+assert.equal(varietyRefresh.cropsFinished, 0);
+assert.equal((await listProjectSeeds({ userId: "test-user", projectId: rhythmSetupProject.project.id })).filter((item) => item.plantingLocation === "hydropip_tower").length, 1);
+assert.equal((await listProjectReminders({ userId: "test-user", projectId: rhythmSetupProject.project.id })).length, 3);
 
 const savedReminder = await createProjectReminder({
   userId: "test-user",

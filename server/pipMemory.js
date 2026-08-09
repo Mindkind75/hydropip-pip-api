@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { dailyLimitForTier, dailyResetAt, getPipUsageConfig, monthlyLimitForTier, monthlyResetAt } from "./pipUsage.js";
 import { resetKnowledgeIndex } from "./ragStore.js";
+import { buildRhythmSetupPlan, isCurrentGrowSeed, localDueAt, rhythmCropKey, rhythmSetupStatus } from "./rhythmSetup.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultDataFile = path.join(__dirname, ".data", "pip-memory.json");
@@ -2168,6 +2169,112 @@ export async function updateProjectSeed({ userId, projectId, seedId, patch = {},
   return { status: "updated", seed: saved };
 }
 
+export async function saveProjectRhythmSetup({ userId, projectId, input = {}, subscription = {} } = {}) {
+  const project = await getProject({ userId, projectId });
+  if (!project) return null;
+  if (!subscription?.active) return subscriptionRequired("Pip-led Rhythm setup requires Pip Pro.");
+
+  const plan = buildRhythmSetupPlan({ profile: project.systemProfile || {}, input });
+  const updatedProject = await updateProject({
+    userId,
+    projectId,
+    patch: { systemProfile: { ...(project.systemProfile || {}), ...plan.profilePatch } }
+  });
+
+  const existingSeeds = await listProjectSeeds({ userId, projectId });
+  const existingCurrent = (existingSeeds || []).filter(isCurrentGrowSeed);
+  const desiredKeys = new Set(plan.currentCrops.map(rhythmCropKey));
+  const retainedSeedIds = new Set();
+  const savedSeeds = [];
+  let cropsAdded = 0;
+  let cropsUpdated = 0;
+  let cropsFinished = 0;
+
+  for (const crop of plan.currentCrops) {
+    const exact = existingCurrent.find((seed) => rhythmCropKey(seed) === rhythmCropKey(crop));
+    const sameCrop = existingCurrent.filter((seed) => String(seed.crop || "").trim().toLowerCase() === String(crop.crop || "").trim().toLowerCase());
+    const existing = exact || (sameCrop.length === 1 ? sameCrop[0] : null);
+    if (existing) {
+      const result = await updateProjectSeed({ userId, projectId, seedId: existing.id, patch: crop, subscription });
+      if (result?.seed) {
+        retainedSeedIds.add(existing.id);
+        savedSeeds.push(result.seed);
+        cropsUpdated += 1;
+      }
+    } else {
+      const result = await createProjectSeed({ userId, projectId, seed: crop, subscription });
+      if (result?.seed) {
+        savedSeeds.push(result.seed);
+        cropsAdded += 1;
+      }
+    }
+  }
+
+  if (plan.replaceCurrentCrops) {
+    for (const seed of existingCurrent) {
+      if (retainedSeedIds.has(seed.id)) continue;
+      if (desiredKeys.has(rhythmCropKey(seed))) continue;
+      const result = await updateProjectSeed({
+        userId,
+        projectId,
+        seedId: seed.id,
+        patch: { plantingLocation: "finished", status: "finished" },
+        subscription
+      });
+      if (result?.seed) cropsFinished += 1;
+    }
+  }
+
+  const existingReminders = await listProjectReminders({ userId, projectId });
+  const reminderMarkers = new Map((existingReminders || []).filter((item) => item.note).map((item) => [item.note, item]));
+  const savedReminders = [];
+  let remindersAdded = 0;
+  let remindersUpdated = 0;
+  for (const reminder of plan.reminders) {
+    const normalized = {
+      ...reminder,
+      dueAt: localDueAt(reminder.dueDate, reminder.dueTime, input.timezoneOffsetMinutes),
+      timezone: cleanOptionalText(input.timezone, 80)
+    };
+    delete normalized.dueTime;
+    const existing = reminderMarkers.get(reminder.note);
+    if (existing) {
+      const result = await updateProjectReminder({
+        userId,
+        projectId,
+        reminderId: existing.id,
+        patch: { ...normalized, status: "active" },
+        subscription
+      });
+      if (result?.reminder) {
+        savedReminders.push(result.reminder);
+        remindersUpdated += 1;
+      }
+    } else {
+      const result = await createProjectReminder({ userId, projectId, reminder: normalized, subscription });
+      if (result?.reminder) {
+        savedReminders.push(result.reminder);
+        remindersAdded += 1;
+      }
+    }
+  }
+
+  const finalSeeds = await listProjectSeeds({ userId, projectId });
+  return {
+    status: "saved",
+    project: updatedProject,
+    seeds: savedSeeds,
+    reminders: savedReminders,
+    setup: rhythmSetupStatus({ profile: updatedProject?.systemProfile || {}, seeds: finalSeeds || [] }),
+    missing: plan.missing,
+    cropsAdded,
+    cropsUpdated,
+    cropsFinished,
+    remindersAdded,
+    remindersUpdated
+  };
+}
+
 export async function deleteProjectSeed({ userId, projectId, seedId, subscription = {} } = {}) {
   const seeds = await listProjectSeeds({ userId, projectId });
   if (!seeds) return null;
@@ -2843,6 +2950,8 @@ function normalizeSystemProfile(profile = {}, type) {
     experienceMode: normalizeExperienceMode(profile.experienceMode),
     onboardingComplete: Boolean(profile.onboardingComplete),
     onboardingCompletedAt: cleanOptionalText(profile.onboardingCompletedAt, 30),
+    lastMaintenanceDate: cleanOptionalText(profile.lastMaintenanceDate, 20),
+    rhythmConfiguredAt: cleanOptionalText(profile.rhythmConfiguredAt, 30),
     notes: profile.notes ? String(profile.notes).slice(0, 2000) : ""
   };
 }

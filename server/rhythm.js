@@ -1,3 +1,5 @@
+import { rhythmSetupStatus } from "./rhythmSetup.js";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function buildRhythmOverview({ project, reminders = [], seeds = [], readings = [], seedDashboard = null, now = new Date() } = {}) {
@@ -83,7 +85,19 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     projectId: project?.id || null,
     generatedAt: new Date(now).toISOString(),
     profileReady: Boolean(profile.growZone && profile.systemStage),
-    profile: { growZone: profile.growZone || null, systemStage: profile.systemStage || null, location: profile.location || null },
+    profile: {
+      growZone: profile.growZone || null,
+      systemStage: profile.systemStage || null,
+      location: profile.location || null,
+      nutrientStage: profile.nutrientStage || null,
+      batchStartDate: profile.batchStartDate || null,
+      currentTankLevel: profile.currentTankLevel || null,
+      expectedRefillWindow: profile.expectedRefillWindow || null,
+      preferredTaskDay: profile.preferredTaskDays?.[0] || null,
+      preferredTaskTime: profile.preferredTaskTime || null,
+      lastMaintenanceDate: profile.lastMaintenanceDate || null
+    },
+    setup: rhythmSetupStatus({ profile, seeds }),
     summary: {
       nowCount: nowTasks.filter((item) => !item.nextUp).length,
       overdueCount: nowTasks.filter((item) => item.overdue).length,
