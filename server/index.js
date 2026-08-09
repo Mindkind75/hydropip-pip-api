@@ -912,7 +912,7 @@ app.patch("/api/pip/projects/:projectId/reminders/:reminderId", async (req, res,
   try {
     const result = await updateProjectReminder({ userId: req.pipUser.id, projectId: req.params.projectId, reminderId: req.params.reminderId, patch: req.body?.patch || req.body || {}, subscription: req.pipSubscription });
     if (!result) return res.status(404).json({ error: "project_not_found" });
-    res.status(result.status === "subscription_required" ? 402 : result.status === "not_found" ? 404 : 200).json(result);
+    res.status(result.status === "subscription_required" ? 402 : result.status === "not_found" ? 404 : ["not_due", "already_completed"].includes(result.status) ? 409 : 200).json(result);
   } catch (error) { next(error); }
 });
 

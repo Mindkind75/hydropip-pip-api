@@ -1916,6 +1916,16 @@ export async function updateProjectReminder({ userId, projectId, reminderId, pat
   const reminders = await listProjectReminders({ userId, projectId });
   const existing = reminders.find((item) => item.id === reminderId);
   if (!existing) return { status: "not_found" };
+  if (patch.status === "completed" && existing.status === "completed") {
+    return { status: "already_completed", message: "This task is already complete.", reminder: existing };
+  }
+  if (patch.status === "completed" && !reminderIsDue(existing)) {
+    return {
+      status: "not_due",
+      message: "This task is scheduled for a future date. Open Planner to reschedule it instead of marking future work complete.",
+      reminder: existing
+    };
+  }
   const saved = {
     ...existing,
     title: patch.title === undefined ? existing.title : String(patch.title || "HydroPip reminder"),
@@ -3294,6 +3304,30 @@ function nextRecurringDate(value, frequency, completedAt) {
   };
   do step(); while (date <= completed);
   return date.toISOString();
+}
+
+function reminderIsDue(reminder, now = new Date()) {
+  const dueDate = String(reminder?.dueDate || "").slice(0, 10);
+  if (dueDate) return dueDate <= dateKeyForTimezone(now, reminder?.timezone);
+  if (!reminder?.dueAt) return true;
+  const due = new Date(reminder.dueAt);
+  return Number.isNaN(due.getTime()) || due <= now;
+}
+
+function dateKeyForTimezone(value, timezone) {
+  const date = value instanceof Date ? value : new Date(value);
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
 }
 
 function subscriptionRequired(message) {

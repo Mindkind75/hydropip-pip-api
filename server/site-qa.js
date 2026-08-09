@@ -210,6 +210,9 @@ assert.match(pipHtml, /seeds\/batch/, "Pip-led onboarding should save seed-pack 
 assert.match(pipHtml, /Your first Rhythm is ready/, "Pip-led onboarding should confirm completion and land on Rhythm");
 for (const view of ["agenda", "day", "week", "month", "year"]) assert.match(pipHtml, new RegExp(`data-calendar-view=["']${view}["']`), `Pip Calendar is missing its ${view} view`);
 assert.match(pipHtml, /function renderCalendar/, "Pip Calendar is not rendered from Planner tasks");
+assert.match(pipHtml, /item\.canComplete/, "Rhythm should not offer Done for future tasks");
+assert.match(pipHtml, /taskIsDueToday/, "Planner should not offer Done for future tasks");
+assert.match(pipHtml, /Scheduled<\/span>/, "Future Rhythm tasks should be labeled Scheduled");
 assert.match(pipHtml, /function renderCalendarWeek/, "Pip Calendar is missing weekly task grouping");
 assert.match(pipHtml, /plannerReminders/, "Pip Planner and Calendar should share one reminder collection");
 assert.match(pipHtml, /id=["']pipReturnTop["']/, "Pip needs a return-to-navigation handle on contained scroll views");

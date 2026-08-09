@@ -2,6 +2,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function buildRhythmOverview({ project, reminders = [], seeds = [], readings = [], seedDashboard = null, now = new Date() } = {}) {
   const today = startOfDay(now);
+  const endOfToday = new Date(today.getTime() + DAY_MS - 1);
   const profile = project?.systemProfile || {};
   const activeReminders = reminders.filter((item) => item?.status === "active");
   const datedReminders = activeReminders.map((item) => ({ item, date: reminderDate(item) })).filter((entry) => entry.date).sort((a, b) => a.date - b.date);
@@ -12,11 +13,12 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     category: item.category || "general",
     dueAt: date.toISOString(),
     overdue: date < today,
+    canComplete: date <= endOfToday,
     repeat: item.repeat?.frequency || null
   }));
   if (!nowTasks.length && datedReminders[0]) {
     const { item, date } = datedReminders[0];
-    nowTasks.push({ id: item.id, title: item.title, category: item.category || "general", dueAt: date.toISOString(), overdue: false, repeat: item.repeat?.frequency || null, nextUp: true });
+    nowTasks.push({ id: item.id, title: item.title, category: item.category || "general", dueAt: date.toISOString(), overdue: false, canComplete: date <= endOfToday, repeat: item.repeat?.frequency || null, nextUp: true });
   }
 
   const inventory = seeds.map((seed) => ({ ...seed, packsOnHand: ownedPackCount(seed) })).filter((seed) => seed.packsOnHand > 0);

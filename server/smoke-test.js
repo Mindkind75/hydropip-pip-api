@@ -96,6 +96,7 @@ const rhythmFixture = buildRhythmOverview({
   project: { id: "project-rhythm", systemProfile: { growZone: "9", systemStage: "resetting", nutrientStage: "growing", expectedRefillWindow: "late August" } },
   reminders: [
     { id: "due", title: "Weekly system check", category: "maintenance", dueAt: "2026-08-08T13:00:00Z", status: "active" },
+    { id: "tomorrow", title: "Tomorrow system check", category: "maintenance", dueAt: "2026-08-10T13:00:00Z", status: "active" },
     { id: "later", title: "Succession review", category: "grow", dueAt: "2026-08-20T13:00:00Z", status: "active" }
   ],
   seeds: [
@@ -109,6 +110,8 @@ const rhythmFixture = buildRhythmOverview({
   seedDashboard: { groups: { plantNow: [{ crop: "Green Bean", reason: "Fits Zone 9 now.", bestSowDate: "2026-08-09", method: "direct_sow" }], startNext: [{ crop: "Leaf lettuce", reason: "Start the next succession.", bestSowDate: "2026-08-16", method: "protected_start" }], hold: [] } }
 });
 assert.equal(rhythmFixture.summary.overdueCount, 1);
+assert.equal(rhythmFixture.nowTasks.find((item) => item.id === "due").canComplete, true);
+assert.equal(rhythmFixture.nowTasks.find((item) => item.id === "tomorrow").canComplete, false);
 assert.equal(rhythmFixture.sowNow[0].packsOnHand, 2);
 assert.equal(rhythmFixture.comingNext.some((item) => item.sourceId === "lettuce-vault"), true);
 assert.equal(rhythmFixture.transferChecks.some((item) => item.seedId === "lettuce"), true);
@@ -747,6 +750,13 @@ const readySchedule = await seedProjectDefaults({
 assert.equal(readySchedule.status, "already_ready");
 assert.equal(readySchedule.addedCount, 0);
 const completedStarter = savedSchedule.find((item) => item.note === "hydropip_weekly_v2");
+await updateProjectReminder({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  reminderId: completedStarter.id,
+  patch: { dueDate: new Date().toISOString().slice(0, 10), dueAt: new Date().toISOString(), timezone: "UTC" },
+  subscription: { active: true }
+});
 const completedRecurring = await updateProjectReminder({
   userId: "test-user",
   projectId: paidProject.project.id,
@@ -757,6 +767,15 @@ const completedRecurring = await updateProjectReminder({
 assert.equal(completedRecurring.reminder.status, "active");
 assert.equal(completedRecurring.reminder.completionCount, 1);
 assert.equal(new Date(completedRecurring.reminder.dueAt) > new Date(completedRecurring.reminder.lastCompletedAt), true);
+const blockedFutureCompletion = await updateProjectReminder({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  reminderId: completedStarter.id,
+  patch: { status: "completed" },
+  subscription: { active: true }
+});
+assert.equal(blockedFutureCompletion.status, "not_due");
+assert.equal(blockedFutureCompletion.reminder.completionCount, 1);
 await updateProjectReminder({
   userId: "test-user",
   projectId: paidProject.project.id,
