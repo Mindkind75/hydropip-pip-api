@@ -74,7 +74,7 @@ Yes. Begin with fewer towers if needed, leave hose length and an end connector f
 
 ### How is the system cleaned and reset?
 
-At crop turnover, remove plants, recover reusable perlite and vermiculite over a screen, clean pots and hoses, inspect pumps, and reset the towers. Healthy mature plants may be moved to suitable raised beds when climate, crop, and root condition allow.
+At crop turnover, remove plants, recover reusable perlite and vermiculite over a screen, clean pots and hoses, inspect pumps, and reset the towers. Healthy mature plants with productive life remaining may be moved to suitable raised beds when climate, crop, and root condition allow. Keep a small root ball intact when practical, water immediately, and protect the transplant briefly from harsh sun or wind. Harvest or compost bolting, exhausted, diseased, or unsuitable plants.
 
 ## Guidance basis
 

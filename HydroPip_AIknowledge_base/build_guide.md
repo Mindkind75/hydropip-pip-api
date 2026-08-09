@@ -45,6 +45,14 @@ The grow media is a reusable 50/50 perlite and vermiculite blend. Perlite adds a
 
 At reset, shake plants and roots over a storage tub with rabbit wire or hardware cloth folded around the edges as a grate. The media falls through and the plant debris stays above. Remove roots and debris, recover as much media as possible, and reuse it for the next planting cycle.
 
+## Planting And Tower Turnover
+
+Direct-sowing into the tower media is the normal HydroPip method. Sow leafy greens, herbs, and other fast-germinating crops directly into the reusable 50/50 perlite and vermiculite blend. A small pocket or light cover of finer vermiculite can help a seed remain moist during germination.
+
+Separate seedling starts are optional. They can be useful for slow, expensive, weather-sensitive, or warm-season crops such as tomatoes, peppers, and eggplant. When starting separately, use a small hydroponic plug or a cell of perlite and vermiculite that can move with the roots intact. Fully settle the root ball into moist tower media. Do not make separate starter plugs a required purchase for the standard HydroPip grow.
+
+At turnover, harvest what is ready and assess the remaining plants. Healthy mature plants that can continue producing may be moved into suitable raised beds. Recover most of the reusable media, but leave a small root ball intact when practical, water the raised bed immediately, and give the transplant temporary shade or wind protection while it establishes. Bolting, exhausted, diseased, or unsuitable plants should be harvested or composted instead of moved.
+
 ## What Makes HydroPip Different
 
 HydroPip intentionally avoids return plumbing and nutrient recirculation through the towers. Many consumer recirculating systems add problems: filters, root debris in water, algae, pump strain, difficult cleaning, and more places for leaks. HydroPip instead focuses on giving each tower the right amount of nutrient solution a few times per day.

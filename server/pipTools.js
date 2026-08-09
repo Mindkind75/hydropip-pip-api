@@ -360,7 +360,7 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] },
     return `${contextLead}For testing, start with pH and EC/TDS.\n- pH meter: https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20\n- EC/TDS meter: ${affiliateLinks.ecTdsMeter}\n- pH calibration solution: ${affiliateLinks.phCalibration}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["seed", "seeds", "starter plugs", "seed starting"])) {
-    return `${contextLead}For seeds, start with leafy greens and herbs while dialing in HydroPip.\n- Seeds: ${affiliateLinks.seeds}\n- Later, Pip can use your grow zone for better variety timing.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}Direct-sow most greens and herbs into HydroPip's reusable 50/50 perlite-vermiculite media. Starter plugs are optional for slow, valuable, or weather-sensitive crops such as tomatoes and peppers.\n- Seeds: ${affiliateLinks.seeds}\n- Use a small pocket of finer vermiculite when the seed needs help staying moist.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["ibc cover", "tank cover", "tote cover", "cover"])) {
     return `${contextLead}Cover the IBC to block light and slow algae growth.\n- IBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20\n- Keep lid openings tight around hoses.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
@@ -447,6 +447,9 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   if (/\b(leggy|stretching|stretched|pale seedlings|weak seedlings)\b/.test(q)) {
     return `${contextLead}Leggy seedlings usually need more light or less heat.\n- Move starts into stronger light sooner.\n- Keep airflow gentle but steady.\n- Transplant once roots can hold the 50/50 media without drying out.`;
   }
+  if (/\b(start|starter|starting|sow|sowing|germinate|germinating|plant)\b/.test(q) && /\b(seed|seeds|seedling|seedlings|starter plug|starter plugs|plug|plugs)\b/.test(q)) {
+    return `${contextLead}Direct-seeding in the tower is the normal HydroPip method.\n- Sow most greens, herbs, and fast-germinating crops in the reusable 50/50 perlite-vermiculite media.\n- Use a small pocket of finer vermiculite if the seed surface dries too quickly.\n- Separate starter plugs are optional for slow, expensive, or weather-sensitive crops such as tomatoes and peppers.\n\nWhich crop are you planting?`;
+  }
   if (/\b(bolt|bolting|going to seed|bitter lettuce)\b/.test(q)) {
     return `${contextLead}Bolting is usually heat, age, or stress.\n- Harvest greens earlier in hot weather.\n- Add shade during peak sun if needed.\n- Replant fast; tower flips are designed to make that easy.`;
   }
@@ -516,8 +519,8 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
   if (q.includes("ibc") || q.includes("tank")) {
     return `${contextLead}Use a 275-gallon IBC only if prior contents are known food-safe or non-hazardous. Make one complete nutrient batch, let the level gradually fall, and prepare a fresh batch when nearly empty. The mixing pump discharges through a secured hose at the top; the second pump feeds the towers. ${hydropipSystem.batchMessage}`;
   }
-  if (/\b(raised bed|raised beds|soil bed|move.*bed|transplant)\b/.test(q)) {
-    return `${contextLead}Yes, that is a HydroPip advantage.\n- When you flip towers, mature plants do not have to be wasted.\n- Healthy larger plants can move into raised beds and keep producing.\n- Shake/recover the perlite-vermiculite media first, then replant the tower pockets.`;
+  if (/\b(raised bed|raised beds|soil bed|move.*(?:bed|soil)|tower turnover|flip(?:ping)? (?:the )?towers?)\b/.test(q)) {
+    return `${contextLead}Yes, that is a HydroPip advantage.\n- At tower turnover, move only healthy plants that still have productive life into a suitable raised bed.\n- Recover most of the reusable media, but leave a small root ball intact when practical.\n- Water immediately and give the transplant brief shade or wind protection while it establishes.\n- Harvest or compost bolting, exhausted, or diseased plants instead.`;
   }
   if (/\b(return plumbing|return line|recirculating|recycle runoff|drain line)\b/.test(q)) {
     return `${contextLead}No return plumbing for the HydroPip build.\n- Feed short timed cycles.\n- Measure runoff to tune duration.\n- Avoid recycling tower runoff back into the IBC; it keeps the system simpler and cleaner.`;
