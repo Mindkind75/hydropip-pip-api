@@ -23,7 +23,9 @@ The working system uses one 275 gallon IBC tote as the nutrient reservoir. Two l
 
 One pump circulates and mixes the IBC. Place it near the bottom, attach correctly sized flexible circulation hose, run the hose to the large top opening, bend it near the opening, and point the outlet back down into the reservoir. Secure the hose to the molded anchor loops beside the opening with a small bungee, rope, or reusable strap. Aim it for visible circulation without splashing outside. Keep this circulation hose separate from the main tower feed hose. It does not carry tower runoff, and no drilling or permanent IBC wall plumbing is required.
 
-The second pump sends nutrient solution to the tower feed hose. The two pumps should be controlled separately with an outdoor two-outlet smart plug or timer.
+The second pump sends nutrient solution to the tower feed hose. Control the pumps separately with an outdoor two-outlet smart plug or timer, but schedule them as paired events. Run the internal mixing pump for 15 minutes immediately before each tower feed, then run the feed pump for its calibrated duration. For example: mix from 6:45-7:00 AM, then feed from 7:00-7:05 AM. Any added midday feed also gets its own 15-minute pre-mix.
+
+Set it like this: **MIX 15 min -> FEED for the calibrated duration.** After preparing a fresh nutrient batch, continue mixing until evenly blended; that initial batch mixing is separate from the routine pre-feed cycle.
 
 Required mixing-pump circulation parts are the internal mixing pump, correctly sized flexible top-discharge hose, a hose clamp or pump adapter when required, and a small bungee/rope/reusable strap. An outlet elbow and pump prefilter are optional. Tower runoff is not plumbed back to the IBC.
 

@@ -61,7 +61,9 @@ When the IBC is nearly empty, stop the pumps; inspect the reservoir, pump intake
 
 ## Feed Schedule Starting Point
 
-Feed timing depends on crop, tower count, media moisture, heat, wind, sun, pump duration, and observed runoff. Start with short daytime windows, measure one representative tower, and tune for light runoff during calibration and minimal excess after tuning.
+Feed timing depends on crop, tower count, media moisture, heat, wind, sun, pump duration, and observed runoff. Start with short daytime windows, measure one representative tower, and tune for light runoff during calibration and minimal excess after tuning. Program the internal mixing pump for the 15 minutes immediately before every feed-pump event. For example: mix 6:45-7:00 AM, then feed 7:00-7:05 AM. If another feed window is added, pair it with another 15-minute pre-mix.
+
+Set it like this: **MIX 15 min -> FEED for the calibrated duration.**
 
 ## Internal Mixing Pump
 

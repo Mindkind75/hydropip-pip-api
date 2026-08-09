@@ -36,6 +36,7 @@ const cases = [
   { q: "What pH should I target for leafy greens?", type: "free", must: ["pH"], avoid: ["Pip Pro"] },
   { q: "My EC is super high and leaf tips are burned. What now?", type: "free", must: ["EC"], avoid: ["Tell me the step"] },
   { q: "How often should the mixing pump run after I add nutrients?", type: "free", must: ["evenly blended", "secured hose"], avoid: ["Pip Pro", "45 minutes"] },
+  { q: "Can you give me the schedule to put the timers on?", type: "free", must: ["mixing pump", "15 minutes", "feed pump", "Set it like this"], avoid: ["B091FXH2FR", "Amazon"] },
   { q: "Only one small area of my IBC is moving when the mixing pump runs.", type: "free", must: ["reposition", "top"], avoid: ["return loop"] },
   { q: "The mixing hose is splashing water outside the IBC.", type: "free", must: ["down", "secure", "No drilling"], avoid: ["must drill"] },
   { q: "I am starting a fresh 275 gallon batch for seeds. How much nutrient do I add?", type: "free", must: ["300", "150", "magnesium sulfate"], avoid: ["top off"] },

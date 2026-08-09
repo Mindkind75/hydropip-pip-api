@@ -264,6 +264,13 @@ export function getWizardSchema() {
   return setupWizardSchema;
 }
 
+function formatTimerEnd(hour, minute, durationMinutes) {
+  const totalMinutes = (hour * 60) + minute + durationMinutes;
+  const displayHour = Math.floor(totalMinutes / 60) % 12 || 12;
+  const displayMinute = totalMinutes % 60;
+  return `${displayHour}:${String(displayMinute).padStart(2, "0")}`;
+}
+
 export function highConfidenceAnswer(question = "", retrieval = { matches: [] }, profile = {}) {
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
@@ -290,6 +297,11 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] },
       return `${contextLead}A ${available} space is too tight for the full ${plan.towerCount}-tower HydroPip working layout, which plans around ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft.\n- Reduce tower count, move the IBC outside that rectangle, or choose another location.\n- Keep service access, sun, drainage, water, GFCI power, and utility clearance intact.\n- Recalculate in Track My Build: ${trackUrl}`;
     }
     return `${contextLead}Plan about ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft for ${plan.towerCount} HydroPip tower${plan.towerCount === 1 ? "" : "s"}, including the IBC, mature foliage, and a usable service path.\n- Choose level drainage with ${plan.directSunHours}+ hours of useful sun, nearby water, and GFCI power.\n- Keep about ${plan.servicePathFeet} ft to reach the IBC, pumps, hoses, and tower backs; call 811 before driving pipe.\n- You can upload a wide yard photo plus measurements, or check Track My Build: ${trackUrl}`;
+  }
+
+  if (/\b(timer|timers|smart plug|smart plugs|outlet|outlets)\b/.test(q) && /\b(schedule|set|program|time|times|timing|run|cycle)\b/.test(q)) {
+    const feedMinutes = Math.max(1, Number(profile?.feedDurationMinutes) || 5);
+    return `${contextLead}Program the two smart-plug outlets as paired cycles: run the internal mixing pump for 15 minutes immediately before every tower feed, then run the feed pump for its calibrated duration.\n- Morning example: mix 6:45-7:00 AM; feed 7:00-${formatTimerEnd(7, 0, feedMinutes)} AM.\n- Afternoon example: mix 4:45-5:00 PM; feed 5:00-${formatTimerEnd(5, 0, feedMinutes)} PM.\n- If you add a midday feed, add its own 15-minute pre-mix too. Tune only the feed duration/frequency from media moisture and runoff.\n\nSet it like this: MIX 15 min -> FEED ${feedMinutes} min, before every feed window.`;
   }
 
   if (/\b(mixing pump|circulation pump|mixing hose|circulation hose|top discharge)\b/.test(q) && /\b(only one|small area|one area|weak circulation|barely moving|not circulating)\b/.test(q)) {
@@ -478,7 +490,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}HydroPip works best when plants get strong, consistent light without cooking the reservoir.\n- Greens usually like bright sun with heat management.\n- Add afternoon shade in brutal heat.\n- Keep the IBC covered so light does not feed algae.`;
   }
   if (/\b(mixing pump|circulation pump|circulate|mixing)\b/.test(q) && /\b(how often|after|nutrient|nutrients|run)\b/.test(q)) {
-    return `${contextLead}For the internal mixing pump:\n- Pull from near the bottom and discharge through a secured hose at the top opening.\n- Run before or around feed cycles; after a fresh nutrient mix, circulate until evenly blended.\n- Visible top discharge confirms operation. Tower runoff is not plumbed back to the IBC. pH is useful; EC/TDS is optional optimization.`;
+    return `${contextLead}For the internal mixing pump:\n- Pull from near the bottom and discharge through a secured hose at the top opening.\n- For routine operation, run it for 15 minutes immediately before every tower feed.\n- After making a fresh nutrient batch, circulate until evenly blended; that initial mixing is separate from the routine 15-minute pre-feed cycle.\n- Visible top discharge confirms operation. Tower runoff is not plumbed back to the IBC.\n\nSet it like this: MIX 15 min -> FEED for the calibrated duration.`;
   }
   if (/\b(ph|pH)\b/.test(question) && /\b(target|range|should|ideal|leafy|greens|lettuce)\b/.test(q)) {
     return `${contextLead}For leafy greens, use pH as your first guardrail.\n- Aim around 5.8-6.3 as a practical HydroPip range.\n- Circulate until the fresh batch is evenly blended before trusting the reading.\n- Adjust slowly, then retest. EC/TDS is optional optimization.`;
@@ -508,7 +520,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Core HydroPip parts: stackable four-pot sections, an 8-10 foot 1/2-inch galvanized steel support pipe, loose 3/4-inch PVC tee, cinder block, 275-gallon IBC, two pumps, smart plug, hose/tubing, 50/50 perlite-vermiculite, nutrients, and pH/EC tools.\n\nAsk for any item by name and I will give the matching link.`;
   }
   if (q.includes("feed") || q.includes("schedule") || q.includes("runoff")) {
-    return `${contextLead}Start with timed feeds and tune from runoff.\n- Mild: about 2 feed windows/day.\n- Warm: about 3/day.\n- Hot or mature plants: 4-6 shorter windows.\n\nTell me crop, feed minutes, runoff, pH, and EC/TDS and I will tune it.`;
+    return `${contextLead}Start with timed feeds and tune from runoff.\n- Before every feed, run the internal mixing pump for 15 minutes.\n- Mild: about 2 feed windows/day. Warm: about 3/day. Hot or mature plants: 4-6 shorter windows.\n- Tune feed duration from media moisture and runoff; keep the 15-minute pre-mix paired with each window.\n\nSet it like this: MIX 15 min -> FEED for the calibrated duration.`;
   }
   if (q.includes("build") || q.includes("step") || q.includes("setup")) {
     return `${contextLead}Build order: call 811 or visit https://call811.com/, wait for utility markings, identify private lines, then anchor an 8-10 foot, 1/2-inch galvanized steel support pipe. Level the cinder block, stack the four-pot planters, use the 3/4-inch PVC tee as a loose top hose guide, add feed tubes and diffusers, install two IBC pumps, then calibrate timed feeds by runoff. Use the 10-foot support in exposed or windier locations for deeper anchoring.`;
