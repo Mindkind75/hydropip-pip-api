@@ -195,6 +195,8 @@ for (const id of ["pipProOnboardingDialog", "pipProOnboardingForm", "proFocusPan
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing progressive Pro control ${id}`);
 }
 for (const mode of ["guided", "standard", "detailed"]) assert.match(pipHtml, new RegExp(`value=["']${mode}["']`), `Pip Pro is missing ${mode} guidance mode`);
+assert.match(pipHtml, /id=["']proExperienceModeHelp["']/, "Guidance mode needs an immediate explanation");
+assert.match(pipHtml, /guided:1,standard:3,detailed:4/, "Guidance modes should visibly change Focus Now density");
 assert.match(pipHtml, /stageFocus/, "Pip Pro should promote tools based on the current grow stage");
 assert.match(pipHtml, /function focusProPage/, "Focus Now actions should align the selected notebook panel in view");
 assert.doesNotMatch(pipHtml, /proView\.scrollTo\(\{top:proWorkspace\.offsetTop/, "Focus Now actions must not jump to the workspace header");
@@ -414,6 +416,7 @@ assert.match(wixPipBridge, /formFactor === "Desktop" \? 760 : 640/, "Wix Pip nee
 assert.match(wixPipBridge, /pip\.height = fallbackHeight/, "Wix Pip should apply its fallback before asynchronous viewport measurement");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
+assert.match(agentSource, /Honor the saved project profile experienceMode/, "Pip responses should honor the saved guidance mode");
 assert.match(agentSource, /stripSummaryLabel/, "Pip should remove TL;DR-style labels from replies");
 assert.equal((agentSource.match(/store:\s*false/g) || []).length >= 2, true, "Pip should disable OpenAI Responses application-state storage");
 assert.match(agentSource, /input: \[\.\.\.responseInput, \.\.\.\(response\.output \|\| \[\]\), \.\.\.toolResults\]/, "Stored-disabled tool continuations must replay the original image, response output, and tool results");
