@@ -405,6 +405,7 @@ export async function searchAdminMembers({ q = "", limit = 25 } = {}) {
 }
 
 function summarizeCommandCenter({ users, projects, reviews, conversions, usage, betaApplications, betaFeedback, storageMode, days }) {
+  const usageConfig = getPipUsageConfig();
   const pageViews = conversions.filter((event) => event.eventName === "page_view");
   const subscriberIds = new Set([
     ...usage.filter((event) => event.sessionTier === "pip_pro").map((event) => event.userId),
@@ -456,6 +457,8 @@ function summarizeCommandCenter({ users, projects, reviews, conversions, usage, 
     pipUsage: {
       events: usage.length,
       creditsUsed: usedCredits,
+      globalMonthlyLimit: usageConfig.globalMonthlyCredits,
+      globalMonthlyPercent: usageConfig.globalMonthlyCredits > 0 ? Number(((usedCredits / usageConfig.globalMonthlyCredits) * 100).toFixed(2)) : null,
       estimatedCostUsd: Number(estimatedCost.toFixed(4)),
       subscriberEvents: usage.filter((event) => event.sessionTier === "pip_pro").length,
       freeMemberEvents: usage.filter((event) => event.userId && event.sessionTier !== "pip_pro").length,
