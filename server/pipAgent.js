@@ -1305,6 +1305,7 @@ function formatAnswerContext(context = {}) {
     ["GFCI power access", profile.powerAccess],
     ["Service access", profile.serviceAccess],
     ["System stage", profile.systemStage],
+    ["Crop rhythm stage", profile.rhythmStage],
     ["Planting date", profile.plantingDate],
     ["Tower count", profile.towerCount],
     ["Plant sites", profile.plantSites],

@@ -1,3 +1,5 @@
+import { getCropRhythmEstimate } from "./plantingCalendar.js";
+
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const ACTIVE_GROW_LOCATIONS = new Set(["hydropip_tower", "nursery_for_hydropip"]);
 const INACTIVE_SEED_STATUSES = new Set(["on_hand", "harvested", "failed", "needs_reorder", "finished"]);
@@ -7,10 +9,11 @@ export function buildRhythmSetupPlan({ profile = {}, input = {}, now = new Date(
   const preferredTaskTime = cleanTime(input.preferredTaskTime || profile.preferredTaskTime) || "09:00";
   const batchStartDate = cleanDate(input.batchStartDate ?? profile.batchStartDate);
   const lastMaintenanceDate = cleanDate(input.lastMaintenanceDate ?? profile.lastMaintenanceDate);
-  const crops = normalizeCurrentCrops(input.currentCrops);
+  const rhythmStage = cleanRhythmStage(input.rhythmStage ?? profile.rhythmStage);
+  const crops = normalizeCurrentCrops(input.currentCrops, { rhythmStage, now });
   const profilePatch = {
     growZone: cleanText(input.growZone ?? profile.growZone, 12),
-    systemStage: cleanStage(input.systemStage ?? profile.systemStage),
+    rhythmStage,
     nutrientStage: cleanNutrientStage(input.nutrientStage ?? profile.nutrientStage),
     batchStartDate,
     currentTankLevel: cleanText(input.currentTankLevel ?? profile.currentTankLevel, 80),
@@ -52,9 +55,34 @@ export function buildRhythmSetupPlan({ profile = {}, input = {}, now = new Date(
       notify: true
     });
   }
+  for (const crop of crops) {
+    const marker = rhythmReminderMarker(crop);
+    if (crop.expectedHarvestDate) {
+      reminders.push({
+        title: `Review ${crop.crop} harvest window`,
+        note: `${marker}:harvest`,
+        category: "harvest",
+        dueDate: crop.expectedHarvestDate,
+        dueTime: preferredTaskTime,
+        repeat: null,
+        notify: true
+      });
+    }
+    if (crop.succession && crop.nextSuccessionDate) {
+      reminders.push({
+        title: `Succession sow ${crop.crop}`,
+        note: `${marker}:succession`,
+        category: "grow",
+        dueDate: crop.nextSuccessionDate,
+        dueTime: preferredTaskTime,
+        repeat: null,
+        notify: true
+      });
+    }
+  }
   const missing = [];
   if (!profilePatch.growZone) missing.push("grow zone");
-  if (!profilePatch.systemStage) missing.push("system stage");
+  if (!profilePatch.rhythmStage) missing.push("crop stage");
   if (!crops.length) missing.push("currently planted crops");
   if (!batchStartDate) missing.push("last tank fill or batch start date");
   if (!profilePatch.nutrientStage) missing.push("nutrient stage");
@@ -74,7 +102,7 @@ export function rhythmSetupStatus({ profile = {}, seeds = [] } = {}) {
   const currentCrops = seeds.filter(isCurrentGrowSeed);
   const missing = [];
   if (!profile.growZone) missing.push("grow zone");
-  if (!profile.systemStage) missing.push("system stage");
+  if (!profile.rhythmStage && !currentCrops.some((seed) => cleanRhythmStage(seed.status))) missing.push("crop stage");
   if (!currentCrops.length) missing.push("currently planted crops");
   if (!profile.batchStartDate) missing.push("last tank fill or batch start date");
   if (!profile.nutrientStage) missing.push("nutrient stage");
@@ -98,7 +126,7 @@ export function isCurrentGrowSeed(seed = {}) {
     && !INACTIVE_SEED_STATUSES.has(String(seed.status || "").toLowerCase());
 }
 
-function normalizeCurrentCrops(value) {
+function normalizeCurrentCrops(value, { rhythmStage, now } = {}) {
   const items = Array.isArray(value) ? value : [];
   const output = [];
   const seen = new Set();
@@ -109,9 +137,20 @@ function normalizeCurrentCrops(value) {
       crop,
       variety: cleanText(item?.variety, 120),
       sowDate: cleanDate(item?.sowDate),
-      status: cleanCropStatus(item?.status),
-      plantingLocation: cleanGrowLocation(item?.plantingLocation)
+      status: cleanCropStatus(item?.status || rhythmStage),
+      plantingLocation: cleanGrowLocation(item?.plantingLocation),
+      succession: item?.succession !== false
     };
+    const estimate = getCropRhythmEstimate({ crop, stage: normalized.status, sowDate: normalized.sowDate, date: now });
+    if (estimate) {
+      normalized.successionIntervalDays = estimate.successionDays;
+      normalized.expectedHarvestDate = estimate.expectedHarvestStart;
+      normalized.expectedHarvestEnd = estimate.expectedHarvestEnd;
+      normalized.nextSuccessionDate = normalized.succession ? estimate.successionDate : null;
+      normalized.timingSource = estimate.estimateBasis === "saved_sow_date" ? "hydropip_crop_sow_date" : "hydropip_crop_stage_estimate";
+      normalized.timingEstimateAsOf = estimate.estimateAsOf;
+      normalized.timingEstimateBasis = estimate.estimateBasis;
+    }
     const key = rhythmCropKey(normalized);
     if (seen.has(key)) continue;
     seen.add(key);
@@ -122,16 +161,16 @@ function normalizeCurrentCrops(value) {
 
 function cleanCropStatus(value) {
   const status = String(value || "growing").toLowerCase();
-  return ["sown", "germinating", "sprouted", "growing"].includes(status) ? status : "growing";
+  return ["sown", "germinating", "sprouted", "growing", "harvest_ready", "harvesting"].includes(status) ? status : "growing";
 }
 
 function cleanGrowLocation(value) {
   return value === "nursery_for_hydropip" ? value : "hydropip_tower";
 }
 
-function cleanStage(value) {
+function cleanRhythmStage(value) {
   const stage = String(value || "").toLowerCase();
-  return ["planning", "building", "starting", "testing", "growing", "harvesting", "resetting", "improving"].includes(stage) ? stage : null;
+  return ["sown", "germinating", "sprouted", "growing", "harvest_ready", "harvesting"].includes(stage) ? stage : null;
 }
 
 function cleanNutrientStage(value) {
@@ -182,4 +221,8 @@ export function localDueAt(dueDate, dueTime, timezoneOffsetMinutes = 0) {
   if (Number.isNaN(local.getTime())) return null;
   local.setTime(local.getTime() + (Number(timezoneOffsetMinutes || 0) * 60 * 1000));
   return local.toISOString();
+}
+
+export function rhythmReminderMarker(crop = {}) {
+  return `hydropip_rhythm_crop:${rhythmCropKey(crop).replace(/[^a-z0-9|]+/g, "_")}`;
 }

@@ -57,7 +57,7 @@ import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
 import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
-import { getSeedPlanningDashboard, getSeedSowRecommendation, getZonePlantingGuidance, seedPlanReminders } from "./plantingCalendar.js";
+import { getCropRhythmEstimate, getSeedPlanningDashboard, getSeedSowRecommendation, getZonePlantingGuidance, seedPlanReminders } from "./plantingCalendar.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { feedbackPortfolioInsights, heuristicFeedbackAnalysis } from "./feedbackTriage.js";
 import { parseSeedPackInventory } from "./seedInventory.js";
@@ -182,18 +182,37 @@ const freeRhythmGate = await askPip({
 });
 assert.equal(freeRhythmGate.subscriptionRequired, true);
 assert.equal(freeRhythmGate.upgradeCta.label, "See Pip Pro");
+const lettuceStageEstimate = getCropRhythmEstimate({
+  crop: "Buttercrunch lettuce",
+  stage: "sprouted",
+  date: "2026-08-09"
+});
+assert.equal(lettuceStageEstimate.cropId, "lettuce");
+assert.equal(lettuceStageEstimate.sowDateEstimated, true);
+assert.match(lettuceStageEstimate.expectedHarvestStart, /^2026-\d{2}-\d{2}$/);
+assert.equal(lettuceStageEstimate.successionDays, 14);
+const tomatoDatedEstimate = getCropRhythmEstimate({
+  crop: "Cherry tomato",
+  stage: "growing",
+  sowDate: "2026-06-01",
+  date: "2026-08-09"
+});
+assert.equal(tomatoDatedEstimate.cropId, "tomato");
+assert.equal(tomatoDatedEstimate.sowDateEstimated, false);
+assert.equal(tomatoDatedEstimate.estimateBasis, "saved_sow_date");
 const undatedRhythmPlan = buildRhythmSetupPlan({
   profile: { growZone: "9", systemStage: "growing" },
-  input: { currentCrops: [{ crop: "Lettuce" }], nutrientStage: "growing", currentTankLevel: "half full" },
+  input: { rhythmStage: "growing", currentCrops: [{ crop: "Lettuce", succession: false }], nutrientStage: "growing", currentTankLevel: "half full" },
   now: new Date("2026-08-09T12:00:00Z")
 });
-assert.equal(undatedRhythmPlan.reminders.length, 0);
+assert.equal(undatedRhythmPlan.reminders.length, 1);
+assert.match(undatedRhythmPlan.reminders[0].title, /harvest window/);
 assert.equal(undatedRhythmPlan.missing.includes("last tank fill or batch start date"), true);
 assert.equal(undatedRhythmPlan.missing.includes("last maintenance date"), true);
 const datedRhythmPlan = buildRhythmSetupPlan({
   input: {
     growZone: "9",
-    systemStage: "growing",
+    rhythmStage: "sprouted",
     currentCrops: [{ crop: "Lettuce", sowDate: "2026-08-01" }, { crop: "Lettuce", sowDate: "2026-08-01" }],
     batchStartDate: "2026-08-02",
     nutrientStage: "growing",
@@ -205,7 +224,11 @@ const datedRhythmPlan = buildRhythmSetupPlan({
   now: new Date("2026-08-09T12:00:00Z")
 });
 assert.equal(datedRhythmPlan.currentCrops.length, 1);
-assert.equal(datedRhythmPlan.reminders.length, 3);
+assert.equal(datedRhythmPlan.reminders.length, 5);
+assert.equal(datedRhythmPlan.currentCrops[0].status, "sprouted");
+assert.match(datedRhythmPlan.currentCrops[0].expectedHarvestDate, /^2026-\d{2}-\d{2}$/);
+assert.match(datedRhythmPlan.currentCrops[0].nextSuccessionDate, /^2026-\d{2}-\d{2}$/);
+assert.equal(Object.hasOwn(datedRhythmPlan.profilePatch, "systemStage"), false);
 assert.equal(datedRhythmPlan.ready, true);
 assert.equal(
   assessAnswerRelevance(
@@ -759,13 +782,13 @@ const rhythmSetupProject = await createProject({
   user: { id: "test-user" },
   type: "crop_schedule",
   title: "Rhythm setup test",
-  systemProfile: { towerCount: 4, reservoirGallons: 275 },
+  systemProfile: { towerCount: 4, reservoirGallons: 275, systemStage: "growing" },
   subscription: { active: true, plan: "pip_pro" }
 });
 const rhythmSetupInput = {
   growZone: "9",
-  systemStage: "growing",
-  currentCrops: [{ crop: "Lettuce", variety: "Buttercrunch", sowDate: "2026-08-01" }],
+  rhythmStage: "sprouted",
+  currentCrops: [{ crop: "Lettuce", variety: "Buttercrunch", sowDate: "2026-08-01", succession: true }],
   batchStartDate: "2026-08-02",
   nutrientStage: "growing",
   currentTankLevel: "three quarters full",
@@ -784,7 +807,7 @@ const firstRhythmSave = await saveProjectRhythmSetup({
 });
 assert.equal(firstRhythmSave.status, "saved");
 assert.equal(firstRhythmSave.cropsAdded, 1);
-assert.equal(firstRhythmSave.remindersAdded, 3);
+assert.equal(firstRhythmSave.remindersAdded, 5);
 assert.equal(firstRhythmSave.setup.ready, true);
 const secondRhythmSave = await saveProjectRhythmSetup({
   userId: "test-user",
@@ -795,21 +818,37 @@ const secondRhythmSave = await saveProjectRhythmSetup({
 assert.equal(secondRhythmSave.cropsAdded, 0);
 assert.equal(secondRhythmSave.cropsUpdated, 1);
 assert.equal(secondRhythmSave.remindersAdded, 0);
-assert.equal(secondRhythmSave.remindersUpdated, 3);
+assert.equal(secondRhythmSave.remindersUpdated, 5);
 const varietyRefresh = await saveProjectRhythmSetup({
   userId: "test-user",
   projectId: rhythmSetupProject.project.id,
   input: {
     ...rhythmSetupInput,
-    currentCrops: [{ crop: "Lettuce", variety: "Red Sails", sowDate: "2026-08-01" }]
+    currentCrops: [{ crop: "Lettuce", variety: "Red Sails", sowDate: "2026-08-01", succession: true }]
   },
   subscription: { active: true }
 });
 assert.equal(varietyRefresh.cropsAdded, 0);
 assert.equal(varietyRefresh.cropsUpdated, 1);
 assert.equal(varietyRefresh.cropsFinished, 0);
+assert.equal(varietyRefresh.remindersAdded, 2);
+assert.equal(varietyRefresh.remindersRemoved, 2);
 assert.equal((await listProjectSeeds({ userId: "test-user", projectId: rhythmSetupProject.project.id })).filter((item) => item.plantingLocation === "hydropip_tower").length, 1);
-assert.equal((await listProjectReminders({ userId: "test-user", projectId: rhythmSetupProject.project.id })).length, 3);
+assert.equal((await listProjectReminders({ userId: "test-user", projectId: rhythmSetupProject.project.id })).length, 5);
+const noSuccessionRefresh = await saveProjectRhythmSetup({
+  userId: "test-user",
+  projectId: rhythmSetupProject.project.id,
+  input: {
+    ...rhythmSetupInput,
+    currentCrops: [{ crop: "Lettuce", variety: "Red Sails", sowDate: "2026-08-01", succession: false }]
+  },
+  subscription: { active: true }
+});
+assert.equal(noSuccessionRefresh.remindersRemoved, 1);
+assert.equal((await listProjectReminders({ userId: "test-user", projectId: rhythmSetupProject.project.id })).length, 4);
+const savedRhythmProject = (await listProjects({ userId: "test-user" })).find((item) => item.id === rhythmSetupProject.project.id);
+assert.equal(savedRhythmProject.systemProfile.systemStage, "growing");
+assert.equal(savedRhythmProject.systemProfile.rhythmStage, "sprouted");
 
 const savedReminder = await createProjectReminder({
   userId: "test-user",

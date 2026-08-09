@@ -32,7 +32,11 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     status: seed.status || "scheduled",
     plantingLocation: seed.plantingLocation,
     locationLabel: plantingLocationLabel(seed.plantingLocation),
-    sowDate: seed.sowDate || null
+    sowDate: seed.sowDate || null,
+    expectedHarvestDate: seed.expectedHarvestDate || null,
+    expectedHarvestEnd: seed.expectedHarvestEnd || null,
+    nextSuccessionDate: seed.nextSuccessionDate || null,
+    timingEstimated: seed.timingEstimateBasis === "crop_stage_estimate"
   })).sort((a, b) => String(a.locationLabel).localeCompare(String(b.locationLabel)) || String(a.crop).localeCompare(String(b.crop)));
   const sowNow = (seedDashboard?.groups?.plantNow || []).slice(0, 8).map((recommendation) => {
     const owned = findMatchingSeed(inventory, recommendation.crop);
@@ -47,7 +51,9 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     };
   }).filter((item) => item.packsOnHand > 0).sort((a, b) => b.packsOnHand - a.packsOnHand || a.crop.localeCompare(b.crop));
 
-  const turnoverDue = String(profile.systemStage || "").toLowerCase() === "resetting" || datedReminders.some(({ item, date }) => {
+  const turnoverDue = ["harvest_ready", "harvesting"].includes(String(profile.rhythmStage || "").toLowerCase())
+    || activeCrops.some((seed) => ["harvest_ready", "harvesting"].includes(String(seed.status || "").toLowerCase()))
+    || String(profile.systemStage || "").toLowerCase() === "resetting" || datedReminders.some(({ item, date }) => {
     const title = String(item.title || "").toLowerCase();
     return date <= new Date(today.getTime() + (21 * DAY_MS)) && /(turnover|reset|harvest|flip)/.test(title);
   });
@@ -69,7 +75,15 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     if (!owned) continue;
     comingNext.push({ type: "season", title: `Start next: ${item.crop}`, date: dateOrNull(item.bestSowDate)?.toISOString() || null, sourceId: owned.id, detail: item.reason });
   }
-  comingNext.sort((a, b) => String(a.date || "9999").localeCompare(String(b.date || "9999")));
+  const uniqueComingNext = [];
+  const seenComingNext = new Set();
+  for (const item of comingNext) {
+    const key = `${String(item.title || "").toLowerCase()}|${String(item.date || "").slice(0, 10)}`;
+    if (seenComingNext.has(key)) continue;
+    seenComingNext.add(key);
+    uniqueComingNext.push(item);
+  }
+  uniqueComingNext.sort((a, b) => String(a.date || "9999").localeCompare(String(b.date || "9999")));
 
   const latestReading = readings.slice().sort((a, b) => readingTime(b) - readingTime(a))[0] || null;
   const batch = {
@@ -84,10 +98,11 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
   return {
     projectId: project?.id || null,
     generatedAt: new Date(now).toISOString(),
-    profileReady: Boolean(profile.growZone && profile.systemStage),
+    profileReady: Boolean(profile.growZone && (profile.rhythmStage || profile.systemStage)),
     profile: {
       growZone: profile.growZone || null,
       systemStage: profile.systemStage || null,
+      rhythmStage: profile.rhythmStage || null,
       location: profile.location || null,
       nutrientStage: profile.nutrientStage || null,
       batchStartDate: profile.batchStartDate || null,
@@ -109,7 +124,7 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     currentCrops,
     sowNow,
     transferChecks,
-    comingNext: comingNext.slice(0, 6),
+    comingNext: uniqueComingNext.slice(0, 6),
     batch,
     turnover: {
       active: turnoverDue,
@@ -163,10 +178,21 @@ function transferCheck(seed, { today, turnoverDue }) {
       detail: "If it is healthy and suited to current outdoor conditions, it may continue in a raised bed while HydroPip is reset."
     };
   }
+  if (status === "harvest_ready" || status === "harvesting") {
+    return {
+      seedId: seed.id,
+      crop,
+      kind: "harvest",
+      title: `Review ${crop} for harvest or turnover`,
+      detail: "Harvest what is ready. Decide whether healthy productive plants should stay, move to a suitable raised bed, or leave during the next tower reset."
+    };
+  }
   return null;
 }
 
 function nextSuccessionDate(seed, today) {
+  const saved = dateOrNull(seed.nextSuccessionDate);
+  if (saved && saved >= today) return saved;
   const base = dateOrNull(seed.sowDate);
   if (!base) return null;
   const interval = Math.max(7, Math.min(90, Number(seed.successionIntervalDays || 21)));

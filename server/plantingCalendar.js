@@ -128,6 +128,38 @@ export function getSeedSowRecommendation({ crop, growZone, location, areaType, d
   return result;
 }
 
+export function getCropRhythmEstimate({ crop, stage, sowDate, date } = {}) {
+  const cropConfig = findCrop(crop);
+  if (!cropConfig) return null;
+  const today = parseCalendarDate(date);
+  const normalizedStage = normalizeRhythmStage(stage);
+  const actualSowDate = parseOptionalCalendarDate(sowDate);
+  const elapsedDays = actualSowDate ? daysBetween(actualSowDate, today) : estimatedElapsedDays(cropConfig, normalizedStage);
+  const timingAnchor = actualSowDate || addDays(today, -elapsedDays);
+  const harvestStart = addDays(timingAnchor, cropConfig.harvestDays[0]);
+  const harvestEnd = addDays(timingAnchor, cropConfig.harvestDays[1]);
+  const germinationEnd = addDays(timingAnchor, cropConfig.germinationDays[1]);
+  const successionDate = nextRhythmSuccessionDate(timingAnchor, cropConfig.successionDays, today);
+  return {
+    cropId: cropConfig.id,
+    crop: cropConfig.label,
+    requestedCrop: cleanText(crop),
+    stage: normalizedStage,
+    actualSowDate: actualSowDate ? isoDate(actualSowDate) : null,
+    estimatedSowDate: isoDate(timingAnchor),
+    sowDateEstimated: !actualSowDate,
+    estimateAsOf: isoDate(today),
+    estimateBasis: actualSowDate ? "saved_sow_date" : "crop_stage_estimate",
+    germinationWindowEnd: isoDate(germinationEnd),
+    expectedHarvestStart: isoDate(harvestStart < today ? today : harvestStart),
+    expectedHarvestEnd: isoDate(harvestEnd < today ? today : harvestEnd),
+    successionDate: isoDate(successionDate),
+    successionDays: cropConfig.successionDays,
+    note: cropConfig.note,
+    disclaimer: "Harvest and succession dates are planning estimates based on the crop category and selected development stage. Adjust them for the seed packet, variety, weather, plant health, and actual growth."
+  };
+}
+
 export function seedPlanReminders(recommendation, { includeSuccession = false, successionIntervalDays } = {}) {
   if (!recommendation || recommendation.status !== "recommended") return [];
   const interval = Math.max(7, Math.min(90, Number(successionIntervalDays || recommendation.successionDays || 21)));
@@ -201,6 +233,38 @@ function adjustToWeekday(date, value) {
 
 function addDays(date, days) {
   return new Date(date.getTime() + Number(days || 0) * DAY_MS);
+}
+
+function parseOptionalCalendarDate(value) {
+  const text = String(value || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  const parsed = new Date(`${text}T12:00:00Z`);
+  return Number.isNaN(parsed.getTime()) || isoDate(parsed) !== text ? null : parsed;
+}
+
+function normalizeRhythmStage(value) {
+  const stage = String(value || "sown").toLowerCase();
+  return ["sown", "germinating", "sprouted", "growing", "harvest_ready", "harvesting"].includes(stage) ? stage : "sown";
+}
+
+function estimatedElapsedDays(cropConfig, stage) {
+  const germinationMid = Math.round((cropConfig.germinationDays[0] + cropConfig.germinationDays[1]) / 2);
+  if (stage === "germinating") return Math.max(1, Math.round(germinationMid / 2));
+  if (stage === "sprouted") return cropConfig.germinationDays[1];
+  if (stage === "growing") return Math.round((cropConfig.germinationDays[1] + cropConfig.harvestDays[0]) / 2);
+  if (stage === "harvest_ready" || stage === "harvesting") return cropConfig.harvestDays[0];
+  return 0;
+}
+
+function nextRhythmSuccessionDate(anchor, intervalDays, today) {
+  const interval = Math.max(7, Math.min(90, Number(intervalDays || 21)));
+  const next = addDays(anchor, interval);
+  while (next < today) next.setUTCDate(next.getUTCDate() + interval);
+  return next;
+}
+
+function daysBetween(left, right) {
+  return Math.max(0, Math.floor((right.getTime() - left.getTime()) / DAY_MS));
 }
 
 function monthsApart(left, right) {

@@ -2230,6 +2230,7 @@ export async function saveProjectRhythmSetup({ userId, projectId, input = {}, su
   const savedReminders = [];
   let remindersAdded = 0;
   let remindersUpdated = 0;
+  let remindersRemoved = 0;
   for (const reminder of plan.reminders) {
     const normalized = {
       ...reminder,
@@ -2258,6 +2259,13 @@ export async function saveProjectRhythmSetup({ userId, projectId, input = {}, su
       }
     }
   }
+  const desiredReminderNotes = new Set(plan.reminders.map((item) => item.note).filter(Boolean));
+  for (const reminder of existingReminders || []) {
+    if (!String(reminder.note || "").startsWith("hydropip_rhythm_crop:")) continue;
+    if (desiredReminderNotes.has(reminder.note)) continue;
+    const result = await deleteProjectReminder({ userId, projectId, reminderId: reminder.id, subscription });
+    if (result?.status === "deleted") remindersRemoved += 1;
+  }
 
   const finalSeeds = await listProjectSeeds({ userId, projectId });
   return {
@@ -2271,7 +2279,8 @@ export async function saveProjectRhythmSetup({ userId, projectId, input = {}, su
     cropsUpdated,
     cropsFinished,
     remindersAdded,
-    remindersUpdated
+    remindersUpdated,
+    remindersRemoved
   };
 }
 
@@ -2928,6 +2937,7 @@ function normalizeSystemProfile(profile = {}, type) {
     powerAccess: cleanOptionalText(profile.powerAccess, 40),
     serviceAccess: cleanOptionalText(profile.serviceAccess, 80),
     systemStage: cleanOptionalText(profile.systemStage, 40),
+    rhythmStage: cleanOptionalText(profile.rhythmStage, 40),
     plantingDate: cleanOptionalText(profile.plantingDate, 20),
     reservoirGallons: normalizeOptionalNumber(profile.reservoirGallons),
     plantSites: normalizeOptionalNumber(profile.plantSites),
@@ -3469,7 +3479,11 @@ function normalizeSeed(seed = {}) {
     recommendedWindowStart: cleanOptionalText(seed.recommendedWindowStart, 20),
     recommendedWindowEnd: cleanOptionalText(seed.recommendedWindowEnd, 20),
     expectedHarvestDate: cleanOptionalText(seed.expectedHarvestDate, 20),
+    expectedHarvestEnd: cleanOptionalText(seed.expectedHarvestEnd, 20),
+    nextSuccessionDate: cleanOptionalText(seed.nextSuccessionDate, 20),
     timingSource: cleanOptionalText(seed.timingSource, 80),
+    timingEstimateAsOf: cleanOptionalText(seed.timingEstimateAsOf, 20),
+    timingEstimateBasis: cleanOptionalText(seed.timingEstimateBasis, 80),
     notes: String(seed.notes || "").slice(0, 1000),
     createdAt: seed.createdAt || nowIso(),
     updatedAt: seed.updatedAt || nowIso()
