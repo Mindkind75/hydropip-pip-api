@@ -15,6 +15,7 @@ if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
 }
 
 export const DEFAULT_WORKSPACE_TAB_ORDER = [
+  "rhythm",
   "profile",
   "planner",
   "calendar",
@@ -997,6 +998,12 @@ export async function updateUserPreferences({ userId, patch = {} } = {}) {
   }
   if (Object.prototype.hasOwnProperty.call(patch || {}, "buildEstimate")) {
     next.buildEstimate = normalizeBuildEstimate(patch.buildEstimate);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "experienceMode")) {
+    next.experienceMode = normalizeExperienceMode(patch.experienceMode);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "celebratedMilestones")) {
+    next.celebratedMilestones = normalizeCelebratedMilestones(patch.celebratedMilestones);
   }
 
   if (usesPostgres()) {
@@ -2679,8 +2686,21 @@ function normalizeUserPreferences(value) {
   return {
     workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder),
     accountAvatar: normalizeAccountAvatar(preferences.accountAvatar),
-    buildEstimate: normalizeBuildEstimate(preferences.buildEstimate)
+    buildEstimate: normalizeBuildEstimate(preferences.buildEstimate),
+    experienceMode: normalizeExperienceMode(preferences.experienceMode),
+    celebratedMilestones: normalizeCelebratedMilestones(preferences.celebratedMilestones)
   };
+}
+
+function normalizeExperienceMode(value) {
+  return ["guided", "standard", "detailed"].includes(String(value || "")) ? String(value) : "guided";
+}
+
+function normalizeCelebratedMilestones(value) {
+  const allowed = new Set(["workspace_ready", "build_ready", "start_ready", "grow_running", "harvest_ready", "next_grow", "improve_ready"]);
+  return Array.isArray(value)
+    ? [...new Set(value.map((item) => String(item || "").trim()).filter((item) => allowed.has(item)))].slice(0, 20)
+    : [];
 }
 
 function normalizeBuildEstimate(value) {
@@ -2806,6 +2826,13 @@ function normalizeSystemProfile(profile = {}, type) {
     expectedRefillWindow: cleanOptionalText(profile.expectedRefillWindow, 80),
     indoorOutdoor: profile.indoorOutdoor || null,
     pumpSchedule: profile.pumpSchedule || null,
+    preferredTaskDays: Array.isArray(profile.preferredTaskDays)
+      ? profile.preferredTaskDays.map(String).filter((day) => ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"].includes(day)).slice(0, 3)
+      : [],
+    preferredTaskTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(profile.preferredTaskTime || "")) ? String(profile.preferredTaskTime) : "09:00",
+    experienceMode: normalizeExperienceMode(profile.experienceMode),
+    onboardingComplete: Boolean(profile.onboardingComplete),
+    onboardingCompletedAt: cleanOptionalText(profile.onboardingCompletedAt, 30),
     notes: profile.notes ? String(profile.notes).slice(0, 2000) : ""
   };
 }
@@ -3312,16 +3339,24 @@ function normalizePackCount(value) {
 }
 
 function standardReminderDefaults(profile = {}) {
-  const dueAt = (days, hour = 9, anchor = null, minute = 0) => {
+  const [preferredHour, preferredMinute] = String(profile.preferredTaskTime || "09:00").split(":").map(Number);
+  const taskHour = Number.isInteger(preferredHour) ? preferredHour : 9;
+  const taskMinute = Number.isInteger(preferredMinute) ? preferredMinute : 0;
+  const weekdayIndex = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  const preferredDay = Array.isArray(profile.preferredTaskDays) ? weekdayIndex[profile.preferredTaskDays[0]] : undefined;
+  const dueAt = (days, hour = taskHour, anchor = null, minute = taskMinute, alignPreferred = false) => {
     const date = anchor ? new Date(`${anchor}T09:00:00`) : new Date();
     if (Number.isNaN(date.getTime())) return dueAt(days, hour);
     date.setDate(date.getDate() + days);
+    if (alignPreferred && preferredDay !== undefined) {
+      date.setDate(date.getDate() + ((preferredDay - date.getDay() + 7) % 7));
+    }
     date.setHours(hour, minute, 0, 0);
     return date.toISOString();
   };
   const systemCare = [
-    { title: "Weekly tank, mixing circulation, and flow check", note: "hydropip_weekly_v2", category: "maintenance", dueAt: dueAt(2), repeat: { frequency: "weekly" }, notify: true },
-    { title: "Review plant stage, refill window, pumps, and hoses", note: "hydropip_monthly_v2", category: "nutrients", dueAt: dueAt(25), repeat: { frequency: "monthly" }, notify: true }
+    { title: "Weekly tank, mixing circulation, and flow check", note: "hydropip_weekly_v2", category: "maintenance", dueAt: dueAt(1, taskHour, null, taskMinute, true), repeat: { frequency: "weekly" }, notify: true },
+    { title: "Review plant stage, refill window, pumps, and hoses", note: "hydropip_monthly_v2", category: "nutrients", dueAt: dueAt(22, taskHour, null, taskMinute, true), repeat: { frequency: "monthly" }, notify: true }
   ];
   if (!profile.plantingDate) return systemCare;
   const crops = cropSummary(profile.crops);

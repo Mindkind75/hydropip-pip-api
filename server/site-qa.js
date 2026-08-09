@@ -191,6 +191,17 @@ assert.match(pipHtml, /appendChild\(proArrangeTabs\)/, "Arrange should remain pi
 assert.match(pipHtml, /id=["']proTabOrderDialog["']/, "Pip Pro needs a mobile-friendly tab ordering panel");
 assert.match(pipHtml, /\/api\/pip\/users\/me\/preferences/, "Pip Pro tab order should persist to the member account");
 assert.match(pipHtml, /workspaceTabOrder/, "Pip Pro should apply the saved tab order across devices");
+for (const id of ["pipProOnboardingDialog", "pipProOnboardingForm", "proFocusPanel", "proFocusTools", "proExperienceMode", "pipProToast"]) {
+  assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing progressive Pro control ${id}`);
+}
+for (const mode of ["guided", "standard", "detailed"]) assert.match(pipHtml, new RegExp(`value=["']${mode}["']`), `Pip Pro is missing ${mode} guidance mode`);
+assert.match(pipHtml, /stageFocus/, "Pip Pro should promote tools based on the current grow stage");
+assert.match(pipHtml, /proMilestones/, "Pip Pro should celebrate meaningful grow-stage unlocks");
+assert.match(pipHtml, /celebratedMilestones/, "Pip Pro milestone celebrations should persist to the member account");
+assert.match(pipHtml, /pro_milestone_unlocked/, "Pip Pro should track milestone unlock engagement");
+assert.match(pipHtml, /reminders\/defaults/, "Pip-led onboarding should create the starter care rhythm");
+assert.match(pipHtml, /seeds\/batch/, "Pip-led onboarding should save seed-pack inventory");
+assert.match(pipHtml, /Your first Rhythm is ready/, "Pip-led onboarding should confirm completion and land on Rhythm");
 for (const view of ["agenda", "day", "week", "month", "year"]) assert.match(pipHtml, new RegExp(`data-calendar-view=["']${view}["']`), `Pip Calendar is missing its ${view} view`);
 assert.match(pipHtml, /function renderCalendar/, "Pip Calendar is not rendered from Planner tasks");
 assert.match(pipHtml, /function renderCalendarWeek/, "Pip Calendar is missing weekly task grouping");
