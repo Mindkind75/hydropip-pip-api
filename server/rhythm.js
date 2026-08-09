@@ -19,7 +19,7 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     nowTasks.push({ id: item.id, title: item.title, category: item.category || "general", dueAt: date.toISOString(), overdue: false, repeat: item.repeat?.frequency || null, nextUp: true });
   }
 
-  const inventory = seeds.filter((seed) => Number(seed?.packsOnHand || 0) > 0);
+  const inventory = seeds.map((seed) => ({ ...seed, packsOnHand: ownedPackCount(seed) })).filter((seed) => seed.packsOnHand > 0);
   const activeCrops = seeds.filter(isCurrentGrowSeed);
   const currentCrops = activeCrops.map((seed) => ({
     seedId: seed.id,
@@ -165,7 +165,25 @@ function findMatchingSeed(seeds, crop) {
 }
 
 function cropKey(value) {
-  return String(value || "").toLowerCase().replace(/cherry/g, "").replace(/greens?/g, "green").replace(/beans?/g, "bean").replace(/tomatoes/g, "tomato").replace(/[^a-z0-9]+/g, "").trim();
+  const clean = String(value || "").toLowerCase()
+    .replace(/\b(seed|seeds|packet|packets|pack|packs)\b/g, " ")
+    .replace(/\b(tomatoes)\b/g, "tomato")
+    .replace(/\b(beans|greens|peas|peppers|cucumbers|carrots|radishes|onions|herbs)\b/g, (word) => word.slice(0, -1))
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (/\bmalabar\s+spinach\b/.test(clean)) return "malabar spinach";
+  if (/\bswiss\s+chard\b/.test(clean) || /\bchard\b/.test(clean)) return "swiss chard";
+  const families = ["lettuce", "tomato", "pepper", "cucumber", "squash", "strawberry", "bean", "pea", "basil", "cilantro", "parsley", "dill", "kale", "mizuna", "mustard", "arugula", "radish", "carrot", "okra", "oregano", "thyme", "purslane", "amaranth", "spinach"];
+  return families.find((family) => new RegExp(`\\b${family}\\b`).test(clean)) || clean;
+}
+
+function ownedPackCount(seed) {
+  const packs = Number(seed?.packsOnHand);
+  if (Number.isFinite(packs) && packs > 0) return packs;
+  const packsMissing = seed?.packsOnHand === null || seed?.packsOnHand === undefined || seed?.packsOnHand === "";
+  const inVault = seed?.plantingLocation === "seed_vault";
+  const needsReorder = String(seed?.status || "").toLowerCase() === "needs_reorder";
+  return packsMissing && inVault && !needsReorder ? 1 : 0;
 }
 
 function reminderDate(item) {

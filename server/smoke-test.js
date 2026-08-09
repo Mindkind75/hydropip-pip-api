@@ -100,15 +100,17 @@ const rhythmFixture = buildRhythmOverview({
   ],
   seeds: [
     { id: "beans", crop: "Green beans", packsOnHand: 2, status: "on_hand" },
-    { id: "lettuce", crop: "Lettuce", packsOnHand: 1, status: "sprouted", plantingLocation: "nursery_for_hydropip", sowDate: "2026-08-01" },
+    { id: "lettuce", crop: "Lettuce", packsOnHand: 0, status: "sprouted", plantingLocation: "nursery_for_hydropip", sowDate: "2026-08-01" },
     { id: "basil-vault", crop: "Basil", packsOnHand: 1, status: "on_hand", plantingLocation: "seed_vault" },
+    { id: "lettuce-vault", crop: "Buttercrunch Lettuce Seeds", packsOnHand: null, status: "on_hand", plantingLocation: "seed_vault" },
     { id: "kale-bed", crop: "Kale", packsOnHand: 0, status: "growing", plantingLocation: "raised_bed" }
   ],
   readings: [],
-  seedDashboard: { groups: { plantNow: [{ crop: "Green Bean", reason: "Fits Zone 9 now.", bestSowDate: "2026-08-09", method: "direct_sow" }], startNext: [], hold: [] } }
+  seedDashboard: { groups: { plantNow: [{ crop: "Green Bean", reason: "Fits Zone 9 now.", bestSowDate: "2026-08-09", method: "direct_sow" }], startNext: [{ crop: "Leaf lettuce", reason: "Start the next succession.", bestSowDate: "2026-08-16", method: "protected_start" }], hold: [] } }
 });
 assert.equal(rhythmFixture.summary.overdueCount, 1);
 assert.equal(rhythmFixture.sowNow[0].packsOnHand, 2);
+assert.equal(rhythmFixture.comingNext.some((item) => item.sourceId === "lettuce-vault"), true);
 assert.equal(rhythmFixture.transferChecks.some((item) => item.seedId === "lettuce"), true);
 assert.equal(rhythmFixture.currentCrops.some((item) => item.seedId === "lettuce"), true);
 assert.equal(rhythmFixture.currentCrops.some((item) => item.seedId === "basil-vault"), false);
