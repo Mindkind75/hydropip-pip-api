@@ -273,7 +273,7 @@
             <h3>Quick Decision</h3>
             <p class="hint">Use these for most items. Send anything unclear or larger than a simple rule/content fix to deeper review.</p>
             <div class="decision-grid">
-              <button id="quickFix" type="button">Use Suggested Fix</button>
+              <button id="quickFix" type="button">Apply Suggested Fix & Clear</button>
               <button id="deepReview" type="button" class="secondary">Add to Deeper Review</button>
               <button id="dismissItem" type="button" class="danger">Dismiss / Archive</button>
               <button id="toggleDetails" type="button" class="light">Open Detailed Editor</button>
@@ -505,8 +505,23 @@
       const item = items.find((entry) => entry.id === id);
       if (!item) return;
       const option = recommendationsFor(item)[0];
-      if (option) setForm(option.issueType, option.idealAnswer, option.trainingUpdate, option.status, option.priority, option.internalNote);
-      await saveItem(id);
+      if (!option) {
+        statusText.textContent = "No suggested fix is available for this item.";
+        return;
+      }
+      const payload = {
+        issueType: option.issueType,
+        idealAnswer: option.idealAnswer,
+        trainingUpdate: option.trainingUpdate,
+        internalNote: `${option.internalNote || ""}\n\nApplied from Suggestion Hub quick action and cleared from the queue.`.trim(),
+        approvedAt: new Date().toISOString()
+      };
+      if (item.source === "site_feedback") {
+        await patchFeedback(item.rawId, { status:"resolved", priority:option.priority || item.priority || "normal", adminNotes:JSON.stringify(payload, null, 2) }, "Suggested site fix saved and cleared from the queue.");
+        return;
+      }
+      const clearStatus = option.trainingUpdate === "tool_fix" || option.trainingUpdate === "calendar_fix" || option.trainingUpdate === "prompt_rule" ? "reviewed" : "resolved";
+      await patchItem(item.rawId, { status:clearStatus, priority:option.priority || item.priority || "normal", resolution:JSON.stringify(payload, null, 2) }, "Suggested Pip fix saved and cleared from the queue.");
     }
 
     async function sendToDeepReview(id) {
@@ -521,10 +536,10 @@
         approvedAt: new Date().toISOString()
       };
       if (item.source === "site_feedback") {
-        await patchFeedback(item.rawId, { status:"planned", priority:item.priority === "urgent" ? "urgent" : "high", adminNotes:JSON.stringify(payload, null, 2) });
+        await patchFeedback(item.rawId, { status:"planned", priority:item.priority === "urgent" ? "urgent" : "high", adminNotes:JSON.stringify(payload, null, 2) }, "Suggestion added to deeper review.");
         return;
       }
-      await patchItem(item.rawId, { status:"reviewing", priority:item.priority === "urgent" ? "urgent" : "high", resolution:JSON.stringify(payload, null, 2) });
+      await patchItem(item.rawId, { status:"reviewing", priority:item.priority === "urgent" ? "urgent" : "high", resolution:JSON.stringify(payload, null, 2) }, "Pip item added to deeper review.");
     }
 
     async function dismissItem(id) {
@@ -539,10 +554,10 @@
         approvedAt: new Date().toISOString()
       };
       if (item.source === "site_feedback") {
-        await patchFeedback(item.rawId, { status:"closed", priority:"low", adminNotes:JSON.stringify(payload, null, 2) });
+        await patchFeedback(item.rawId, { status:"closed", priority:"low", adminNotes:JSON.stringify(payload, null, 2) }, "Suggestion dismissed and cleared from the queue.");
         return;
       }
-      await patchItem(item.rawId, { status:"archived", priority:"low", resolution:JSON.stringify(payload, null, 2) });
+      await patchItem(item.rawId, { status:"archived", priority:"low", resolution:JSON.stringify(payload, null, 2) }, "Pip item archived and cleared from the queue.");
     }
 
     async function saveItem(id) {
@@ -567,7 +582,7 @@
       else await patchItem(id, { status });
     }
 
-    async function patchFeedback(id, patch) {
+    async function patchFeedback(id, patch, successMessage = "Site suggestion saved.") {
       const button = document.activeElement;
       if (button) button.disabled = true;
       try {
@@ -578,8 +593,8 @@
           body:JSON.stringify(patch)
         });
         if (!response.ok) throw new Error("Save returned " + response.status);
-        statusText.textContent = "Site suggestion saved.";
         await loadDashboard();
+        statusText.textContent = successMessage;
       } catch (error) {
         statusText.textContent = error.message;
       } finally {
@@ -587,7 +602,7 @@
       }
     }
 
-    async function patchItem(id, patch) {
+    async function patchItem(id, patch, successMessage = "") {
       const button = document.activeElement;
       if (button) button.disabled = true;
       try {
@@ -599,12 +614,13 @@
         });
         if (!response.ok) throw new Error("Save returned " + response.status);
         const data = await response.json();
-        statusText.textContent = data.appliedTraining && data.appliedTraining.status === "applied"
+        const message = successMessage || (data.appliedTraining && data.appliedTraining.status === "applied"
           ? "Saved and applied to Pip knowledge."
           : data.appliedTraining && data.appliedTraining.status === "manual_required"
           ? "Saved. Manual implementation required."
-          : "Saved.";
+          : "Saved.");
         await loadDashboard();
+        statusText.textContent = message;
       } catch (error) {
         statusText.textContent = error.message;
       } finally {
