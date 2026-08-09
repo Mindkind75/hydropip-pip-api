@@ -471,6 +471,26 @@ function summarizeCommandCenter({ users, projects, reviews, conversions, usage, 
       affiliateClicks: eventCount(conversions, "affiliate_link_clicked"),
       proCheckoutStarts: eventCount(conversions, "pro_checkout_started")
     },
+    actionCenter: buildAdminActions({
+      openReviews,
+      openFeedback,
+      newApplications,
+      usage,
+      conversions,
+      storageMode,
+      estimatedCost,
+      subscriberIds
+    }),
+    operations: {
+      storageMode,
+      aiConfigured: Boolean(process.env.OPENAI_API_KEY),
+      signedSessionsRequired: true,
+      estimatedCostUsd: Number(estimatedCost.toFixed(4)),
+      usageEvents: usage.length,
+      conversionEvents: conversions.length,
+      lastUsageAt: latestAdminDate(usage.map((event) => event.createdAt)),
+      lastConversionAt: latestAdminDate(conversions.map((event) => event.createdAt))
+    },
     review: {
       byStatus: adminTopCounts(reviews.map((item) => item.status || "new"), 8),
       byReason: adminTopCounts(reviews.map((item) => item.reason || "needs_review"), 8),
@@ -502,6 +522,63 @@ function summarizeCommandCenter({ users, projects, reviews, conversions, usage, 
 
 function eventCount(events, name) {
   return events.filter((event) => event.eventName === name).length;
+}
+
+function buildAdminActions({ openReviews, openFeedback, newApplications, usage, conversions, storageMode, estimatedCost, subscriberIds }) {
+  const actions = [];
+  if (openReviews.length) actions.push({
+    id: "review_queue",
+    priority: openReviews.some((item) => item.priority === "high") ? "high" : "normal",
+    title: "Review Pip training queue",
+    detail: `${openReviews.length} answer${openReviews.length === 1 ? "" : "s"} need a decision.`,
+    href: "/pip-review-admin.html"
+  });
+  if (newApplications.length) actions.push({
+    id: "beta_applications",
+    priority: "normal",
+    title: "Review beta applicants",
+    detail: `${newApplications.length} new applicant${newApplications.length === 1 ? "" : "s"} waiting.`,
+    href: "/beta-admin.html"
+  });
+  if (openFeedback.length) actions.push({
+    id: "member_feedback",
+    priority: openFeedback.some((item) => ["urgent", "high"].includes(item.priority)) ? "high" : "normal",
+    title: "Triage member feedback",
+    detail: `${openFeedback.length} feedback item${openFeedback.length === 1 ? "" : "s"} still open.`,
+    href: "/beta-admin.html"
+  });
+  if (estimatedCost >= Number(process.env.PIP_ADMIN_COST_ALERT_USD || 5)) actions.push({
+    id: "usage_cost",
+    priority: "high",
+    title: "Check AI usage cost",
+    detail: `$${Number(estimatedCost).toFixed(2)} estimated in the selected window.`,
+    href: "https://platform.openai.com/usage"
+  });
+  const checkoutStarts = eventCount(conversions, "pro_checkout_started");
+  if (checkoutStarts && subscriberIds.size === 0) actions.push({
+    id: "checkout_followup",
+    priority: "normal",
+    title: "Inspect Pro checkout starts",
+    detail: `${checkoutStarts} checkout start${checkoutStarts === 1 ? "" : "s"} with no observed Pro subscriber yet.`,
+    href: "https://manage.wix.com/"
+  });
+  if (storageMode !== "postgres") actions.push({
+    id: "database",
+    priority: "high",
+    title: "Database is not persistent",
+    detail: "Production should report Postgres before public launch.",
+    href: "https://dashboard.render.com/"
+  });
+  if (!usage.length && conversions.some((event) => event.eventName === "pip_question_asked")) actions.push({
+    id: "usage_gap",
+    priority: "normal",
+    title: "Confirm Pip usage logging",
+    detail: "Questions are tracked but AI usage events are empty.",
+    href: "/admin-control-center"
+  });
+  return actions
+    .sort((a, b) => Number(b.priority === "high") - Number(a.priority === "high") || a.title.localeCompare(b.title))
+    .slice(0, 8);
 }
 
 function adminTopCounts(values, limit = 10) {
