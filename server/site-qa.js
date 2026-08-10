@@ -290,6 +290,9 @@ assert.match(pipHtml, /facebook\.com\/sharer\/sharer\.php/, "Pip Invite should o
 const partsHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
 assert.match(partsHtml, /Get your build organized\./, "Track My Build should open with focused procurement copy");
 assert.match(partsHtml, /Parts ready\? Start the build\./, "Track My Build should lead collected members into the build guide");
+assert.match(partsHtml, /memberCompletionKey\(\)/, "Track My Build completion celebrations must be scoped to the signed member");
+assert.match(partsHtml, /function celebrateCompletedBuild\(\)\{if\(!sessionToken\)return/, "Track My Build must wait for verified member access before recording its completion celebration");
+assert.match(partsHtml, /Open the Field Guide for the assembly sequence/, "The completed checklist celebration needs a clear next-step CTA");
 assert.doesNotMatch(partsHtml, /supply-planner|Pip refill rhythm|data-filter=["']reorder["']/, "Recurring planning should stay in Pip Pro rather than Track My Build");
 assert.match(partsHtml, /\.top\{position:static;top:auto/, "Track My Build navigation should scroll with the page on touch devices");
 assert.match(partsHtml, /\[hidden\]\{display:none!important\}/, "Conditional calculator fields must remain hidden until their matching option is selected");
