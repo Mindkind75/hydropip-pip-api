@@ -313,6 +313,9 @@ assert.match(homeHtml, /postHeight\(true\)/, "Home must resend its measured heig
 assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
 assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
 assert.match(wixHomeBridge, /1500/, "Home should use a compact loading height before its real content measurement arrives");
+assert.match(homeHtml, /HYDROPIP_EMBED_WHEEL/, "The embedded Home page should forward mouse-wheel movement to Wix");
+assert.match(wixHomeBridge, /HYDROPIP_EMBED_WHEEL/, "The Wix Home bridge should receive embedded mouse-wheel movement");
+assert.match(wixHomeBridge, /wixWindowFrontend\.scrollBy/, "The Wix Home bridge should apply forwarded wheel movement to the outer page");
 assert.match(homeHtml, /Start My Free Build/, "The mobile-first homepage CTA should state that build guidance is free");
 assert.match(homeHtml, /is-wix-embed/, "Home should explicitly disable inner scrolling when embedded in Wix");
 assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature a real HydroPip harvest");
@@ -335,6 +338,10 @@ assert.match(partsHtml, /html\.is-wix-embed body\{height:100%;min-height:0;overf
 assert.match(pipHtml, /\.pro-mode \.pro-view\{overscroll-behavior-y:contain\}/, "Pip Pro should not chain notebook scrolling into the surrounding Wix page");
 assert.match(pipHtml, /id=["']pipProScrollContext["']/, "Pip Pro mobile layouts should identify the notebook page scroll position");
 assert.match(pipHtml, /\.workspace-tabs\{overflow-y:hidden;overscroll-behavior-inline:contain;touch-action:pan-x\}/, "Notebook tab navigation should reserve swiping for horizontal movement");
+assert.match(pipHtml, /\.pip-top\{position:relative;z-index:500;overflow:visible\}/, "The Pip Pro account menu header must stay above the notebook");
+assert.match(pipHtml, /\.member-popover\{z-index:1200\}/, "The account dropdown must stay above all notebook controls");
+assert.match(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!hasLead\(\)\)return/, "A completed free signup must activate its next-step screen after auth state is cleared");
+assert.doesNotMatch(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!requestedAuthMode/, "The free-member success screen must not depend on a cleared auth request");
 assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real food\./, "Home should provide a concise How It Works overview");
 assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
 assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
@@ -408,7 +415,10 @@ assert.match(betaAdminHtml, /Download CSV/, "Beta review should support operatio
 assert.match(betaAdminHtml, /Tester progress/, "Beta review should show checklist progress");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
-assert.match(wixPipBridge, /\["pro", "project", "projectId"\]/, "Wix Pip bridge is not forwarding project context to the iframe");
+assert.match(wixPipBridge, /\["pro", "project", "projectId"/, "Wix Pip bridge is not forwarding project context to the iframe");
+for (const queryKey of ["return", "start", "tool", "focus", "avatar", "prompt"]) {
+  assert.match(wixPipBridge, new RegExp(`"${queryKey}"`), `The Wix Pip bridge should forward the ${queryKey} entry intent`);
+}
 assert.doesNotMatch(wixPipBridge, /HYDROPIP_APP_INSTALL_REQUEST|"app", "install"/, "Wix Pip bridge should not route the retired Home Screen flow");
 assert.match(wixPipBridge, /buildPipSource\(\)/, "Wix Pip bridge is not building a context-aware embed source");
 assert.match(wixPipBridge, /PIP_HTML_SRC/, "Wix Pip bridge is not assigning the current Pip embed source");

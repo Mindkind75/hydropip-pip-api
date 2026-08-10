@@ -518,6 +518,20 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
   memberTrigger.addEventListener("click",function(event){event.stopPropagation();var next=memberPopover.hidden;closeMemberMenu();memberPopover.hidden=!next;memberTrigger.setAttribute("aria-expanded",next?"true":"false");if(next&&nav){nav.classList.remove("open");menu.setAttribute("aria-expanded","false")}});
   memberMenu.addEventListener("click",function(event){var action=event.target.closest("[data-member-action]");if(!action)return;closeMemberMenu();try{window.parent.postMessage({type:"HYDROPIP_HOME_MEMBER_ACTION",action:action.dataset.memberAction},"*")}catch(error){}});
   window.addEventListener("message",function(event){var data=event.data||{};if(data.type==="HYDROPIP_HOME_SESSION")renderMember(data.member||null)});
+  if(document.documentElement.classList.contains("is-wix-embed")){
+    var pendingWheelDelta=0,wheelFrame=0;
+    window.addEventListener("wheel",function(event){
+      if(!event.deltaY)return;
+      pendingWheelDelta+=event.deltaY;
+      if(wheelFrame)return;
+      wheelFrame=requestAnimationFrame(function(){
+        var delta=Math.max(-900,Math.min(900,pendingWheelDelta));
+        pendingWheelDelta=0;
+        wheelFrame=0;
+        try{window.parent.postMessage({type:"HYDROPIP_EMBED_WHEEL",deltaY:delta},"*")}catch(error){}
+      });
+    },{passive:true});
+  }
   try{window.parent.postMessage({type:"HYDROPIP_HOME_READY"},"*")}catch(error){}
   if(menu&&nav){
     menu.setAttribute("aria-expanded","false");

@@ -2,9 +2,11 @@ import wixWindowFrontend from "wix-window-frontend";
 import wixLocation from "wix-location";
 import { currentMember, authentication } from "wix-members-frontend";
 
-const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260808-scroll1&embed=1";
+const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260809-wheel2&embed=1";
 const HOME_EMBED_IDS = ["#homeHtml", "#html1", "#html2", "#iFrame1"];
 let hasMeasuredHomeHeight = false;
+let pendingWheelDelta = 0;
+let wheelScrollInFlight = false;
 
 $w.onReady(() => {
   collapseOuterHeader();
@@ -20,6 +22,10 @@ $w.onReady(() => {
     }
     if (message.type === "HYDROPIP_HOME_READY") {
       await sendHomeSession(embed);
+      return;
+    }
+    if (message.type === "HYDROPIP_EMBED_WHEEL") {
+      queueHomeWheel(message.deltaY);
       return;
     }
     if (message.type === "HYDROPIP_HOME_MEMBER_ACTION") {
@@ -119,4 +125,29 @@ function setEmbedHeight(embed, requestedHeight) {
   const height = Math.ceil(Number(requestedHeight));
   if (!Number.isFinite(height) || height < 600 || height > 16000) return;
   embed.height = height + 4;
+}
+
+function queueHomeWheel(requestedDelta) {
+  const delta = Number(requestedDelta);
+  if (!Number.isFinite(delta) || Math.abs(delta) < 1) return;
+  pendingWheelDelta += Math.max(-900, Math.min(900, delta));
+  if (wheelScrollInFlight) return;
+  wheelScrollInFlight = true;
+  setTimeout(flushHomeWheel, 0);
+}
+
+async function flushHomeWheel() {
+  const delta = pendingWheelDelta;
+  pendingWheelDelta = 0;
+  try {
+    await wixWindowFrontend.scrollBy(0, delta);
+  } catch (error) {
+    // Touch scrolling and keyboard navigation remain available if Wix declines a wheel update.
+  } finally {
+    wheelScrollInFlight = false;
+    if (Math.abs(pendingWheelDelta) >= 1) {
+      wheelScrollInFlight = true;
+      setTimeout(flushHomeWheel, 0);
+    }
+  }
 }
