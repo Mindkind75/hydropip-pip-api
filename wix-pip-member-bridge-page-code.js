@@ -5,7 +5,7 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=launch-20260810-pro-scroll";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=launch-20260810-pro-height";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -102,11 +102,11 @@ function buildPipSource() {
 function sizePipToViewport(pip, contentHeight = 0) {
   return wixWindowFrontend.getBoundingRect().then((size) => {
     const windowHeight = Math.floor(Number(size?.window?.height));
-    if (!Number.isFinite(windowHeight)) return;
-    const minimum = wixWindowFrontend.formFactor === "Desktop" ? 720 : 560;
+    const minimum = wixWindowFrontend.formFactor === "Desktop" ? 1040 : 640;
     const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 8 : 16;
     const safeContentHeight = Math.max(0, Math.floor(Number(contentHeight) || 0));
-    const nextHeight = Math.max(minimum, windowHeight - chromeAllowance, safeContentHeight);
+    const viewportHeight = Number.isFinite(windowHeight) ? windowHeight - chromeAllowance : 0;
+    const nextHeight = Math.max(minimum, viewportHeight, safeContentHeight);
     if (Math.abs(nextHeight - lastPipHeight) < 8) return;
     lastPipHeight = nextHeight;
     pip.height = nextHeight;
@@ -114,7 +114,7 @@ function sizePipToViewport(pip, contentHeight = 0) {
 }
 
 function settlePipToViewport(pip, contentHeight = 0) {
-  const fallbackHeight = wixWindowFrontend.formFactor === "Desktop" ? 760 : 640;
+  const fallbackHeight = wixWindowFrontend.formFactor === "Desktop" ? 1040 : 640;
   const safeContentHeight = Math.max(0, Math.floor(Number(contentHeight) || 0));
   const nextFallbackHeight = Math.max(fallbackHeight, safeContentHeight);
   if (Math.abs(nextFallbackHeight - lastPipHeight) >= 8) {

@@ -1098,8 +1098,10 @@ html.pip-pro-route .notebook-paper{overflow:visible}
 (function(){
   var lastHeight=0;
   function postHeight(){
-    var minEmbedHeight=window.matchMedia("(max-width: 900px)").matches?720:820;
     var proModeActive=document.body&&document.body.classList.contains("pro-mode");
+    var compactEmbed=window.matchMedia("(max-width: 900px)").matches;
+    var desktopProMinimum=Math.max(1040,Math.min(1320,Math.round((window.innerWidth||1200)*.68)));
+    var minEmbedHeight=compactEmbed?720:(proModeActive?desktopProMinimum:820);
     var proContent=document.querySelector(".pro-view");
     var contentHeight=proModeActive&&proContent?proContent.scrollHeight:0;
     var nextHeight=Math.max(minEmbedHeight,window.innerHeight||0,contentHeight,document.body?document.body.scrollHeight:0,document.documentElement?document.documentElement.scrollHeight:0);
