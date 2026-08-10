@@ -26,7 +26,7 @@ $w.onReady(() => {
     const message = event.data || {};
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
-      settlePipToViewport(pip, message.mode === "pro" ? Number(message.height) : 0);
+      settlePipToViewport(pip, Number(message.height) || 0);
       return;
     }
 

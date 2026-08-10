@@ -441,7 +441,7 @@ assert.match(wixPipBridge, /Boolean\(sessionToken\)/, "Wix Pip bridge should not
 assert.doesNotMatch(wixPipBridge, /formFactor === "Desktop" \? 860 : 800/, "Wix Pip must not force an iframe taller than common phone viewports");
 assert.match(wixPipBridge, /formFactor === "Desktop" \? 760 : 640/, "Wix Pip needs an immediate viewport fallback when Wix geometry is late");
 assert.match(wixPipBridge, /pip\.height = nextFallbackHeight/, "Wix Pip should apply its fallback before asynchronous viewport measurement");
-assert.match(wixPipBridge, /message\.mode === "pro" \? Number\(message\.height\) : 0/, "Wix Pip should only expand to content height for Pro notebook embeds");
+assert.match(wixPipBridge, /settlePipToViewport\(pip, Number\(message\.height\) \|\| 0\)/, "Wix Pip should expand to the embedded app content height");
 assert.match(pipHtml, /mode:proModeActive\?"pro":"chat"/, "Pip should identify Pro height messages for the Wix bridge");
 
 const agentSource = fs.readFileSync(new URL("./pipAgent.js", import.meta.url), "utf8");
