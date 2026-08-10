@@ -333,6 +333,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
   var requestedPrompt = String(pipQuery.get("prompt") || "").trim().slice(0,500);
   var requestedAvatarPicker = pipQuery.get("avatar") === "1" || pipQuery.get("pro") === "avatar";
   var requestedAuthMode = pipQuery.get("pro") === "login" ? "login" : pipQuery.get("pro") === "signup" ? "signup" : null;
+  var requestedAuthReturn = pipQuery.get("return");
   var requestedFeedback = pipQuery.get("pro") === "feedback";
   var requestedStart = pipQuery.get("start");
   if(proMode){document.body.classList.add("pro-mode");document.title=accountMode?"My Account | HydroPip Systems":"Pip Pro | HydroPip Systems"}
@@ -1031,7 +1032,7 @@ html.pip-pro-route .pip-app{display:none}html.pip-pro-route .pro-view{display:bl
     if(window.HydroPipTracking)window.HydroPipTracking.identify(sessionToken,pipSession.member,pipSession.subscription);
     renderMemberMenus();
     await loadAccountPreferences();
-    if(requestedAuthMode){var authMode=requestedAuthMode;if(!hasLead()){requestAccount(authMode);return}requestedAuthMode=null;if(authMode==="login"){window.open("https://www.hydropip.com/pip?pro=1","_top");return}showFreeMemberNextSteps()}
+    if(requestedAuthMode){var authMode=requestedAuthMode,authReturn=requestedAuthReturn;if(!hasLead()){requestAccount(authMode);return}requestedAuthMode=null;requestedAuthReturn=null;if(authReturn==="track"){window.open("https://www.hydropip.com/track-my-build","_top");return}if(authMode==="login"){window.open("https://www.hydropip.com/pip?pro=1","_top");return}showFreeMemberNextSteps()}
     if(requestedFeedback){if(!hasLead()){requestAccount("login");return}requestedFeedback=false;openFeedback()}
     if(requestedTool==="nutrients"){if(!hasLead()){requestAccount("signup");return}requestedTool=null;window.open("/nutrient-calculator.html#session="+encodeURIComponent(sessionToken),"_top");return}
     if(requestedAvatarPicker&&hasLead()){requestedAvatarPicker=false;openAvatarPicker()}

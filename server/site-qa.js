@@ -110,10 +110,17 @@ assert.deepEqual(
 assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/build.png", import.meta.url)), true, "The transparent Track Build notebook guide is missing");
 assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/build\.png/, "Track Build should use its transparent construction Pip guide");
 const partsChecklistHtml = fs.readFileSync(new URL("../parts-checklist.html", import.meta.url), "utf8");
+const trackStartHtml = fs.readFileSync(new URL("../track-start.html", import.meta.url), "utf8");
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-print-checklist.png", import.meta.url)), true, "The transparent Print checklist Pip is missing");
 assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/, "Track My Build should guide members toward the Print button");
 assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
 assert.match(partsChecklistHtml, /\/data\/build-items\.json/, "Track My Build should load its prices from the centralized build catalog");
+assert.match(partsChecklistHtml, /class="track-access"/, "Track My Build should hide the checklist behind a branded member gate until Wix verifies the session");
+assert.match(partsChecklistHtml, /if\(sessionToken\)unlockTrackAccess\(\);else showTrackAccess\(\)/, "Track My Build must not unlock from client-supplied member labels without a signed session");
+assert.match(partsChecklistHtml, /pro=signup&amp;return=track/, "Track My Build signup should return the new member to the checklist");
+assert.match(pipHtml, /authReturn==="track"[\s\S]*hydropip\.com\/track-my-build/, "Pip authentication should return build-path members to Track My Build");
+assert.doesNotMatch(trackStartHtml, /nutrient-calculator\.html/, "The pre-build Track page should not duplicate the member nutrient tool");
+assert.match(trackStartHtml, /hydroponic-tower-placement/, "The pre-build Track page should help visitors plan their space before ordering");
 const nutrientCalculatorHtml = fs.readFileSync(new URL("../nutrient-calculator.html", import.meta.url), "utf8");
 const nutrientCalculatorJs = fs.readFileSync(new URL("../assets/js/nutrient-calculator.js", import.meta.url), "utf8");
 assert.match(nutrientCalculatorJs, /\/api\/pip\/nutrient-programs/, "The nutrient calculator should load the signed member catalog from the server");
