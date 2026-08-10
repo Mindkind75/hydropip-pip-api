@@ -26,7 +26,7 @@ $w.onReady(() => {
     const message = event.data || {};
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
-      settlePipToViewport(pip);
+      settlePipToViewport(pip, message.mode === "pro" ? Number(message.height) : 0);
       return;
     }
 
@@ -99,29 +99,32 @@ function buildPipSource() {
   return forwarded.length ? `${PIP_HTML_SRC}&${forwarded.join("&")}` : PIP_HTML_SRC;
 }
 
-function sizePipToViewport(pip) {
+function sizePipToViewport(pip, contentHeight = 0) {
   return wixWindowFrontend.getBoundingRect().then((size) => {
     const windowHeight = Math.floor(Number(size?.window?.height));
     if (!Number.isFinite(windowHeight)) return;
     const minimum = wixWindowFrontend.formFactor === "Desktop" ? 720 : 560;
     const chromeAllowance = wixWindowFrontend.formFactor === "Desktop" ? 8 : 16;
-    const nextHeight = Math.max(minimum, windowHeight - chromeAllowance);
+    const safeContentHeight = Math.max(0, Math.floor(Number(contentHeight) || 0));
+    const nextHeight = Math.max(minimum, windowHeight - chromeAllowance, safeContentHeight);
     if (Math.abs(nextHeight - lastPipHeight) < 8) return;
     lastPipHeight = nextHeight;
     pip.height = nextHeight;
   }).catch(() => {});
 }
 
-function settlePipToViewport(pip) {
+function settlePipToViewport(pip, contentHeight = 0) {
   const fallbackHeight = wixWindowFrontend.formFactor === "Desktop" ? 760 : 640;
-  if (Math.abs(fallbackHeight - lastPipHeight) >= 8) {
-    lastPipHeight = fallbackHeight;
-    pip.height = fallbackHeight;
+  const safeContentHeight = Math.max(0, Math.floor(Number(contentHeight) || 0));
+  const nextFallbackHeight = Math.max(fallbackHeight, safeContentHeight);
+  if (Math.abs(nextFallbackHeight - lastPipHeight) >= 8) {
+    lastPipHeight = nextFallbackHeight;
+    pip.height = nextFallbackHeight;
   }
-  sizePipToViewport(pip);
-  setTimeout(() => sizePipToViewport(pip), 120);
-  setTimeout(() => sizePipToViewport(pip), 420);
-  setTimeout(() => sizePipToViewport(pip), 900);
+  sizePipToViewport(pip, safeContentHeight);
+  setTimeout(() => sizePipToViewport(pip, safeContentHeight), 120);
+  setTimeout(() => sizePipToViewport(pip, safeContentHeight), 420);
+  setTimeout(() => sizePipToViewport(pip, safeContentHeight), 900);
 }
 
 function getPipComponent() {
