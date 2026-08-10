@@ -5,7 +5,7 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=launch-20260810-pro-footer";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=launch-20260810-footer-live-id";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -86,6 +86,8 @@ function collapseOuterChrome() {
     "#header1",
     "#siteHeader",
     "#SITE_HEADER",
+    "#comp-msamze6g",
+    "#comp-msamze6g_r_comp-kbgakgyt",
     "#footer1",
     "#siteFooter",
     "#SITE_FOOTER"
