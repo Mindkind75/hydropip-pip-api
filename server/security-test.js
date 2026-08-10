@@ -20,12 +20,13 @@ process.env.PIP_REQUIRE_SIGNED_SESSIONS = "true";
 process.env.PIP_AI_DISABLED = "true";
 
 const { app, ipMatchesRule, normalizeIp, optionalPipSession } = await import("./index.js");
-const { adminRequestAllowed, adminSessionFromRequest, issueAdminSession, issuePipSession } = await import("./pipAuth.js");
+const { adminRequestAllowed, adminSessionFromRequest, issueAdminSession, issuePipSession, verifyPipSession } = await import("./pipAuth.js");
 const { askPip, filterSensitiveModelOutput, isPromptExfiltrationAttempt } = await import("./pipAgent.js");
 const { clientIpHash, validateChatPayload } = await import("./pipUsage.js");
 const {
   appendProjectMessage,
   completeAiUsage,
+  createBetaApplication,
   createBetaFeedback,
   createProject,
   createProjectConversation,
@@ -44,7 +45,8 @@ const {
   listReviewItems,
   reserveAiUsage,
   resetMemoryForTests,
-  upsertUser
+  upsertUser,
+  updateBetaApplicationReview
 } = await import("./pipMemory.js");
 
 const unsignedRequest = {
@@ -190,6 +192,32 @@ try {
   };
   assert.equal((await fetch(`${baseUrl}/api/pip/session/exchange`, { method: "POST", headers: exchangeHeaders, body: exchangeBody })).status, 200);
   assert.equal((await fetch(`${baseUrl}/api/pip/session/exchange`, { method: "POST", headers: exchangeHeaders, body: exchangeBody })).status, 409);
+  const betaApplication = await createBetaApplication({
+    application: {
+      name: "Approved Tester",
+      email: "approved@example.com",
+      experience: "beginner",
+      buildTimeline: "within_30_days",
+      systemInterest: "hydropip",
+      growArea: "outdoor",
+      devices: ["iphone"],
+      testingCommitment: true,
+      consent: true
+    }
+  });
+  await updateBetaApplicationReview({ id: betaApplication.id, status: "active", adminNotes: "Security test approval" });
+  const betaExchangeBody = JSON.stringify({
+    member: { id: "approved-member", email: "Approved@Example.com" },
+    subscription: { active: false },
+    exchangeNonce: "security-test-nonce-beta"
+  });
+  const betaExchangeResponse = await fetch(`${baseUrl}/api/pip/session/exchange`, {
+    method: "POST",
+    headers: { ...exchangeHeaders, "x-pip-exchange-nonce": "security-test-nonce-beta" },
+    body: betaExchangeBody
+  });
+  assert.equal(betaExchangeResponse.status, 200);
+  assert.equal(verifyPipSession((await betaExchangeResponse.json()).token)?.beta, true);
   process.env.PIP_REQUIRE_EXCHANGE_NONCE = "false";
 
   process.env.NODE_ENV = "production";

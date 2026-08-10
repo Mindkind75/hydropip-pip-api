@@ -6,6 +6,7 @@ import {
   addProjectSeedPacks,
   applyProjectReminderAction,
   appendProjectMessage,
+  betaApplicationGrantsAccess,
   claimBuildPhotoCheck,
   createProject,
   createProjectConversation,
@@ -578,6 +579,10 @@ assert.equal((await listBetaApplications({})).length, 1);
 const updatedApplication = await updateBetaApplicationReview({ id: betaApplication.id, status: "shortlisted", adminNotes: "Good device mix" });
 assert.equal(updatedApplication.status, "shortlisted");
 assert.equal(updatedApplication.adminNotes, "Good device mix");
+assert.equal(await betaApplicationGrantsAccess({ email: "tester@example.com" }), false);
+const activeApplication = await updateBetaApplicationReview({ id: betaApplication.id, status: "active", adminNotes: "Approved for beta access" });
+assert.equal(activeApplication.status, "active");
+assert.equal(await betaApplicationGrantsAccess({ email: "Tester@Example.com" }), true);
 const feedbackList = await listBetaFeedback({ rating: "not_helpful" });
 assert.equal(feedbackList.length, 1);
 const feedbackInsights = feedbackPortfolioInsights(feedbackList);

@@ -1190,6 +1190,25 @@ export async function updateBetaApplicationReview({ id, status, adminNotes } = {
   return record;
 }
 
+export async function betaApplicationGrantsAccess({ email } = {}) {
+  const normalizedEmail = String(email || "").trim().toLowerCase().slice(0, 240);
+  if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) return false;
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query(
+      `select 1 from pip_beta_applications
+       where lower(email) = $1 and status = 'active'
+       limit 1`,
+      [normalizedEmail]
+    );
+    return Boolean(result.rows[0]);
+  }
+  return Object.values(readState().betaApplications || {}).some((item) => (
+    String(item.email || "").trim().toLowerCase() === normalizedEmail
+    && item.status === "active"
+  ));
+}
+
 export async function listBetaFeedback({ status, category, rating, limit = 300 } = {}) {
   const normalizedStatus = normalizeReviewStatus(status, true);
   const normalizedCategory = normalizeFeedbackCategory(category, true);

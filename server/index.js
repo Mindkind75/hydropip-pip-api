@@ -21,6 +21,7 @@ import {
 } from "./pipAuth.js";
 import {
   addProjectSeedPacks,
+  betaApplicationGrantsAccess,
   createBetaApplication,
   createProject,
   createProjectConversation,
@@ -306,7 +307,7 @@ app.get("/api/pip/nutrient-programs", requirePipMember, (req, res) => {
   res.json(nutrientProgramsForSubscription(req.pipSubscription));
 });
 
-app.post("/api/pip/session/exchange", (req, res) => {
+app.post("/api/pip/session/exchange", async (req, res, next) => {
   res.set("Cache-Control", "no-store");
   if (!bridgeRequestAllowed(req)) {
     res.status(401).json({ error: "invalid_bridge_credentials" });
@@ -317,12 +318,23 @@ app.post("/api/pip/session/exchange", (req, res) => {
     res.status(exchangeCheck.statusCode).json({ error: exchangeCheck.error });
     return;
   }
-  const token = issuePipSession(req.body || {});
-  if (!token) {
-    res.status(400).json({ error: "invalid_member_session" });
-    return;
+  try {
+    const sessionPayload = req.body || {};
+    const subscription = { ...(sessionPayload.subscription || {}) };
+    if (await betaApplicationGrantsAccess({ email: sessionPayload.member?.email })) {
+      subscription.active = true;
+      subscription.beta = true;
+      subscription.planName ||= "HydroPip Beta Tester";
+    }
+    const token = issuePipSession({ ...sessionPayload, subscription });
+    if (!token) {
+      res.status(400).json({ error: "invalid_member_session" });
+      return;
+    }
+    res.json({ token, expiresIn: Math.max(300, Math.min(6 * 60 * 60, Number(process.env.PIP_SESSION_TTL_SECONDS) || 60 * 60)) });
+  } catch (error) {
+    next(error);
   }
-  res.json({ token, expiresIn: Math.max(300, Math.min(6 * 60 * 60, Number(process.env.PIP_SESSION_TTL_SECONDS) || 60 * 60)) });
 });
 
 app.use("/api/pip/admin", (req, res, next) => {
@@ -1341,12 +1353,20 @@ export function optionalPipSession(req) {
 }
 
 function requirePipBeta(req, res, next) {
-  requirePipMember(req, res, () => {
-    if (!req.pipSubscription?.beta) {
-      res.status(403).json({ error: "beta_access_required" });
-      return;
+  requirePipMember(req, res, async () => {
+    try {
+      const approvedApplicant = await betaApplicationGrantsAccess({ email: req.pipUser?.email });
+      if (!req.pipSubscription?.beta && !approvedApplicant) {
+        res.status(403).json({ error: "beta_access_required" });
+        return;
+      }
+      if (approvedApplicant) {
+        req.pipSubscription = { ...req.pipSubscription, active: true, beta: true, plan: "pip_pro", planName: req.pipSubscription?.planName || "HydroPip Beta Tester" };
+      }
+      next();
+    } catch (error) {
+      next(error);
     }
-    next();
   });
 }
 

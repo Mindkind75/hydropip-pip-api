@@ -418,6 +418,8 @@ assert.match(betaAdminHtml, /Authorization.*Bearer/, "Beta review data must send
 assert.doesNotMatch(betaAdminHtml, /localStorage/, "Beta review must not persist an admin key beyond the browser session");
 assert.match(betaAdminHtml, /Download CSV/, "Beta review should support operational exports");
 assert.match(betaAdminHtml, /Tester progress/, "Beta review should show checklist progress");
+assert.match(betaAdminHtml, /Approve & activate/, "Beta review should support one-click applicant approval");
+assert.match(betaAdminHtml, /does not create their account or password/, "Beta review should explain the secure approval flow");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
 assert.match(wixPipBridge, /\["pro", "project", "projectId"/, "Wix Pip bridge is not forwarding project context to the iframe");
