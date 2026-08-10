@@ -320,6 +320,8 @@ assert.match(homeHtml, /HYDROPIP_EMBED_WHEEL/, "The embedded Home page should fo
 assert.match(wixHomeBridge, /HYDROPIP_EMBED_WHEEL/, "The Wix Home bridge should receive embedded mouse-wheel movement");
 assert.match(wixHomeBridge, /wixWindowFrontend\.scrollBy/, "The Wix Home bridge should apply forwarded wheel movement to the outer page");
 assert.match(homeHtml, /Start My Free Build/, "The mobile-first homepage CTA should state that build guidance is free");
+assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*data-hp-event=["']primary_build_cta_clicked/, "The public build CTA must use the crawlable Track Start page");
+assert.match(trackStartHtml, /Sign in for checklist/, "Track Start should send checklist access through the account flow instead of a crawler-hostile member page");
 assert.match(homeHtml, /is-wix-embed/, "Home should explicitly disable inner scrolling when embedded in Wix");
 assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature a real HydroPip harvest");
 assert.match(homeHtml, /assets\/photos\/hydropip-mustard-green-harvest-founder\.jpg/, "Home hero is missing the giant mustard green harvest photo");
