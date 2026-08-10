@@ -5,7 +5,7 @@ import { checkout } from "wix-pricing-plans-frontend";
 import { getPipAccess } from "backend/pipAccess.web";
 
 const PIP_HTML_COMPONENT_IDS = ["#pipHtml", "#html1", "#html2", "#iFrame1"];
-const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=launch-20260810-pro-height";
+const PIP_HTML_SRC = "https://hydropip-pip-api.onrender.com/pip.html?v=launch-20260810-pro-footer";
 const PIP_PRO_PLAN_ID = "6620618f-b4b7-4224-8554-62563c7d8d54";
 const PIP_PRO_FALLBACK_PAGE = "/pip?pro=1";
 let lastSessionSignature = "";
@@ -15,7 +15,7 @@ let sessionRequestInFlight;
 let lastPipHeight = 0;
 
 $w.onReady(() => {
-  collapseOuterHeader();
+  collapseOuterChrome();
   const pip = getPipComponent();
   if (!pip) {
     console.warn("Pip iframe bridge could not find the HTML component. Rename the iframe element to pipHtml or add its ID to PIP_HTML_COMPONENT_IDS.");
@@ -26,6 +26,7 @@ $w.onReady(() => {
     const message = event.data || {};
 
     if (message.type === "HYDROPIP_EMBED_HEIGHT") {
+      collapseOuterChrome();
       settlePipToViewport(pip, Number(message.height) || 0);
       return;
     }
@@ -72,21 +73,37 @@ $w.onReady(() => {
 
   pip.src = buildPipSource();
   settlePipToViewport(pip);
+  scheduleOuterChromeCollapse();
 
   setTimeout(() => sendPipSession(pip), 1200);
 
 });
 
-function collapseOuterHeader() {
-  const outerChromeIds = ["#section3", "#membersLoginBar1", "#header1", "#siteHeader"];
+function collapseOuterChrome() {
+  const outerChromeIds = [
+    "#section3",
+    "#membersLoginBar1",
+    "#header1",
+    "#siteHeader",
+    "#SITE_HEADER",
+    "#footer1",
+    "#siteFooter",
+    "#SITE_FOOTER"
+  ];
   for (const selector of outerChromeIds) {
     try {
       const element = $w(/** @type {any} */ (selector));
       if (element && typeof element.collapse === "function") element.collapse();
     } catch (error) {
-      // Try the next known global header element ID.
+      // Try the next known global page chrome element ID.
     }
   }
+}
+
+function scheduleOuterChromeCollapse() {
+  [120, 500, 1200, 2600].forEach((delay) => {
+    setTimeout(collapseOuterChrome, delay);
+  });
 }
 
 function buildPipSource() {
