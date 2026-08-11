@@ -133,7 +133,7 @@ function sizePipToViewport(pip, contentHeight = 0) {
 }
 
 function settlePipToViewport(pip, contentHeight = 0) {
-  const fallbackHeight = wixWindowFrontend.formFactor === "Desktop" ? 1040 : 640;
+  const fallbackHeight = wixWindowFrontend.formFactor === "Desktop" ? 760 : 640;
   const safeContentHeight = Math.max(0, Math.floor(Number(contentHeight) || 0));
   const nextFallbackHeight = Math.max(fallbackHeight, safeContentHeight);
   if (Math.abs(nextFallbackHeight - lastPipHeight) >= 8) {

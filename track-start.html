@@ -23,7 +23,10 @@
 *{box-sizing:border-box}
 html{overflow-x:hidden;overscroll-behavior-y:auto}body{margin:0;background:linear-gradient(135deg,#fbfaf4,#eaf3ed 58%,#dff2f5);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:pan-y pinch-zoom}
 a{color:inherit;text-decoration:none}
-.wrap{min-height:100vh;display:grid;place-items:center;padding:28px}
+.top{position:sticky;top:0;z-index:20;background:rgba(247,245,239,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+.topInner{width:min(1180px,calc(100% - 28px));min-height:72px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.top .brand{margin-bottom:0}.nav{display:flex;gap:8px;flex-wrap:wrap}
+.wrap{min-height:calc(100vh - 72px);display:grid;place-items:center;padding:28px}
 .panel{width:min(980px,100%);display:grid;grid-template-columns:1fr .9fr;gap:28px;align-items:center;padding:clamp(24px,5vw,48px);border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.86);box-shadow:var(--shadow);backdrop-filter:blur(10px)}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;font-weight:950}
 .brand img{width:64px;height:64px;object-fit:contain}
@@ -34,19 +37,23 @@ p{margin:0 0 18px;color:var(--muted);font-size:1.08rem;line-height:1.65}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 16px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:950}
 .btn.primary{background:var(--leaf);border-color:var(--leaf);color:#fff;box-shadow:0 12px 30px rgba(31,122,79,.24)}
+.btn.pro-workspace{gap:8px;border-color:#ef9a38;background:#171b18;color:#fff;box-shadow:0 7px 18px rgba(19,33,29,.2)}
+.btn.pro-workspace:hover{border-color:#f4af59;background:#252b27;color:#fff}
+.pro-badge{display:inline-grid;place-items:center;min-width:29px;height:19px;padding:0 5px;border-radius:4px;background:#ef9a38;color:#171b18;font-size:.63rem;font-weight:950;letter-spacing:.06em}
 .card{display:grid;gap:12px;padding:22px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .card strong{font-size:1.05rem}
 .card span{color:var(--muted);line-height:1.5}
 .note{margin-top:18px;padding:14px 16px;border-radius:8px;background:#fff8e8;color:#5c4b24;font-weight:850}
 .legal-links{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:18px;color:var(--muted);font-size:.82rem}.legal-links a{text-decoration:underline;text-underline-offset:3px}
-.pro-note{margin-top:12px;padding:16px;border-radius:8px;background:var(--deep);color:#fff}.pro-note strong{display:block;margin-bottom:6px}.pro-note span{display:block;color:rgba(255,255,255,.82);line-height:1.5}.pro-note .btn{margin-top:12px;border-color:rgba(255,255,255,.4);background:#fff;color:var(--deep)}
+.pro-note{margin-top:12px;padding:16px;border-radius:8px;background:var(--deep);color:#fff}.pro-note strong{display:block;margin-bottom:6px}.pro-note span{display:block;color:rgba(255,255,255,.82);line-height:1.5}.pro-note .btn{margin-top:12px;border-color:rgba(255,255,255,.4);background:#fff;color:var(--deep)}.pro-note .btn.pro-workspace{border-color:#ef9a38;background:#171b18;color:#fff}
 ul{display:grid;gap:10px;margin:0;padding:0;list-style:none}
 li{display:grid;grid-template-columns:28px 1fr;gap:10px;color:var(--muted);line-height:1.45}
 li:before{content:"";width:22px;height:22px;border-radius:999px;background:var(--gold);margin-top:2px}
-@media(max-width:760px){.panel{grid-template-columns:1fr;padding:22px}.actions .btn{width:100%}.wrap{padding:16px}.brand img{width:56px;height:56px}}
+@media(max-width:760px){.topInner{align-items:flex-start;flex-direction:column;padding:10px 0}.nav{display:grid;grid-template-columns:1fr 1fr;width:100%}.nav .btn{text-align:center}.nav .pro-workspace{grid-column:1/-1}.panel{grid-template-columns:1fr;padding:22px}.actions .btn{width:100%}.wrap{padding:16px}.brand img{width:56px;height:56px}}
 </style>
 </head>
 <body>
+<header class="top"><div class="topInner"><a class="brand" href="https://www.hydropip.com/" target="_top" aria-label="HydroPip home"><img src="/assets/branding/pip-mascot-transparent.png" alt="Pip mascot"><span>HydroPip&trade;<small>Track My Build</small></span></a><nav class="nav" aria-label="Track My Build navigation"><a class="btn" href="https://www.hydropip.com/" target="_top">Home</a><a class="btn" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a><a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a><a class="btn pro-workspace" href="https://www.hydropip.com/pip?pro=1" target="_top"><span>Pip</span><span class="pro-badge">PRO</span></a></nav></div></header>
 <main class="wrap">
   <section class="panel">
     <div>
@@ -63,7 +70,7 @@ li:before{content:"";width:22px;height:22px;border-radius:999px;background:var(-
         <a class="btn" href="https://www.hydropip.com/pip?pro=signup&amp;return=track" target="_top">Sign in for checklist</a>
       </div>
       <p class="note">HydroPip build help stays available with a free account. Pip Pro adds the ongoing grow workspace.</p>
-      <div class="actions"><a class="btn" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a><a class="btn" href="https://hydropip-pip-api.onrender.com/hydroponic-tower-placement" target="_top">Plan My Space</a><a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a><a class="btn" href="https://www.hydropip.com/pip?pro=1" target="_top">See Pip Pro</a></div>
+      <div class="actions"><a class="btn" href="https://hydropip-pip-api.onrender.com/field-guide" target="_top">Field Guide</a><a class="btn" href="https://hydropip-pip-api.onrender.com/hydroponic-tower-placement" target="_top">Plan My Space</a><a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a><a class="btn pro-workspace" href="https://www.hydropip.com/pip?pro=1" target="_top"><span>Pip</span><span class="pro-badge">PRO</span></a></div>
       <nav class="legal-links" aria-label="Legal"><a href="https://hydropip-pip-api.onrender.com/privacy.html" target="_top">Privacy</a><a href="https://hydropip-pip-api.onrender.com/terms.html" target="_top">Terms</a><a href="https://hydropip-pip-api.onrender.com/affiliate-disclosure.html" target="_top">Affiliate disclosure</a><a href="https://hydropip-pip-api.onrender.com/safety.html" target="_top">Safety</a><a href="https://hydropip-pip-api.onrender.com/cancellation.html" target="_top">Cancellation</a></nav>
     </div>
     <div class="card">
@@ -74,7 +81,7 @@ li:before{content:"";width:22px;height:22px;border-radius:999px;background:var(-
         <li><span>Device-saved checkmarks so you can work through the build one section at a time.</span></li>
         <li><span>Quick jump back to Pip when you need help choosing or troubleshooting a part.</span></li>
       </ul>
-      <div class="pro-note"><strong>Keep growing with Pip Pro</strong><span>Save crop schedules, editable maintenance reminders, seed inventory, grow logs, readings, project history, and plans for other hydroponic systems.</span><a class="btn" href="https://www.hydropip.com/pip?pro=1" target="_top">See Pip Pro benefits</a></div>
+      <div class="pro-note"><strong>Keep growing with Pip Pro</strong><span>Save crop schedules, editable maintenance reminders, seed inventory, plant notes, tank checks, project history, and plans for other hydroponic systems.</span><a class="btn pro-workspace" href="https://www.hydropip.com/pip?pro=1" target="_top"><span>Pip</span><span class="pro-badge">PRO</span></a></div>
     </div>
   </section>
 </main>
