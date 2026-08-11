@@ -302,7 +302,7 @@ export async function getAdminCommandCenter({ days = 30 } = {}) {
   if (usesPostgres()) {
     const pool = await readyPool();
     const [usersResult, projectsResult, reviewsResult, conversionsResult, usageResult, betaApplicationsResult, betaFeedbackResult] = await Promise.all([
-      pool.query("select id, email, name, wix_member_id, created_at, updated_at from pip_users"),
+      pool.query("select id, email, name, wix_member_id, subscription_snapshot, created_at, updated_at from pip_users"),
       pool.query("select id, user_id, type, title, status, access, system_profile, created_at, updated_at from pip_projects"),
       pool.query("select id, user_id, project_id, question, answer, reason, context, status, priority, resolution, created_at, updated_at from pip_review_items"),
       pool.query("select * from pip_conversion_events where created_at >= $1 order by created_at desc limit 100000", [start]),
@@ -348,7 +348,8 @@ export async function searchAdminMembers({ q = "", limit = 25 } = {}) {
          count(distinct p.id)::int as project_count,
          count(distinct ue.id)::int as usage_count,
          max(greatest(coalesce(ue.created_at, u.updated_at), coalesce(ce.created_at, u.updated_at), u.updated_at)) as last_seen_at,
-         bool_or(ue.session_tier = 'pip_pro' or ce.session_tier = 'pip_pro') as has_active_subscription
+         bool_or(ue.session_tier = 'pip_pro' or ce.session_tier = 'pip_pro') as has_observed_pro_access,
+         u.subscription_snapshot
        from pip_users u
        left join pip_projects p on p.user_id = u.id
        left join pip_usage_events ue on ue.user_id = u.id
@@ -357,7 +358,7 @@ export async function searchAdminMembers({ q = "", limit = 25 } = {}) {
           or lower(coalesce(u.email, '')) like '%' || $1 || '%'
           or lower(coalesce(u.name, '')) like '%' || $1 || '%'
           or lower(u.id) like '%' || $1 || '%'
-       group by u.id, u.email, u.name, u.wix_member_id, u.created_at, u.updated_at
+       group by u.id, u.email, u.name, u.wix_member_id, u.subscription_snapshot, u.created_at, u.updated_at
        order by coalesce(max(greatest(coalesce(ue.created_at, u.updated_at), coalesce(ce.created_at, u.updated_at), u.updated_at)), u.updated_at) desc
        limit $2`,
       [query, safeLimit]
@@ -372,7 +373,7 @@ export async function searchAdminMembers({ q = "", limit = 25 } = {}) {
       lastSeenAt: toIso(row.last_seen_at || row.updated_at),
       projectCount: Number(row.project_count || 0),
       usageCount: Number(row.usage_count || 0),
-      subscription: { active: Boolean(row.has_active_subscription), plan: row.has_active_subscription ? "pip_pro" : "free_member" }
+      subscription: adminSubscriptionStatus(row.subscription_snapshot, Boolean(row.has_observed_pro_access))
     }));
   }
 
@@ -399,25 +400,33 @@ export async function searchAdminMembers({ q = "", limit = 25 } = {}) {
         lastSeenAt: latestAdminDate([user.updatedAt, ...userUsage.map((event) => event.createdAt), ...userConversions.map((event) => event.createdAt)]),
         projectCount: projects.filter((project) => project.userId === user.id).length,
         usageCount: userUsage.length,
-        subscription: { active: pro, plan: pro ? "pip_pro" : "free_member" }
+        subscription: adminSubscriptionStatus(user.subscriptionSnapshot, pro)
       };
     })
     .sort((a, b) => String(b.lastSeenAt || "").localeCompare(String(a.lastSeenAt || "")))
     .slice(0, safeLimit);
 }
 
-function summarizeCommandCenter({ users, projects, reviews, conversions, usage, betaApplications, betaFeedback, storageMode, days }) {
+export function summarizeCommandCenter({ users, projects, reviews, conversions, usage, betaApplications, betaFeedback, storageMode, days }) {
   const usageConfig = getPipUsageConfig();
   const pageViews = conversions.filter((event) => event.eventName === "page_view");
-  const subscriberIds = new Set([
+  const observedProIds = new Set([
     ...usage.filter((event) => event.sessionTier === "pip_pro").map((event) => event.userId),
     ...conversions.filter((event) => event.sessionTier === "pip_pro").map((event) => event.userId)
   ].filter(Boolean));
+  const verifiedPaidIds = new Set(users
+    .filter((user) => user.subscriptionSnapshot?.active && !user.subscriptionSnapshot?.beta)
+    .map((user) => user.id));
+  const verifiedBetaIds = new Set(users
+    .filter((user) => user.subscriptionSnapshot?.active && user.subscriptionSnapshot?.beta)
+    .map((user) => user.id));
+  const unclassifiedProIds = new Set([...observedProIds]
+    .filter((id) => !verifiedPaidIds.has(id) && !verifiedBetaIds.has(id)));
   const freeMemberIds = new Set([
     ...users.map((user) => user.id),
     ...usage.filter((event) => event.userId && event.sessionTier !== "pip_pro").map((event) => event.userId),
     ...conversions.filter((event) => event.userId && event.sessionTier !== "pip_pro").map((event) => event.userId)
-  ].filter((id) => !subscriberIds.has(id)));
+  ].filter((id) => !observedProIds.has(id) && !verifiedPaidIds.has(id) && !verifiedBetaIds.has(id)));
   const visitorIds = new Set(conversions.map((event) => event.userId || event.visitorId).filter(Boolean));
   const questions = usage.map((event) => event.metadata?.mode || event.eventType || "").filter(Boolean);
   const estimatedCost = usage.reduce((sum, event) => sum + Number(event.estimatedCostUsd || 0), 0);
@@ -433,7 +442,11 @@ function summarizeCommandCenter({ users, projects, reviews, conversions, usage, 
     overview: {
       totalUsers: users.length,
       freeMembers: freeMemberIds.size,
-      activeSubscribers: subscriberIds.size,
+      activeSubscribers: verifiedPaidIds.size,
+      verifiedPaidSubscribers: verifiedPaidIds.size,
+      betaAccessUsers: verifiedBetaIds.size,
+      observedProUsers: observedProIds.size,
+      unclassifiedProUsers: unclassifiedProIds.size,
       knownVisitors: visitorIds.size,
       projects: projects.length,
       activeProjects: projects.filter((project) => project.status === "active").length,
@@ -470,9 +483,13 @@ function summarizeCommandCenter({ users, projects, reviews, conversions, usage, 
       topics: adminTopCounts(questions, 8)
     },
     revenue: {
-      activeSubscribers: subscriberIds.size,
-      estimatedMrr: subscriberIds.size * Number(process.env.PIP_PRO_MONTHLY_PRICE || 9),
-      monthlyPrice: Number(process.env.PIP_PRO_MONTHLY_PRICE || 9),
+      activeSubscribers: verifiedPaidIds.size,
+      verifiedPaidSubscribers: verifiedPaidIds.size,
+      betaAccessUsers: verifiedBetaIds.size,
+      observedProUsers: observedProIds.size,
+      unclassifiedProUsers: unclassifiedProIds.size,
+      billingSource: "wix_pricing_plans",
+      coverage: "members_who_connected_to_pip",
       affiliateClicks: eventCount(conversions, "affiliate_link_clicked"),
       proCheckoutStarts: eventCount(conversions, "pro_checkout_started")
     },
@@ -484,7 +501,7 @@ function summarizeCommandCenter({ users, projects, reviews, conversions, usage, 
       conversions,
       storageMode,
       estimatedCost,
-      subscriberIds
+      subscriberIds: observedProIds
     }),
     operations: {
       storageMode,
@@ -517,7 +534,11 @@ function summarizeCommandCenter({ users, projects, reviews, conversions, usage, 
       .slice()
       .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))
       .slice(0, 8)
-      .map(redactAdminUser),
+      .map((user) => ({
+        ...redactAdminUser(user, observedProIds.has(user.id)),
+        projectCount: projects.filter((project) => project.userId === user.id).length,
+        usageCount: usage.filter((event) => event.userId === user.id).length
+      })),
     projects: {
       byType: adminTopCounts(projects.map((project) => project.type), 8),
       byAccess: adminTopCounts(projects.map((project) => project.access), 8)
@@ -599,12 +620,13 @@ function adminTopCounts(values, limit = 10) {
     .map(([label, count]) => ({ label, count }));
 }
 
-function redactAdminUser(user = {}) {
+function redactAdminUser(user = {}, observedPro = false) {
   return {
     id: user.id,
     email: redactAdminEmail(user.email),
     name: user.name || null,
     wixMemberId: user.wixMemberId ? `${String(user.wixMemberId).slice(0, 8)}...` : null,
+    subscription: adminSubscriptionStatus(user.subscriptionSnapshot, observedPro),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };
@@ -966,6 +988,7 @@ export async function upsertUser(user = {}) {
     email: normalized.email || existing.email || null,
     name: normalized.name || existing.name || null,
     wixMemberId: normalized.wixMemberId || existing.wixMemberId || null,
+    subscriptionSnapshot: normalized.subscriptionSnapshot || existing.subscriptionSnapshot || null,
     createdAt: existing.createdAt || now,
     updatedAt: now
   };
@@ -2474,6 +2497,7 @@ async function ensureSchema(pool) {
     alter table pip_users add column if not exists beta_welcome_seen_at timestamptz;
     alter table pip_users add column if not exists beta_activity jsonb not null default '{}'::jsonb;
     alter table pip_users add column if not exists preferences jsonb not null default '{}'::jsonb;
+    alter table pip_users add column if not exists subscription_snapshot jsonb not null default '{}'::jsonb;
 
     create table if not exists pip_projects (
       id text primary key,
@@ -2695,15 +2719,19 @@ async function ensureSchema(pool) {
 async function upsertUserPg(normalized) {
   const pool = await readyPool();
   const result = await pool.query(
-    `insert into pip_users (id, email, name, wix_member_id, created_at, updated_at)
-     values ($1, $2, $3, $4, now(), now())
+    `insert into pip_users (id, email, name, wix_member_id, subscription_snapshot, created_at, updated_at)
+     values ($1, $2, $3, $4, $5::jsonb, now(), now())
      on conflict (id) do update set
        email = coalesce(excluded.email, pip_users.email),
        name = coalesce(excluded.name, pip_users.name),
        wix_member_id = coalesce(excluded.wix_member_id, pip_users.wix_member_id),
+       subscription_snapshot = case
+         when excluded.subscription_snapshot = '{}'::jsonb then pip_users.subscription_snapshot
+         else excluded.subscription_snapshot
+       end,
        updated_at = now()
-     returning id, email, name, wix_member_id, build_photo_checks_used, beta_welcome_seen_at, beta_activity, preferences, created_at, updated_at`,
-    [normalized.id, normalized.email, normalized.name, normalized.wixMemberId]
+     returning id, email, name, wix_member_id, subscription_snapshot, build_photo_checks_used, beta_welcome_seen_at, beta_activity, preferences, created_at, updated_at`,
+    [normalized.id, normalized.email, normalized.name, normalized.wixMemberId, JSON.stringify(normalized.subscriptionSnapshot || {})]
   );
   return rowToUser(result.rows[0]);
 }
@@ -2809,8 +2837,36 @@ function normalizeUser(user = {}) {
     id,
     email: user.email ? String(user.email).trim().toLowerCase() : null,
     name: user.name ? String(user.name).trim() : null,
-    wixMemberId: user.wixMemberId ? String(user.wixMemberId).trim() : null
+    wixMemberId: user.wixMemberId ? String(user.wixMemberId).trim() : null,
+    subscriptionSnapshot: normalizeSubscriptionSnapshot(user.subscription)
   };
+}
+
+function normalizeSubscriptionSnapshot(subscription) {
+  if (!subscription || typeof subscription !== "object" || Array.isArray(subscription)) return null;
+  return {
+    active: Boolean(subscription.active),
+    beta: Boolean(subscription.active && subscription.beta),
+    plan: cleanOptionalText(subscription.plan, 80) || (subscription.active ? "pip_pro" : "free_member"),
+    planName: cleanOptionalText(subscription.planName, 160),
+    orderId: cleanOptionalText(subscription.orderId, 180),
+    checkedBy: cleanOptionalText(subscription.checkedBy, 80),
+    checkedAt: nowIso()
+  };
+}
+
+function adminSubscriptionStatus(snapshot, observedPro = false) {
+  const current = snapshot && typeof snapshot === "object" ? snapshot : {};
+  if (current.active && current.beta) {
+    return { active: true, beta: true, observed: true, plan: "beta_access", checkedAt: current.checkedAt || null };
+  }
+  if (current.active) {
+    return { active: true, beta: false, observed: true, plan: "paid_pro_seen", checkedAt: current.checkedAt || null };
+  }
+  if (observedPro) {
+    return { active: null, beta: null, observed: true, plan: "pro_seen_unclassified", checkedAt: current.checkedAt || null };
+  }
+  return { active: false, beta: false, observed: false, plan: "free_member", checkedAt: current.checkedAt || null };
 }
 
 function normalizeWorkspaceTabOrder(value) {
@@ -3005,12 +3061,26 @@ function rowToUser(row) {
     email: row.email,
     name: row.name,
     wixMemberId: row.wix_member_id,
+    subscriptionSnapshot: normalizeSubscriptionSnapshotForRead(row.subscription_snapshot),
     buildPhotoChecksUsed: Number(row.build_photo_checks_used || 0),
     betaWelcomeSeenAt: toIso(row.beta_welcome_seen_at),
     betaActivity: normalizeBetaActivity(row.beta_activity),
     preferences: normalizeUserPreferences(row.preferences),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
+  };
+}
+
+function normalizeSubscriptionSnapshotForRead(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || !Object.keys(value).length) return null;
+  return {
+    active: Boolean(value.active),
+    beta: Boolean(value.active && value.beta),
+    plan: cleanOptionalText(value.plan, 80),
+    planName: cleanOptionalText(value.planName, 160),
+    orderId: cleanOptionalText(value.orderId, 180),
+    checkedBy: cleanOptionalText(value.checkedBy, 80),
+    checkedAt: toIso(value.checkedAt)
   };
 }
 

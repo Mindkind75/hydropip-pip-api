@@ -43,6 +43,7 @@ import {
   grantPipCredits,
   seedProjectConversationDefaults,
   seedProjectDefaults,
+  summarizeCommandCenter,
   updateProjectConversation,
   updateProjectReminder,
   updateBetaExperience,
@@ -70,6 +71,31 @@ process.env.PIP_APPROVED_TRAINING_FILE ||= path.join(process.cwd(), "server", ".
 
 assert.equal(normalizeImageInput({ dataUrl: "data:image/jpeg;base64,/9j/2Q==" }).mimeType, "image/jpeg");
 assert.throws(() => normalizeImageInput({ dataUrl: "data:image/svg+xml;base64,PHN2Zz4=" }), /JPEG, PNG, or WebP/);
+
+const commandCenterAccessSummary = summarizeCommandCenter({
+  users: [
+    { id: "paid-user", subscriptionSnapshot: { active: true, beta: false } },
+    { id: "beta-user", subscriptionSnapshot: { active: true, beta: true } },
+    { id: "free-user", subscriptionSnapshot: { active: false, beta: false } }
+  ],
+  projects: [],
+  reviews: [],
+  conversions: [
+    { userId: "paid-user", sessionTier: "pip_pro", eventName: "pip_opened", createdAt: new Date().toISOString() },
+    { userId: "beta-user", sessionTier: "pip_pro", eventName: "pip_opened", createdAt: new Date().toISOString() },
+    { userId: "legacy-pro-user", sessionTier: "pip_pro", eventName: "pip_opened", createdAt: new Date().toISOString() }
+  ],
+  usage: [],
+  betaApplications: [],
+  betaFeedback: [],
+  storageMode: "file",
+  days: 30
+});
+assert.equal(commandCenterAccessSummary.overview.verifiedPaidSubscribers, 1);
+assert.equal(commandCenterAccessSummary.overview.betaAccessUsers, 1);
+assert.equal(commandCenterAccessSummary.overview.observedProUsers, 3);
+assert.equal(commandCenterAccessSummary.overview.unclassifiedProUsers, 1);
+assert.equal(commandCenterAccessSummary.revenue.estimatedMrr, undefined);
 
 const signedSession = issuePipSession({
   member: { id: "test-user", email: "test@hydropip.com" },

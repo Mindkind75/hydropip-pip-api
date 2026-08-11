@@ -331,6 +331,13 @@ app.post("/api/pip/session/exchange", async (req, res, next) => {
       res.status(400).json({ error: "invalid_member_session" });
       return;
     }
+    await upsertUser({
+      id: sessionPayload.member.id,
+      email: sessionPayload.member.email,
+      name: sessionPayload.member.name,
+      wixMemberId: sessionPayload.member.id,
+      subscription
+    });
     res.json({ token, expiresIn: Math.max(300, Math.min(6 * 60 * 60, Number(process.env.PIP_SESSION_TTL_SECONDS) || 60 * 60)) });
   } catch (error) {
     next(error);
