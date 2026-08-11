@@ -2361,6 +2361,9 @@ export async function createProjectReading({ userId, projectId, reading = {}, su
     cropsGrowing: cleanOptionalText(reading.cropsGrowing, 300),
     dominantCropType: cleanOptionalText(reading.dominantCropType, 30),
     plantDevelopmentStage: cleanOptionalText(reading.plantDevelopmentStage, 120),
+    plantCondition: cleanOptionalText(reading.plantCondition, 80),
+    leafColor: cleanOptionalText(reading.leafColor, 80),
+    issuePressure: cleanOptionalText(reading.issuePressure, 120),
     currentTankLevel: cleanOptionalText(reading.currentTankLevel || reading.waterLevel, 80),
     expectedRefillWindow: cleanOptionalText(reading.expectedRefillWindow, 80),
     actualRefillDate: cleanOptionalText(reading.actualRefillDate, 20),
@@ -2371,7 +2374,7 @@ export async function createProjectReading({ userId, projectId, reading = {}, su
     runoffLevel: reading.runoffLevel ?? null,
     temperature: normalizeOptionalNumber(reading.temperature),
     note: String(reading.note || ""),
-    takenAt: reading.takenAt || nowIso(),
+    takenAt: reading.takenAt ? normalizeObservationDate(reading.takenAt) : nowIso(),
     createdAt: nowIso()
   };
 
@@ -3563,6 +3566,12 @@ function cropSummary(crops) {
 function toIso(value) {
   if (!value) return null;
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function normalizeObservationDate(value) {
+  const text = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return new Date(`${text}T12:00:00`).toISOString();
+  return toIso(value);
 }
 
 function normalizeUsageIdentity({ userId, ipHash } = {}) {
