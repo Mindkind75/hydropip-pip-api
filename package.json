@@ -10,6 +10,7 @@
     "test:security": "node server/security-test.js",
     "qa:pip": "node server/pip-qa-suite.js",
     "qa:live": "node server/pip-live-qa.js",
+    "qa:routes": "node server/live-route-qa.js",
     "qa:site": "node server/site-qa.js",
     "qa:seo": "node server/seo-qa.js",
     "qa:conversions": "node server/conversion-tracking-test.js",
