@@ -214,6 +214,8 @@ app.get("/pip-review-admin.html", serveAdminPage("pip-review-admin.html"));
 app.get(["/admin-control-center", "/admin-control-center.html"], serveAdminPage("admin-control-center.html"));
 
 const publicPageRoutes = new Map([
+  ["/join", "join.html"],
+  ["/beta-test", "beta-test.html"],
   ["/field-guide", "field-guide.html"],
   ["/how-it-works", "how-it-works.html"],
   ["/hydroponic-tower-placement", "hydroponic-tower-placement.html"],
@@ -225,6 +227,8 @@ for (const [route, file] of publicPageRoutes) {
   app.get(route, (_req, res) => res.sendFile(path.join(rootDir, file)));
   app.get(`/${file}`, (_req, res) => res.redirect(301, route));
 }
+
+app.get(["/signup", "/signup.html"], (_req, res) => res.redirect(302, "/join"));
 
 app.use(express.static(rootDir, {
   setHeaders(res, filePath) {
@@ -238,8 +242,6 @@ app.use(express.static(rootDir, {
     }
   }
 }));
-
-app.get("/beta-test", (_req, res) => res.sendFile(path.join(rootDir, "beta-test.html")));
 
 app.post("/api/pip/conversions", conversionRateLimit, async (req, res, next) => {
   try {

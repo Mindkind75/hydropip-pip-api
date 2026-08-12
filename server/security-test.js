@@ -113,6 +113,15 @@ const server = await new Promise((resolve) => {
 });
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
 try {
+  const joinPageResponse = await fetch(`${baseUrl}/join`);
+  assert.equal(joinPageResponse.status, 200);
+  assert.match(await joinPageResponse.text(), /Create Your Free HydroPip Account/);
+  assert.equal((await fetch(`${baseUrl}/join.html`, { redirect: "manual" })).status, 301);
+  assert.equal((await fetch(`${baseUrl}/signup`, { redirect: "manual" })).headers.get("location"), "/join");
+  const betaPageResponse = await fetch(`${baseUrl}/beta-test`);
+  assert.equal(betaPageResponse.status, 200);
+  assert.match(await betaPageResponse.text(), /HydroPip Beta Test/);
+  assert.equal((await fetch(`${baseUrl}/beta-test.html`, { redirect: "manual" })).status, 301);
   assert.equal((await fetch(`${baseUrl}/HydroPip_AIknowledge_base/build_guide.md`)).status, 404);
   assert.equal((await fetch(`${baseUrl}/server/index.js`)).status, 404);
   assert.equal((await fetch(`${baseUrl}/backup.zip`)).status, 404);
