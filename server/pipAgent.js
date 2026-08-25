@@ -1,7 +1,7 @@
 import { buildCatalog, hydropipSystem, systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
 import { assessSiteFit, calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
-import { affiliateProductLabel, appendNamedProductSearchLinks } from "./pipProductLinks.js";
+import { affiliateProductLabel, appendNamedProductSearchLinks, normalizeAmazonAffiliateLinks } from "./pipProductLinks.js";
 import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 import { combineOpenAiUsage, getPipUsageConfig, pipAiDisabled } from "./pipUsage.js";
@@ -1022,7 +1022,8 @@ export function compactAnswer(answer, message, retrieval, answerContext = {}) {
   const commerceAllowed = shouldIncludeAffiliateProducts(message, answerContext);
   const commerceAdjusted = commerceAllowed ? summarized : stripUnrequestedAffiliateContent(summarized);
   const linked = commerceAllowed ? appendNamedProductSearchLinks(commerceAdjusted) : commerceAdjusted;
-  const disclosed = ensureAffiliateDisclosure(linked);
+  const tagged = normalizeAmazonAffiliateLinks(linked);
+  const disclosed = ensureAffiliateDisclosure(tagged);
   if (wantsDetailedInfo(message)) return disclosed;
   const words = String(disclosed || "").trim().split(/\s+/).filter(Boolean);
   if (words.length <= 100) return disclosed;

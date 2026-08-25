@@ -14,7 +14,8 @@
     "qa:site": "node server/site-qa.js",
     "qa:seo": "node server/seo-qa.js",
     "qa:conversions": "node server/conversion-tracking-test.js",
-    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:pip"
+    "qa:affiliate": "node server/affiliate-link-test.js",
+    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip"
   },
   "dependencies": {
     "@simplewebauthn/server": "13.2.2",

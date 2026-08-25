@@ -1,7 +1,49 @@
-const affiliateTag = "hydrpip2002-20";
+export const amazonAffiliateTag = String(process.env.AMAZON_ASSOCIATE_TAG || "hydrpip2002-20").trim();
+
+const amazonUrlPattern = /https?:\/\/(?:[a-z0-9-]+\.)?amazon\.com\/[^\s<>"']+/gi;
+const amazonShortUrlPattern = /https?:\/\/(?:www\.)?(?:a\.co|amzn\.to)\/[^\s<>"']+/gi;
+
+export function tagAmazonUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return raw;
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.toLowerCase();
+    if (host === "affiliate-program.amazon.com") return raw;
+    if (host !== "amazon.com" && !host.endsWith(".amazon.com")) return raw;
+    url.protocol = "https:";
+    url.hostname = "www.amazon.com";
+    url.searchParams.set("tag", amazonAffiliateTag);
+    return url.toString();
+  } catch {
+    return raw;
+  }
+}
+
+export function normalizeAmazonAffiliateLinks(value) {
+  return String(value || "")
+    .replace(amazonShortUrlPattern, "[Amazon short link removed; ask Pip for a tagged product link]")
+    .replace(amazonUrlPattern, (candidate) => {
+      const trailing = candidate.match(/[),.;!?\]}]+$/)?.[0] || "";
+      const url = trailing ? candidate.slice(0, -trailing.length) : candidate;
+      return `${tagAmazonUrl(url)}${trailing}`;
+    });
+}
+
+export function hasValidAmazonAffiliateTag(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const host = url.hostname.toLowerCase();
+    if (host === "affiliate-program.amazon.com") return true;
+    if (host !== "amazon.com" && !host.endsWith(".amazon.com")) return true;
+    return url.searchParams.get("tag") === amazonAffiliateTag;
+  } catch {
+    return false;
+  }
+}
 
 function amazonSearch(query) {
-  return `https://www.amazon.com/s?k=${encodeURIComponent(query).replace(/%20/g, "+")}&tag=${affiliateTag}`;
+  return tagAmazonUrl(`https://www.amazon.com/s?k=${encodeURIComponent(query).replace(/%20/g, "+")}`);
 }
 
 export const pestProductLinks = Object.freeze({
