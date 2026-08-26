@@ -332,7 +332,12 @@ assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero shou
 assert.match(homeHtml, /assets\/photos\/hydropip-mustard-green-harvest-founder\.jpg/, "Home hero is missing the giant mustard green harvest photo");
 assert.match(homeHtml, /This giant mustard green came from HydroPip/i, "Home hero should connect the harvest result to HydroPip");
 assert.match(homeHtml, /No proprietary kit\. No parts markup\./i, "Home should clearly explain that HydroPip does not sell or mark up the parts");
-assert.match(homeHtml, /commission at no extra cost to you/i, "Home should explain how affiliate links support the free guidance");
+assert.match(homeHtml, /using our links supports the free guidance at no extra cost to you/i, "Home should explain how affiliate links support the free guidance");
+assert.match(homeHtml, /As an Amazon Associate I earn from qualifying purchases\./, "Home should show Amazon's required affiliate disclosure beside the product links");
+assert.match(homeHtml, /Core HydroPip Amazon affiliate links/i, "Home should expose an accessible set of core affiliate links");
+for (const asin of ["B007TFTXAC", "B07L54HB83", "B0GQQP8M83", "B091FXH2FR"]) {
+  assert.match(homeHtml, new RegExp(`amazon\\.com/dp/${asin}\\?tag=hydrpip2002-20`), `Home is missing the tagged core Amazon link for ${asin}`);
+}
 assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");
 assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");

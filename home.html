@@ -152,7 +152,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .part small{color:var(--deep);font-weight:950;text-transform:uppercase}
 .part a{align-self:end;width:max-content;padding:10px 12px;border-radius:8px;background:var(--gold);font-weight:950}
 .disclosure{margin:18px 0 0;padding:14px 16px;border-left:4px solid var(--gold);background:#fff8e8;color:#5c4b24;border-radius:0 8px 8px 0;font-weight:800}
-.affiliatePromise{max-width:760px;margin:16px 0 0;padding:13px 15px;border-left:4px solid var(--gold);border-radius:0 8px 8px 0;background:rgba(255,255,255,.9);color:var(--muted);font-size:.93rem;line-height:1.5}.affiliatePromise strong{color:var(--deep)}
+.affiliatePromise{max-width:760px;margin:16px 0 0;padding:12px 15px;border-left:4px solid var(--gold);border-radius:0 8px 8px 0;background:rgba(255,255,255,.9);color:var(--muted);font-size:.91rem;line-height:1.42}.affiliatePromise strong{color:var(--deep)}.affiliateQuickLinks{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:8px}.affiliateQuickLinks>span{margin-right:2px;color:var(--deep);font-weight:900}.affiliateQuickLinks a{display:inline-flex;align-items:center;min-height:32px;padding:6px 9px;border:1px solid #b7d3c5;border-radius:6px;background:#fff;color:var(--deep);font-weight:900;line-height:1.15}.affiliateQuickLinks a:hover,.affiliateQuickLinks a:focus-visible{border-color:var(--leaf);background:var(--mint)}.affiliateDisclosure{display:block;margin-top:7px;color:#6b5422;font-size:.78rem;font-weight:850}
 .finalCta{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
 .turnoverBand{background:#edf6e7}
 .turnoverGrid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(380px,1.08fr);gap:clamp(30px,5vw,72px);align-items:center}
@@ -256,7 +256,17 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
         <a class="btn" href="https://www.hydropip.com/pip" target="_top">Ask Pip</a>
         <a class="btn" href="https://hydropip-pip-api.onrender.com/join" target="_top">Create free account</a>
       </div>
-      <p class="affiliatePromise"><strong>No proprietary kit. No parts markup.</strong> Buy the components directly from Amazon or another retailer you trust. When you use our Amazon links, HydroPip may earn a commission at no extra cost to you. That support helps keep the build guidance free.</p>
+      <aside class="affiliatePromise" aria-label="Core HydroPip parts and affiliate disclosure">
+        <strong>No proprietary kit. No parts markup.</strong> HydroPip does not sell build parts. Buy from Amazon or another retailer you trust; using our links supports the free guidance at no extra cost to you.
+        <nav class="affiliateQuickLinks" aria-label="Core HydroPip Amazon affiliate links">
+          <span>Core parts:</span>
+          <a href="https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20" target="_top" rel="noopener sponsored" aria-label="Stackable tower planters on Amazon">Planters</a>
+          <a href="https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20" target="_top" rel="noopener sponsored" aria-label="Two IBC pumps on Amazon">Pumps</a>
+          <a href="https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20" target="_top" rel="noopener sponsored" aria-label="Rigid tower feed tubing on Amazon">Feed tubing</a>
+          <a href="https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20" target="_top" rel="noopener sponsored" aria-label="Outdoor dual-outlet smart plug on Amazon">Smart plug</a>
+        </nav>
+        <small class="affiliateDisclosure">As an Amazon Associate I earn from qualifying purchases.</small>
+      </aside>
     </div>
     <figure class="photoFeature singlePhoto" aria-label="Giant purple mustard green harvested from the HydroPip system">
       <img src="/assets/photos/hydropip-mustard-green-harvest-founder.jpg" alt="HydroPip founder holding a giant purple mustard green harvested from the tower system" loading="eager">
