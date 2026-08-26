@@ -313,6 +313,10 @@ assert.doesNotMatch(wixTrackBridge, /14950|25700/, "The Wix Track My Build page 
 const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8");
 const wixHomeBridge = fs.readFileSync(new URL("../wix-home-page-code.js", import.meta.url), "utf8");
 assert.match(homeHtml, /postHeight\(true\)/, "Home must resend its measured height after the Wix bridge is ready");
+assert.match(homeHtml, /width<=760/, "Home device layout must use the actual embed width for mobile mode");
+assert.doesNotMatch(homeHtml, /Mobi\|Android\|iPhone\|iPod/, "Home must not force mobile layout from a stale browser user agent");
+assert.match(homeHtml, /document\.body\.scrollHeight/, "Home embed height must include the full body scroll height");
+assert.match(homeHtml, /MutationObserver/, "Home must watch late layout changes that can alter its embed height");
 assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
 assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
 assert.match(wixHomeBridge, /1500/, "Home should use a compact loading height before its real content measurement arrives");
@@ -335,7 +339,7 @@ assert.match(homeHtml, /field-guide/, "Home should link to the HydroPip Field Gu
 assert.match(homeHtml, /pipFloat/, "The Meet Pip conversion moment should give the mascot restrained motion");
 assert.match(homeHtml, /deviceLandscape/, "Home should provide an automatic landscape presentation layout for phones and casting");
 assert.match(homeHtml, /orientationchange/, "Home should react when a phone rotates between portrait and landscape");
-assert.match(homeHtml, /root\.classList\.toggle\("deviceMobile",forceMobile\|\|\(handheld&&!landscape\)\)/, "Landscape phones should not remain locked to the portrait mobile layout");
+assert.match(homeHtml, /root\.classList\.toggle\("deviceMobile",forceMobile\|\|\(!landscape&&width<=760\)\)/, "Landscape phones should not remain locked to the portrait mobile layout");
 assert.doesNotMatch(partsHtml, /html,body\{overflow-y:hidden\}/, "Track My Build must preserve vertical page scrolling");
 assert.match(partsHtml, /html,body\{overflow-y:auto\}/, "Track My Build should use natural vertical scrolling");
 assert.match(partsHtml, /if\(isWixEmbed\)return/, "Embedded Track My Build must not broadcast a document height to legacy resize listeners");

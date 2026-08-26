@@ -29,13 +29,12 @@
   if(new URLSearchParams(location.search).get("embed")==="1")root.classList.add("is-wix-embed");
   var forceMobile=location.search.indexOf("forceMobile=1")!==-1;
   var forceLandscape=location.search.indexOf("forceLandscape=1")!==-1;
-  var handheld=forceLandscape||/Mobi|Android|iPhone|iPod/i.test(navigator.userAgent)||Math.min((window.screen&&screen.width)||innerWidth,(window.screen&&screen.height)||innerHeight)<=760;
   function syncDeviceLayout(){
     var width=window.innerWidth||document.documentElement.clientWidth;
     var height=window.innerHeight||document.documentElement.clientHeight;
-    var landscape=!forceMobile&&(forceLandscape||(handheld&&width>height&&width>=640));
+    var landscape=!forceMobile&&(forceLandscape||(width>=640&&width<=900&&width>height));
     root.classList.toggle("deviceLandscape",landscape);
-    root.classList.toggle("deviceMobile",forceMobile||(handheld&&!landscape));
+    root.classList.toggle("deviceMobile",forceMobile||(!landscape&&width<=760));
   }
   syncDeviceLayout();
   window.addEventListener("resize",syncDeviceLayout);
@@ -563,6 +562,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 <script>
 (function(){
   var lastHeight=0;
+  var heightFrame=0;
   function contentHeight(){
     var bottom=0;
     Array.prototype.forEach.call(document.body.children,function(element){
@@ -571,7 +571,11 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
       var marginBottom=parseFloat(getComputedStyle(element).marginBottom)||0;
       bottom=Math.max(bottom,rect.bottom+window.scrollY+marginBottom);
     });
-    return Math.ceil(bottom);
+    return Math.ceil(Math.max(
+      bottom,
+      document.body.scrollHeight,
+      document.body.offsetHeight
+    ));
   }
   function postHeight(force){
     var nextHeight=contentHeight();
@@ -579,16 +583,40 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
     lastHeight=nextHeight;
     try{window.parent.postMessage({type:"HYDROPIP_EMBED_HEIGHT",page:location.pathname.split("/").pop()||"home",height:nextHeight,width:window.innerWidth||document.documentElement.clientWidth,viewportHeight:window.innerHeight||document.documentElement.clientHeight},"*")}catch(error){}
   }
-  window.addEventListener("load",postHeight);
-  window.addEventListener("resize",postHeight);
-  Array.prototype.forEach.call(document.images,function(image){
-    if(!image.complete)image.addEventListener("load",postHeight,{once:true});
+  function queueHeight(force){
+    if(heightFrame)cancelAnimationFrame(heightFrame);
+    heightFrame=requestAnimationFrame(function(){
+      heightFrame=0;
+      postHeight(force);
+    });
+  }
+  window.addEventListener("load",function(){queueHeight(true)});
+  window.addEventListener("resize",function(){queueHeight(true)});
+  window.addEventListener("orientationchange",function(){queueHeight(true)});
+  window.addEventListener("pageshow",function(){queueHeight(true)});
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden)queueHeight(true);
   });
-  if("ResizeObserver" in window)new ResizeObserver(postHeight).observe(document.body);
+  document.addEventListener("load",function(event){
+    if(event.target&&event.target.tagName==="IMG")queueHeight(true);
+  },true);
+  if("ResizeObserver" in window){
+    var resizeObserver=new ResizeObserver(function(){queueHeight(false)});
+    resizeObserver.observe(document.documentElement);
+    resizeObserver.observe(document.body);
+    Array.prototype.forEach.call(document.querySelectorAll("main,footer"),function(element){resizeObserver.observe(element)});
+  }
+  if("MutationObserver" in window)new MutationObserver(function(){queueHeight(false)}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["class","style","src"]});
   setTimeout(function(){postHeight(true)},250);
   setTimeout(function(){postHeight(true)},1000);
   setTimeout(function(){postHeight(true)},2500);
   setTimeout(function(){postHeight(true)},6000);
+  var checks=0;
+  var stabilizer=setInterval(function(){
+    postHeight(true);
+    checks+=1;
+    if(checks>=30)clearInterval(stabilizer);
+  },1000);
 })();
 </script>
 </body>
