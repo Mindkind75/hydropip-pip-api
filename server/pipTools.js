@@ -3,25 +3,25 @@ import { pestProductLinks } from "./pipProductLinks.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const affiliateLinks = {
-  gardenHoseWashers: "https://www.amazon.com/dp/B0F1TRNY2K?tag=hydrpip2002-20",
-  hoseEndValve: "https://www.amazon.com/dp/B013646334?tag=hydrpip2002-20",
-  hoseAdapters: "https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip2002-20",
-  mainHose: "https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20",
-  dripIrrigation: "https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20",
-  diffuserTubing: "https://www.amazon.com/s?k=1%2F2+inch+vinyl+tubing+flexible+hose&tag=hydrpip2002-20",
-  tubingPunch: "https://www.amazon.com/s?k=drip+irrigation+tubing+punch+tool&tag=hydrpip2002-20",
-  pumps: "https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20",
-  smartPlug: "https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20",
-  nutrients: "https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20",
-  perlite: "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20",
-  vermiculite: "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20",
-  phCalibration: "https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip2002-20",
-  phUpDown: "https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip2002-20",
-  ecTdsMeter: "https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip2002-20",
-  ecTdsCalibration: "https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip2002-20",
-  seeds: "https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip2002-20",
+  gardenHoseWashers: "https://www.amazon.com/dp/B0F1TRNY2K?tag=hydrpip200202-20",
+  hoseEndValve: "https://www.amazon.com/dp/B013646334?tag=hydrpip200202-20",
+  hoseAdapters: "https://www.amazon.com/dp/B09B16KTNM?tag=hydrpip200202-20",
+  mainHose: "https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip200202-20",
+  dripIrrigation: "https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip200202-20",
+  diffuserTubing: "https://www.amazon.com/s?k=1%2F2+inch+vinyl+tubing+flexible+hose&tag=hydrpip200202-20",
+  tubingPunch: "https://www.amazon.com/s?k=drip+irrigation+tubing+punch+tool&tag=hydrpip200202-20",
+  pumps: "https://www.amazon.com/dp/B07L54HB83?tag=hydrpip200202-20",
+  smartPlug: "https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip200202-20",
+  nutrients: "https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip200202-20",
+  perlite: "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip200202-20",
+  vermiculite: "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip200202-20",
+  phCalibration: "https://www.amazon.com/s?k=pH+calibration+solution+4.01+7.00+hydroponics&tag=hydrpip200202-20",
+  phUpDown: "https://www.amazon.com/s?k=pH+up+pH+down+hydroponics+kit&tag=hydrpip200202-20",
+  ecTdsMeter: "https://www.amazon.com/s?k=EC+TDS+meter+hydroponics&tag=hydrpip200202-20",
+  ecTdsCalibration: "https://www.amazon.com/s?k=EC+TDS+calibration+solution+hydroponics&tag=hydrpip200202-20",
+  seeds: "https://www.amazon.com/s?k=hydroponic+lettuce+herb+seeds&tag=hydrpip200202-20",
   stickyTraps: pestProductLinks.yellowStickyTraps,
-  mediaTopOff: "https://www.amazon.com/s?k=perlite+vermiculite+hydroponic+growing+medium&tag=hydrpip2002-20"
+  mediaTopOff: "https://www.amazon.com/s?k=perlite+vermiculite+hydroponic+growing+medium&tag=hydrpip200202-20"
 };
 const supportPipeUrl = "https://www.homedepot.com/p/100537138";
 const configuredProSignupUrl = process.env.PIP_PRO_SIGNUP_URL || "";
@@ -354,7 +354,7 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] },
     return `${contextLead}Use a tubing punch or awl to make cleaner holes in the main hose.\n- Tubing punch/awl: ${affiliateLinks.tubingPunch}\n- Clean holes seal better around the small tower feed tubes.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["mixing pump hose", "mix pump hose", "circulation hose", "return hose", "mixing return"])) {
-    return `${contextLead}The internal mixing pump needs its own flexible circulation hose, separate from the tower feed hose and not a runoff-return line. Run it from the pump near the bottom to the top IBC opening, bend it near the opening, point it downward, and secure it to the molded anchor loops with a small bungee or reusable strap.\n- Hose: https://www.amazon.com/s?k=submersible+pump+flexible+return+hose&tag=hydrpip2002-20\n- Strap: https://www.amazon.com/s?k=small+bungee+cord+reusable+strap&tag=hydrpip2002-20\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}The internal mixing pump needs its own flexible circulation hose, separate from the tower feed hose and not a runoff-return line. Run it from the pump near the bottom to the top IBC opening, bend it near the opening, point it downward, and secure it to the molded anchor loops with a small bungee or reusable strap.\n- Hose: https://www.amazon.com/s?k=submersible+pump+flexible+return+hose&tag=hydrpip200202-20\n- Strap: https://www.amazon.com/s?k=small+bungee+cord+reusable+strap&tag=hydrpip200202-20\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["pump", "pumps", "feed pump", "mixing pump", "circulation pump"])) {
     return `${contextLead}Use two pumps in the IBC: a feed pump for the towers and an internal mixing pump with a secured bottom-to-top circulation hose.\n- Pump link: ${affiliateLinks.pumps}\n- Keep the two hose roles separate. Tower runoff is not plumbed back to the IBC.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
@@ -366,22 +366,22 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] },
     return `${contextLead}Use the MasterBlend-style kit to make one complete reservoir batch. For 275 gallons: Seeds 300/300/150, Growing 400/400/200, Fruiting 600/600/300 grams (MasterBlend / calcium nitrate / magnesium sulfate). Select by plant development and change strength at the next refill.\n- Nutrients: ${affiliateLinks.nutrients}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["perlite", "vermiculite", "media", "medium", "grow medium", "growing medium"])) {
-    return `${contextLead}Use a reusable 50/50 perlite and vermiculite blend in the tower pots.\n- Perlite: ${affiliateLinks.perlite || "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20"}\n- Vermiculite: ${affiliateLinks.vermiculite || "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20"}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}Use a reusable 50/50 perlite and vermiculite blend in the tower pots.\n- Perlite: ${affiliateLinks.perlite || "https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip200202-20"}\n- Vermiculite: ${affiliateLinks.vermiculite || "https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip200202-20"}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["ph meter", "ph tester", "ph test", "tds meter", "ec meter", "ppm meter"])) {
-    return `${contextLead}For testing, start with pH and EC/TDS.\n- pH meter: https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip2002-20\n- EC/TDS meter: ${affiliateLinks.ecTdsMeter}\n- pH calibration solution: ${affiliateLinks.phCalibration}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}For testing, start with pH and EC/TDS.\n- pH meter: https://www.amazon.com/dp/B08HLXBBK4?tag=hydrpip200202-20\n- EC/TDS meter: ${affiliateLinks.ecTdsMeter}\n- pH calibration solution: ${affiliateLinks.phCalibration}\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["seed", "seeds", "starter plugs", "seed starting"])) {
     return `${contextLead}Direct-sow most greens and herbs into HydroPip's reusable 50/50 perlite-vermiculite media. Starter plugs are optional for slow, valuable, or weather-sensitive crops such as tomatoes and peppers.\n- Seeds: ${affiliateLinks.seeds}\n- Use a small pocket of finer vermiculite when the seed needs help staying moist.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["ibc cover", "tank cover", "tote cover", "cover"])) {
-    return `${contextLead}Cover the IBC to block light and slow algae growth.\n- IBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20\n- Keep lid openings tight around hoses.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}Cover the IBC to block light and slow algae growth.\n- IBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip200202-20\n- Keep lid openings tight around hoses.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["ibc tote", "275 gallon", "reservoir", "tank"])) {
-    return `${contextLead}Use a 275-gallon IBC only if prior contents were food-safe or non-hazardous.\n- IBC reference: https://www.amazon.com/dp/B0876C67GR?tag=hydrpip2002-20\n- Used totes are often cheaper locally; clean thoroughly.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}Use a 275-gallon IBC only if prior contents were food-safe or non-hazardous.\n- IBC reference: https://www.amazon.com/dp/B0876C67GR?tag=hydrpip200202-20\n- Used totes are often cheaper locally; clean thoroughly.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (wantsPart(q, ["stackable", "planter", "tower stack", "four pot", "4 pot", "pots"])) {
-    return `${contextLead}Use two five-tier orders of the approved Mr. Stacky four-pot planter sections per tower. The center opening is designed for an optional 1/2-inch support pole.\n- Planter sections: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20\n- Four towers need 8 orders total.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
+    return `${contextLead}Use two five-tier orders of the approved Mr. Stacky four-pot planter sections per tower. The center opening is designed for an optional 1/2-inch support pole.\n- Planter sections: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip200202-20\n- Four towers need 8 orders total.\n\nAs an Amazon Associate I earn from qualifying purchases.`;
   }
   if (/\b(fungus gnats?|gnat larvae)\b/.test(q)) {
     return `${contextLead}Fungus gnats need separate adult monitoring and larval control.\n- Use yellow sticky traps to monitor adults: ${pestProductLinks.yellowStickyTraps}\n- If the product label covers your crop and setup, use Bti for larvae: ${pestProductLinks.btiFungusGnats}\n- Reduce constantly wet surface areas without letting roots dry out.\n\nFollow the product label for edible crops. As an Amazon Associate I earn from qualifying purchases.`;
@@ -439,7 +439,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Yes, you can scale HydroPip down to fit a smaller space.\n- HydroPip uses four-pot stack sections, so five sections equals 20 pockets per tower.\n- Keep each center pipe securely driven and the 3/4 inch tee loose/removable.\n- Recalibrate feed time by runoff because shorter towers wet faster.\n\nSend width, depth, height, and wind exposure and I will sanity-check it.`;
   }
   if (/\b(full|complete|entire|4 tower|four tower|shopping list|parts list|materials list)\b/.test(q) && /\b(link|links|buy|shopping|parts|materials|tower|system)\b/.test(q)) {
-    return `${contextLead}Core 4-tower shopping links:\n- Approved Mr. Stacky planter sections with 1/2-inch center opening: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20\n- Two pumps: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20\n- Smart plug: https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20\n- Nutrients: ${affiliateLinks.nutrients}\n- Perlite/vermiculite: https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip2002-20 and https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip2002-20\n\nLocal: four 8-10 foot, 1/2-inch galvanized steel support pipes (${supportPipeUrl}), four loose 3/4-inch PVC tees, and four cinder blocks.`;
+    return `${contextLead}Core 4-tower shopping links:\n- Approved Mr. Stacky planter sections with 1/2-inch center opening: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip200202-20\n- Two pumps: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip200202-20\n- Smart plug: https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip200202-20\n- Nutrients: ${affiliateLinks.nutrients}\n- Perlite/vermiculite: https://www.amazon.com/dp/B0FYTT7D6F?tag=hydrpip200202-20 and https://www.amazon.com/dp/B08WF8C5CL?tag=hydrpip200202-20\n\nLocal: four 8-10 foot, 1/2-inch galvanized steel support pipes (${supportPipeUrl}), four loose 3/4-inch PVC tees, and four cinder blocks.`;
   }
   if (/\b(yellow|chlorosis|pale)\b/.test(q) && /\b(leaf|leaves|lettuce|plant|plants)\b/.test(q)) {
     return `${contextLead}Check pH first, then nutrient strength.\n- If pH is out of range, plants can look hungry even with nutrients present.\n- Check EC/TDS before adding more feed.\n- Inspect roots and media moisture if yellowing is sudden.\n\nUseful tools: ${affiliateLinks.ecTdsMeter} and ${affiliateLinks.phCalibration}`;
@@ -448,7 +448,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}That sounds like possible root stress or root rot.\n- Check water temperature, smell, and oxygen/circulation.\n- Remove badly affected plants so it does not spread.\n- Clean light leaks/debris and restart with healthy roots if needed.\n\nDescribe the roots plus pH/EC for free text help; Pip Pro can diagnose the root photo.`;
   }
   if (/\b(green slime|slime|algae|green film)\b/.test(q)) {
-    return `${contextLead}Green slime usually means light is reaching nutrient water.\n- Cover the IBC and any exposed wet spots.\n- Scrub/flush the affected area.\n- Retest pH/EC after cleanup.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
+    return `${contextLead}Green slime usually means light is reaching nutrient water.\n- Cover the IBC and any exposed wet spots.\n- Scrub/flush the affected area.\n- Retest pH/EC after cleanup.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip200202-20`;
   }
   if (/\b(white fuzz|white mold|mould|mold|powdery mildew|fuzzy)\b/.test(q)) {
     return `${contextLead}White fuzz means moisture plus poor airflow is hanging around too long.\n- Remove badly affected leaves or surface debris.\n- Improve airflow and avoid wetting foliage.\n- Check tower pockets for constantly soaked media and shorten feeds if needed.`;
@@ -466,7 +466,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Bolting is usually heat, age, or stress.\n- Harvest greens earlier in hot weather.\n- Add shade during peak sun if needed.\n- Replant fast; tower flips are designed to make that easy.`;
   }
   if (/\b(water temp|water temperature|reservoir temp|tank temp|too hot|hot water)\b/.test(q)) {
-    return `${contextLead}Keep the IBC as cool and shaded as you can.\n- Cover the tote and block sunlight from nutrient water.\n- Circulate before testing pH/EC.\n- If roots look stressed, reduce heat exposure before chasing nutrients.\n\nIBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
+    return `${contextLead}Keep the IBC as cool and shaded as you can.\n- Cover the tote and block sunlight from nutrient water.\n- Circulate before testing pH/EC.\n- If roots look stressed, reduce heat exposure before chasing nutrients.\n\nIBC cover: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip200202-20`;
   }
   if (/\b(strawberry|strawberries)\b/.test(q)) {
     return `${contextLead}Strawberries can work in HydroPip, but they are slower than greens.\n- Give them strong light and steady moisture without soaking crowns.\n- Keep pH/EC steady.\n- Start with greens/herbs first if you are still tuning the system.`;
@@ -502,7 +502,7 @@ export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
     return `${contextLead}Rainwater can work, but test it first.\n- Filter debris and avoid contaminated roof runoff.\n- Check pH before nutrients; EC/TDS is optional.\n- After the fresh batch is evenly blended, test again before adjusting.`;
   }
   if (/\b(mosquito|mosquitoes|larvae|bugs in the tank)\b/.test(q)) {
-    return `${contextLead}Keep mosquitoes out by covering access to standing water.\n- Cover IBC openings and light gaps.\n- Secure hoses through the lid.\n- Inspect after rain and flush debris.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip2002-20`;
+    return `${contextLead}Keep mosquitoes out by covering access to standing water.\n- Cover IBC openings and light gaps.\n- Secure hoses through the lid.\n- Inspect after rain and flush debris.\n\nIBC cover link: https://www.amazon.com/dp/B0C1YZ93N6?tag=hydrpip200202-20`;
   }
   if (/\b(reorder|refill|monthly|recurring|subscription|subscribe|supplies)\b/.test(q) && /\b(nutrient|nutrients|ph|ec|tds|seed|media|ibc|tank|calibration)\b/.test(q)) {
     return `${contextLead}Recurring supplies to keep stocked:\n- Nutrients: ${affiliateLinks.nutrients}\n- pH calibration / pH Up-Down: ${affiliateLinks.phCalibration} and ${affiliateLinks.phUpDown}\n- Seeds and media top-off: ${affiliateLinks.seeds} and ${affiliateLinks.mediaTopOff}\n\nPip Pro saves refill dates and recurring tasks in Planner, then shows them in Calendar: ${proSignupUrl}`;

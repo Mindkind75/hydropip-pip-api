@@ -10,10 +10,10 @@ const cases = [
       { role: "user", content: "What piece goes on the end of the main hose so I can add towers later?" },
       { role: "assistant", content: "Use the shutoff/flush valve and extension adapters." }
     ],
-    must: ["3/4-inch", "GHT", "B013646334", "hydrpip2002-20"]
+    must: ["3/4-inch", "GHT", "B013646334", "hydrpip200202-20"]
   },
-  { question: "I just need to purchase the little tubing from the main hose to each tower.", must: ["B0GQQP8M83", "hydrpip2002-20"] },
-  { question: "The leaves have tiny holes and I found little chewing bugs underneath.", must: ["pest", "hydrpip2002-20"] },
+  { question: "I just need to purchase the little tubing from the main hose to each tower.", must: ["B0GQQP8M83", "hydrpip200202-20"] },
+  { question: "The leaves have tiny holes and I found little chewing bugs underneath.", must: ["pest", "hydrpip200202-20"] },
   { question: "Can I place the IBC 25 feet uphill from the towers?", mustAny: ["head", "vertical", "pressure"] },
   { question: "My lettuce is pale but the media is wet. What are the first three checks?", must: ["pH"], mustAny: ["EC", "TDS"] },
   { question: "My tap water smells like chlorine. Can I still mix nutrients with it?", mustAny: ["chlorine", "water"] },

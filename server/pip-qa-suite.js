@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import { askPip, classifyQuestionIntent, compactAnswer } from "./pipAgent.js";
 import { classifyPhotoRequest } from "./pipPhotoAccess.js";
 import { assessSiteFit } from "./pipTools.js";
@@ -15,7 +15,7 @@ assert.equal(assessSiteFit({ towerCount: 4, availableWidthFeet: 12, availableDep
 const proCropQuestion = "So when it is time to do tomatoes, what other items should I put in what towers and what order?";
 assert.equal(classifyQuestionIntent(proCropQuestion), "crop_selection");
 const proCropAnswer = compactAnswer(
-  "Put tomatoes in a dedicated fruiting tower, plus parts to have ready.\n- Tower order: tomatoes; herbs; greens; succession crops.\n- Approved Mr. Stacky planters: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20\n- Pump: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20\n\nAs an Amazon Associate I earn from qualifying purchases.",
+  "Put tomatoes in a dedicated fruiting tower, plus parts to have ready.\n- Tower order: tomatoes; herbs; greens; succession crops.\n- Approved Mr. Stacky planters: https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip200202-20\n- Pump: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip200202-20\n\nAs an Amazon Associate I earn from qualifying purchases.",
   proCropQuestion,
   { matches: [] },
   { membership: "pip_pro", questionIntent: "crop_selection" }
@@ -45,19 +45,19 @@ const cases = [
   { q: "Can I place the IBC 25 feet uphill from the towers?", type: "free", must: ["head"], avoid: ["Tell me the step"] },
   { q: "My tap water smells like chlorine. Can I still mix nutrients with it?", type: "free", must: ["chlorine"], avoid: ["Tell me the step"] },
   { q: "Can I add two more towers to the hose I already have?", type: "free", must: ["flow", "B09B16KTNM"], avoid: ["Tell me the step"] },
-  { q: "I need the Amazon link for the pumps.", type: "product", must: ["B07L54HB83", "hydrpip2002-20"] },
-  { q: "I need the tubing from the main hose.", type: "product", must: ["B0GQQP8M83", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
-  { q: "I just need to purchase the tubing.", type: "product", must: ["B0GQQP8M83", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
-  { q: "What do I buy for the small line that feeds each tower?", type: "product", must: ["B0GQQP8M83", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
-  { q: "I need the tool to poke holes in the hose.", type: "product", must: ["tubing+punch", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
-  { q: "Where do I get the main hose from the pump to the towers?", type: "product", must: ["garden+hose", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
+  { q: "I need the Amazon link for the pumps.", type: "product", must: ["B07L54HB83", "hydrpip200202-20"] },
+  { q: "I need the tubing from the main hose.", type: "product", must: ["B0GQQP8M83", "hydrpip200202-20"], avoid: ["Tell me what you want"] },
+  { q: "I just need to purchase the tubing.", type: "product", must: ["B0GQQP8M83", "hydrpip200202-20"], avoid: ["Tell me what you want"] },
+  { q: "What do I buy for the small line that feeds each tower?", type: "product", must: ["B0GQQP8M83", "hydrpip200202-20"], avoid: ["Tell me what you want"] },
+  { q: "I need the tool to poke holes in the hose.", type: "product", must: ["tubing+punch", "hydrpip200202-20"], avoid: ["Tell me what you want"] },
+  { q: "Where do I get the main hose from the pump to the towers?", type: "product", must: ["garden+hose", "hydrpip200202-20"], avoid: ["Tell me what you want"] },
   { q: "What pipe supports each tower and where do I buy it?", type: "free", must: ["galvanized steel", "rigid metal", "8-10", "100537138"], avoid: ["garden+hose", "PVC pipe"] },
   { q: "How do I drive the tower post into the ground?", type: "free", must: ["811", "call811.com", "utility", "private"], avoid: ["just drive", "no need"] },
-  { q: "I need the smart timer plug.", type: "product", must: ["B091FXH2FR", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
-  { q: "I need the grow medium.", type: "product", must: ["B0FYTT7D6F", "B08WF8C5CL", "hydrpip2002-20"], avoid: ["Tell me what you want"] },
-  { q: "What link do I need for the end of the hose so I can add more towers later?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip2002-20"] },
-  { q: "What piece goes on the end of the main hose?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip2002-20"], avoid: ["Main garden hose feed line"] },
-  { q: "I need a gasket for the garden hose shutoff valve.", type: "product", must: ["B0F1TRNY2K", "standard 3/4-inch garden hose washers", "hydrpip2002-20"], avoid: ["I need HydroPip team review"] },
+  { q: "I need the smart timer plug.", type: "product", must: ["B091FXH2FR", "hydrpip200202-20"], avoid: ["Tell me what you want"] },
+  { q: "I need the grow medium.", type: "product", must: ["B0FYTT7D6F", "B08WF8C5CL", "hydrpip200202-20"], avoid: ["Tell me what you want"] },
+  { q: "What link do I need for the end of the hose so I can add more towers later?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip200202-20"] },
+  { q: "What piece goes on the end of the main hose?", type: "product", must: ["B013646334", "B09B16KTNM", "hydrpip200202-20"], avoid: ["Main garden hose feed line"] },
+  { q: "I need a gasket for the garden hose shutoff valve.", type: "product", must: ["B0F1TRNY2K", "standard 3/4-inch garden hose washers", "hydrpip200202-20"], avoid: ["I need HydroPip team review"] },
   {
     q: "What size should it be?",
     type: "product",
@@ -65,10 +65,10 @@ const cases = [
       { role: "user", content: "I need the piece for the end of the main hose so I can add more towers later." },
       { role: "assistant", content: "Use the shutoff/flush valve plus hose adapters for future extensions." }
     ],
-    must: ["3/4-inch", "GHT", "B013646334", "hydrpip2002-20"],
+    must: ["3/4-inch", "GHT", "B013646334", "hydrpip200202-20"],
     avoid: ["Tell me the step", "narrow this"]
   },
-  { q: "Where do I buy seeds for this?", type: "product", must: ["seed", "hydrpip2002-20"] },
+  { q: "Where do I buy seeds for this?", type: "product", must: ["seed", "hydrpip200202-20"] },
   { q: "Give me the full 4 tower shopping list with links.", type: "detailed", must: ["B007TFTXAC", "B07L54HB83"] },
   { q: "Can you save a reminder to prune basil every Friday?", type: "pro", must: ["Pip Pro", proUrl] },
   { q: "Can you track my pH readings over the next month?", type: "pro", must: ["Pip Pro", proUrl] },
@@ -93,10 +93,10 @@ const cases = [
   { q: "What if the IBC water gets too hot?", type: "free", must: ["cool"], avoid: ["return plumbing"] },
   { q: "Can I grow strawberries in this?", type: "free", must: ["Strawberries"], avoid: ["Tell me the step"] },
   { q: "My basil tastes bitter. What happened?", type: "free", must: ["basil"], avoid: ["Pip Pro"] },
-  { q: "The leaves have tiny holes. What should I do?", type: "free", must: ["pests", "hydrpip2002-20"], avoid: ["Tell me the step"] },
-  { q: "I found cabbage worms. Should I use BT?", type: "product", must: ["Bacillus+thuringiensis+kurstaki+caterpillar+control+vegetables", "hydrpip2002-20"], avoid: ["food+safe+garden+pest+control"] },
-  { q: "There are aphids all over my kale. What spray should I buy?", type: "product", must: ["insecticidal+soap+aphids+whiteflies+mites+vegetables", "hydrpip2002-20"], avoid: ["food+safe+garden+pest+control"] },
-  { q: "I have fungus gnats around the tower media. What should I use?", type: "product", must: ["Bacillus+thuringiensis+israelensis+fungus+gnat+control+plants", "hydrpip2002-20"], avoid: ["food+safe+garden+pest+control"] },
+  { q: "The leaves have tiny holes. What should I do?", type: "free", must: ["pests", "hydrpip200202-20"], avoid: ["Tell me the step"] },
+  { q: "I found cabbage worms. Should I use BT?", type: "product", must: ["Bacillus+thuringiensis+kurstaki+caterpillar+control+vegetables", "hydrpip200202-20"], avoid: ["food+safe+garden+pest+control"] },
+  { q: "There are aphids all over my kale. What spray should I buy?", type: "product", must: ["insecticidal+soap+aphids+whiteflies+mites+vegetables", "hydrpip200202-20"], avoid: ["food+safe+garden+pest+control"] },
+  { q: "I have fungus gnats around the tower media. What should I use?", type: "product", must: ["Bacillus+thuringiensis+israelensis+fungus+gnat+control+plants", "hydrpip200202-20"], avoid: ["food+safe+garden+pest+control"] },
   { q: "Can I use fish tank water in the IBC?", type: "free", must: ["clean water"], avoid: ["Pip Pro"] },
   { q: "Is this safe around kids and pets?", type: "free", must: ["safe"], avoid: ["Tell me the step"] },
   { q: "Can I run this during a storm?", type: "free", must: ["GFCI"], avoid: ["Tell me the step"] },
@@ -129,7 +129,7 @@ for (const item of cases) {
   for (const token of item.avoid || []) {
     if (answer.toLowerCase().includes(token.toLowerCase())) failures.push(`bad phrase: ${token}`);
   }
-  if (item.type === "product" && !answer.includes("hydrpip2002-20")) failures.push("missing affiliate tag");
+  if (item.type === "product" && !answer.includes("hydrpip200202-20")) failures.push("missing affiliate tag");
   if (/https?:\/\/(?:www\.)?amazon\.com/i.test(answer) && !answer.includes("As an Amazon Associate I earn from qualifying purchases.")) {
     failures.push("missing Amazon disclosure");
   }

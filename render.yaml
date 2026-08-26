@@ -18,7 +18,7 @@ services:
       - key: PIP_PRO_SIGNUP_URL
         value: https://www.hydropip.com/pip?pro=1
       - key: AMAZON_ASSOCIATE_TAG
-        value: hydrpip2002-20
+        value: hydrpip200202-20
       - key: OPENAI_API_KEY
         sync: false
       - key: PIP_BRIDGE_SECRET

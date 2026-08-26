@@ -15,7 +15,7 @@ for (const file of files) {
   for (const href of hrefs) {
     if (href.startsWith("#") && href !== "#") assert.ok(ids.has(href.slice(1)), `${file} points to missing anchor ${href}`);
     if (/amazon\.com/i.test(href) && !/affiliate-program\.amazon\.com/i.test(href)) {
-      assert.ok(href.includes("tag=hydrpip2002-20"), `${file} has an Amazon link without the HydroPip affiliate tag: ${href}`);
+      assert.ok(href.includes("tag=hydrpip200202-20"), `${file} has an Amazon link without the HydroPip affiliate tag: ${href}`);
     }
   }
 
@@ -336,7 +336,7 @@ assert.match(homeHtml, /using our links supports the free guidance at no extra c
 assert.match(homeHtml, /As an Amazon Associate I earn from qualifying purchases\./, "Home should show Amazon's required affiliate disclosure beside the product links");
 assert.match(homeHtml, /Core HydroPip Amazon affiliate links/i, "Home should expose an accessible set of core affiliate links");
 for (const asin of ["B007TFTXAC", "B07L54HB83", "B0GQQP8M83", "B091FXH2FR"]) {
-  assert.match(homeHtml, new RegExp(`amazon\\.com/dp/${asin}\\?tag=hydrpip2002-20`), `Home is missing the tagged core Amazon link for ${asin}`);
+  assert.match(homeHtml, new RegExp(`amazon\\.com/dp/${asin}\\?tag=hydrpip200202-20`), `Home is missing the tagged core Amazon link for ${asin}`);
 }
 assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");

@@ -160,16 +160,16 @@ assert.equal(proNutrientCatalog.access.scope, "all_systems");
 assert.equal(stripSummaryLabel("TL;DR: Use shorter feed cycles."), "Use shorter feed cycles.");
 assert.equal(stripSummaryLabel("Summary: Check pH first."), "Check pH first.");
 const linkedCompact = compactAnswer(
-  `${"Check the vertical lift and pump head before changing the layout. ".repeat(14)}Pump: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20`,
+  `${"Check the vertical lift and pump head before changing the layout. ".repeat(14)}Pump: https://www.amazon.com/dp/B07L54HB83?tag=hydrpip200202-20`,
   "Will this layout work?",
   {}
 );
-assert.equal(linkedCompact.includes("https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20"), true);
+assert.equal(linkedCompact.includes("https://www.amazon.com/dp/B07L54HB83?tag=hydrpip200202-20"), true);
 assert.equal(linkedCompact.includes("As an Amazon Associate I earn from qualifying purchases."), true);
 assert.equal(linkedCompact.split(/\s+/).filter(Boolean).length <= 100, true);
 const btLinkedAnswer = compactAnswer("Use Bt kurstaki for the confirmed cabbage caterpillars and follow the edible-crop label.", "What should I use?", {});
 assert.match(btLinkedAnswer, /Bacillus\+thuringiensis\+kurstaki\+caterpillar\+control\+vegetables/);
-assert.match(btLinkedAnswer, /tag=hydrpip2002-20/);
+assert.match(btLinkedAnswer, /tag=hydrpip200202-20/);
 assert.doesNotMatch(btLinkedAnswer, /food\+safe\+garden\+pest\+control/);
 assert.match(fallbackAnswer("I am not sure what to ask", { matches: [] }), /^Immediate:/);
 assert.equal(classifyQuestionIntent("Got the towers set. What should I plant this time of year?"), "crop_selection");

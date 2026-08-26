@@ -1,4 +1,4 @@
-export const amazonAffiliateTag = String(process.env.AMAZON_ASSOCIATE_TAG || "hydrpip2002-20").trim();
+export const amazonAffiliateTag = String(process.env.AMAZON_ASSOCIATE_TAG || "hydrpip200202-20").trim();
 
 const amazonUrlPattern = /https?:\/\/(?:[a-z0-9-]+\.)?amazon\.com\/[^\s<>"']+/gi;
 const amazonShortUrlPattern = /https?:\/\/(?:www\.)?(?:a\.co|amzn\.to)\/[^\s<>"']+/gi;
