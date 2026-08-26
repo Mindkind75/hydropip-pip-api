@@ -349,7 +349,11 @@ assert.match(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!hasLead\(\)\)r
 assert.doesNotMatch(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!requestedAuthMode/, "The free-member success screen must not depend on a cleared auth request");
 assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real food\./, "Home should provide a concise How It Works overview");
 assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
-assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
+assert.match(homeHtml, /#parts\{order:6\}#start\{order:7\}#build,#flip-day,#photos,#signup\{display:none\}/, "The four-link parts section should remain in the homepage funnel before the final CTA");
+assert.match(homeHtml, /Shop planter stacks/, "Home should link directly to the stackable planter sections");
+assert.match(homeHtml, /Shop the pumps/, "Home should link directly to the two IBC pumps");
+assert.match(homeHtml, /Shop main hose/, "Home should link directly to the main feed hose");
+assert.match(homeHtml, /Shop tower tubing/, "Home should link directly to the rigid tower tubing");
 assert.match(homeHtml, /Pip walks with you from parts to first harvest\./, "Pip should be prominent in the opening homepage story");
 assert.match(homeHtml, /class=["']navTrack["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Track My Build<\//, "Home navigation should consolidate parts and build organization under Track My Build");
 assert.doesNotMatch(homeHtml, /href=["']#[^"']*["']/, "The embedded Home page must not use iframe-local hash links that cannot scroll the Wix parent page");

@@ -209,7 +209,7 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
 .pipLockup img{border-radius:0;background:transparent;filter:drop-shadow(0 12px 14px rgba(19,54,39,.18));animation:pipFloat 3.6s ease-in-out infinite}
 @keyframes pipFloat{0%,100%{transform:translateY(0) scale(1.08)}50%{transform:translateY(-7px) scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.pipLockup img{animation:none;transform:scale(1.08)}}
-#top{display:flex;flex-direction:column}.hero{order:1}#story{order:2}#proof{order:3}#why{order:4}#pip{order:5}#start{order:6}#build,#flip-day,#photos,#parts,#signup{display:none}
+#top{display:flex;flex-direction:column}.hero{order:1}#story{order:2}#proof{order:3}#why{order:4}#pip{order:5}#parts{order:6}#start{order:7}#build,#flip-day,#photos,#signup{display:none}
 .hero h1{font-size:clamp(2.85rem,4.5vw,4.7rem);line-height:.96}
 .heroGuide{display:grid;grid-template-columns:94px minmax(0,1fr);gap:14px;align-items:center;max-width:650px;margin:24px 0;padding:14px 16px;border:1px solid rgba(31,122,79,.22);border-radius:8px;background:rgba(255,255,255,.72)}.heroGuide img{width:94px;height:94px;object-fit:contain;filter:drop-shadow(0 10px 12px rgba(19,54,39,.17));animation:heroPipFloat 3.8s ease-in-out infinite}.heroGuide strong{display:block;margin-bottom:3px;color:var(--deep);font-size:1.05rem}.heroGuide p{margin:0!important;font-size:.95rem!important;line-height:1.48!important}
 .howIntro{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.42fr);gap:28px;align-items:end;margin-bottom:28px}.howIntro h2{max-width:760px}.pipPrompt{display:grid;grid-template-columns:68px 1fr;gap:12px;align-items:center;padding:14px;border-left:4px solid var(--gold);background:#fff8e8}.pipPrompt img{width:68px;height:58px;object-fit:contain}.pipPrompt strong{display:block;color:var(--deep);line-height:1.3}.pipPrompt span{display:block;margin-top:3px;color:var(--muted);font-size:.88rem;line-height:1.4}
@@ -434,20 +434,16 @@ p,li{color:var(--muted);font-size:1.01rem;line-height:1.65}
       <div class="partsHead">
         <div>
           <p class="eyebrow">Buy the parts directly</p>
-          <h2>Start with the core components. Use the checklist for the complete build.</h2>
-          <p>HydroPip does not sell or mark up the hardware. Buy from Amazon or another retailer you trust, then use Track My Build for every required item, the correct quantities, local-pickup parts, and anything you already own. When you use our Amazon links, HydroPip may earn a commission at no extra cost to you. That support helps keep the build guidance free.</p>
+          <h2>Start with four core purchases. Use the checklist for everything else.</h2>
+          <p>HydroPip does not sell or mark up the hardware. Shop these core components on Amazon or buy from another retailer you trust, then use Track My Build for exact quantities, local-pickup parts, fittings, media, nutrients, and anything you already own. When you use our Amazon links, HydroPip may earn a commission at no extra cost to you. That support helps keep the build guidance free.</p>
         </div>
-        <a class="btn primary" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Estimate my build</a>
+        <a class="btn primary" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">Open the full parts checklist</a>
       </div>
       <div class="partsGrid">
-        <article class="part"><small>2 five-tier orders per tower</small><h3>Mr. Stacky four-pot planter sections</h3><a href="https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">View on Amazon</a></article>
-        <article class="part"><small>2 per system</small><h3>Submersible pumps</h3><a href="https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">View on Amazon</a></article>
-        <article class="part"><small>Separate feed lines</small><h3>Main hose and rigid tower tubing</h3><a href="https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20" target="_top" rel="noopener sponsored">Shop main hose</a><a href="https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">Shop rigid tower tubing</a></article>
-        <article class="part"><small>1 controller</small><h3>Outdoor smart plug</h3><a href="https://www.amazon.com/dp/B091FXH2FR?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">View on Amazon</a></article>
-        <article class="part"><small>Starter kit</small><h3>MasterBlend-style nutrients</h3><a href="https://www.amazon.com/dp/B0727VTWH5?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">View on Amazon</a></article>
-        <article class="part"><small>Reusable media</small><h3>Perlite and vermiculite</h3><a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">See media links</a></article>
-        <article class="part"><small>Local pickup</small><h3>Pipe, tee, cinder blocks</h3><a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">See local list</a></article>
-        <article class="part"><small>Tank setup</small><h3>IBC tote and cover</h3><a href="https://hydropip-pip-api.onrender.com/track-start.html" target="_top">See tank links</a></article>
+        <article class="part"><small>Two five-tier orders per tower</small><h3>Stackable four-pot planter sections</h3><p>The planting pockets that form each tower.</p><a href="https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">Shop planter stacks</a></article>
+        <article class="part"><small>Two per system</small><h3>Submersible IBC pumps</h3><p>One pump mixes the reservoir and one feeds the towers.</p><a href="https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">Shop the pumps</a></article>
+        <article class="part"><small>Main distribution line</small><h3>Garden hose for the tower run</h3><p>Carries nutrient solution from the feed pump past the towers.</p><a href="https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20" target="_top" rel="noopener sponsored">Shop main hose</a></article>
+        <article class="part"><small>Branches to each tower</small><h3>Rigid tower feed tubing</h3><p>Runs from the main hose to the diffuser at each support pipe.</p><a href="https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20" target="_top" rel="noopener sponsored">Shop tower tubing</a></article>
       </div>
       <p class="disclosure"><strong>Paid-link disclosure:</strong> As an Amazon Associate I earn from qualifying purchases. Used IBC totes should only be selected if prior contents were food-safe or non-hazardous and the tote is thoroughly cleaned.</p>
     </div>
