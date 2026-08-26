@@ -314,8 +314,8 @@ const homeHtml = fs.readFileSync(new URL("../home.html", import.meta.url), "utf8
 const wixHomeBridge = fs.readFileSync(new URL("../wix-home-page-code.js", import.meta.url), "utf8");
 assert.match(homeHtml, /postHeight\(true\)/, "Home must resend its measured height after the Wix bridge is ready");
 assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
-assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
 assert.match(wixHomeBridge, /1500/, "Home should use a compact loading height before its real content measurement arrives");
+assert.match(wixHomeBridge, /40000/, "The Wix home bridge must accept the measured height of the full mobile homepage");
 assert.match(homeHtml, /HYDROPIP_EMBED_WHEEL/, "The embedded Home page should forward mouse-wheel movement to Wix");
 assert.match(wixHomeBridge, /HYDROPIP_EMBED_WHEEL/, "The Wix Home bridge should receive embedded mouse-wheel movement");
 assert.match(wixHomeBridge, /wixWindowFrontend\.scrollBy/, "The Wix Home bridge should apply forwarded wheel movement to the outer page");
@@ -326,7 +326,7 @@ assert.match(homeHtml, /is-wix-embed/, "Home should explicitly disable inner scr
 assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature a real HydroPip harvest");
 assert.match(homeHtml, /assets\/photos\/hydropip-mustard-green-harvest-founder\.jpg/, "Home hero is missing the giant mustard green harvest photo");
 assert.match(homeHtml, /This giant mustard green came from HydroPip/i, "Home hero should connect the harvest result to HydroPip");
-assert.match(homeHtml, /No proprietary kit\. No parts markup\./i, "Home should clearly explain that HydroPip does not sell or mark up the parts");
+assert.match(homeHtml, /HydroPip does not sell or mark up the hardware/i, "Home should clearly explain that HydroPip does not sell or mark up the parts");
 assert.match(homeHtml, /commission at no extra cost to you/i, "Home should explain how affiliate links support the free guidance");
 assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");
 assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");

@@ -10,6 +10,7 @@ let wheelScrollInFlight = false;
 
 $w.onReady(() => {
   collapseOuterHeader();
+  configureCrawlerSupportBand();
   const embed = getEmbed();
   if (!embed) return;
 
@@ -123,8 +124,42 @@ function heightForWidth(width) {
 
 function setEmbedHeight(embed, requestedHeight) {
   const height = Math.ceil(Number(requestedHeight));
-  if (!Number.isFinite(height) || height < 600 || height > 16000) return;
+  if (!Number.isFinite(height) || height < 600 || height > 40000) return;
   embed.height = height + 4;
+}
+
+function configureCrawlerSupportBand() {
+  try {
+    const supportBand = $w("#box1");
+    supportBand.style.backgroundColor = "rgba(246, 243, 234, 1)";
+    supportBand.style.backgroundOpacity = 1;
+    supportBand.style.borderColor = "rgba(213, 223, 216, 1)";
+    supportBand.style.borderOpacity = 1;
+    supportBand.style.borderWidth = "1px";
+    supportBand.style.borderRadius = "4px";
+  } catch (error) {
+    // The crawler support band is optional while this code is reused in preview.
+  }
+
+  try {
+    const affiliateCopy = $w("#text1");
+    affiliateCopy.html = '<h3 style="font-size:20px;line-height:1.2;color:#10221b;margin:0 0 8px"><strong>Buy the core parts directly. Keep the build guidance free.</strong></h3><p style="font-size:14px;line-height:1.4;color:#4d6258;margin:0 0 7px">HydroPip does not sell or mark up the hardware. Start with the core components below, or open Track My Build for the complete quantities and local-pickup list.</p><p style="font-size:14px;line-height:1.45;margin:0 0 7px"><a href="https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip2002-20" target="_blank">Planter stacks</a> &nbsp;|&nbsp; <a href="https://www.amazon.com/dp/B07L54HB83?tag=hydrpip2002-20" target="_blank">Two IBC pumps</a> &nbsp;|&nbsp; <a href="https://www.amazon.com/s?k=garden+hose+1%2F2+inch+50+ft&tag=hydrpip2002-20" target="_blank">Main hose</a> &nbsp;|&nbsp; <a href="https://www.amazon.com/dp/B0GQQP8M83?tag=hydrpip2002-20" target="_blank">Rigid tower tubing</a></p><p style="font-size:12px;line-height:1.35;color:#4d6258;margin:0">As an Amazon Associate I earn from qualifying purchases.</p>';
+  } catch (error) {
+    // Keep the editor-authored copy if this element is not present.
+  }
+
+  try {
+    const checklistButton = $w("#button1");
+    checklistButton.label = "Open the full parts checklist";
+    checklistButton.link = "https://www.hydropip.com/track-my-build";
+    checklistButton.target = "_self";
+    checklistButton.style.backgroundColor = "#218454";
+    checklistButton.style.color = "#FFFFFF";
+    checklistButton.style.borderColor = "#218454";
+    checklistButton.style.borderRadius = "4px";
+  } catch (error) {
+    // Keep the editor-authored action if this element is not present.
+  }
 }
 
 function queueHomeWheel(requestedDelta) {
