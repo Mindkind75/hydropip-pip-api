@@ -317,6 +317,7 @@ assert.match(homeHtml, /width<=760/, "Home device layout must use the actual emb
 assert.doesNotMatch(homeHtml, /Mobi\|Android\|iPhone\|iPod/, "Home must not force mobile layout from a stale browser user agent");
 assert.match(homeHtml, /document\.body\.scrollHeight/, "Home embed height must include the full body scroll height");
 assert.match(homeHtml, /MutationObserver/, "Home must watch late layout changes that can alter its embed height");
+assert.match(homeHtml, /@media\(min-width:1001px\).*\.band\{padding-top:60px;padding-bottom:60px\}/s, "Desktop home content must fit inside the Wix desktop embed without clipping the final CTA");
 assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
 assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
 assert.match(wixHomeBridge, /1500/, "Home should use a compact loading height before its real content measurement arrives");
