@@ -2,7 +2,7 @@ import wixWindowFrontend from "wix-window-frontend";
 import wixLocation from "wix-location";
 import { currentMember, authentication } from "wix-members-frontend";
 
-const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=layout-fix-20260826&embed=1";
+const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=desktop-fit-20260826&embed=1";
 const HOME_EMBED_IDS = ["#homeHtml", "#html1", "#html2", "#iFrame1"];
 let hasMeasuredHomeHeight = false;
 let pendingWheelDelta = 0;
