@@ -2,7 +2,7 @@ import wixWindowFrontend from "wix-window-frontend";
 import wixLocation from "wix-location";
 import { currentMember, authentication } from "wix-members-frontend";
 
-const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=launch-20260826-parts4&embed=1";
+const HYDROPIP_HOME_SRC = "https://hydropip-pip-api.onrender.com/home.html?v=stable-20260826&embed=1";
 const HOME_EMBED_IDS = ["#homeHtml", "#html1", "#html2", "#iFrame1"];
 let hasMeasuredHomeHeight = false;
 let pendingWheelDelta = 0;
@@ -10,7 +10,7 @@ let wheelScrollInFlight = false;
 
 $w.onReady(() => {
   collapseOuterHeader();
-  removeLegacyCrawlerSupportBand();
+  removeRecentAmazonOverlay();
   const embed = getEmbed();
   if (!embed) return;
 
@@ -48,6 +48,17 @@ function collapseOuterHeader() {
       if (element && typeof element.collapse === "function") element.collapse();
     } catch (error) {
       // Try the next known global header element ID.
+    }
+  }
+}
+
+function removeRecentAmazonOverlay() {
+  for (const selector of ["#button1", "#text1", "#box1"]) {
+    try {
+      const element = $w(/** @type {any} */ (selector));
+      if (element && typeof element.collapse === "function") element.collapse();
+    } catch (error) {
+      // The recent native Wix overlay may already have been deleted.
     }
   }
 }
@@ -124,19 +135,8 @@ function heightForWidth(width) {
 
 function setEmbedHeight(embed, requestedHeight) {
   const height = Math.ceil(Number(requestedHeight));
-  if (!Number.isFinite(height) || height < 600 || height > 40000) return;
+  if (!Number.isFinite(height) || height < 600 || height > 16000) return;
   embed.height = height + 4;
-}
-
-function removeLegacyCrawlerSupportBand() {
-  for (const selector of ["#button1", "#text1", "#box1"]) {
-    try {
-      const element = $w(/** @type {any} */ (selector));
-      if (element && typeof element.collapse === "function") element.collapse();
-    } catch (error) {
-      // The legacy floating block may already have been deleted in the editor.
-    }
-  }
 }
 
 function queueHomeWheel(requestedDelta) {
