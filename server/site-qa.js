@@ -241,7 +241,7 @@ assert.match(pipHtml, /What do you want to do next\?/, "A newly signed-in member
 assert.match(pipHtml, /post_signup_build_selected/, "Post-signup Track My Build activation must be measurable");
 assert.match(pipHtml, /post_signup_pip_selected/, "Post-signup Pip activation must be measurable");
 assert.match(pipHtml, /post_signup_grow_selected/, "Post-signup grow activation must be measurable");
-assert.match(pipHtml, /data-account-action=["']subscriptions["']/, "Pro members need a subscription-management action");
+assert.match(pipHtml, /href=["']https:\/\/www\.hydropip\.com\/my-subscriptions["'][^>]*target=["']_top["'][^>]*>Manage subscription/, "Pro members need a direct subscription-management action");
 assert.match(pipHtml, /Update payment method/, "Pro members need a payment-method action");
 assert.match(pipHtml, /href=["']https:\/\/www\.hydropip\.com\/my-subscriptions["'][^>]*target=["']_top["'][^>]*>Update payment method/, "Pip Pro payment method action should open Wix My Subscriptions directly");
 assert.doesNotMatch(pipHtml, /data-account-action=["']wallet["']/, "Payment changes must use the active Pip Pro subscription, not Wix My Wallet");
