@@ -433,6 +433,7 @@ assert.match(betaAdminHtml, /Approve & activate/, "Beta review should support on
 assert.match(betaAdminHtml, /does not create their account or password/, "Beta review should explain the secure approval flow");
 
 const wixPipBridge = fs.readFileSync(new URL("../wix-pip-member-bridge-page-code.js", import.meta.url), "utf8");
+assert.match(wixPipBridge, /wixLocation\.to\(["']\/my-subscriptions["']\)/, "Wix Pip bridge must open the installed My Subscriptions member page");
 assert.match(wixPipBridge, /\["pro", "project", "projectId"/, "Wix Pip bridge is not forwarding project context to the iframe");
 for (const queryKey of ["return", "start", "tool", "focus", "avatar", "prompt"]) {
   assert.match(wixPipBridge, new RegExp(`"${queryKey}"`), `The Wix Pip bridge should forward the ${queryKey} entry intent`);
