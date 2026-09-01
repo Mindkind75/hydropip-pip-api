@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { askPip, classifyQuestionIntent, compactAnswer, normalizeSeedPhotoInventory } from "./pipAgent.js";
+import { askPip, classifyQuestionIntent, compactAnswer, normalizeSeedPhotoInventory, shouldOfferSeedPhotoExtraction } from "./pipAgent.js";
 import { classifyPhotoRequest } from "./pipPhotoAccess.js";
 import { assessSiteFit } from "./pipTools.js";
 
@@ -10,6 +10,9 @@ assert.equal(classifyQuestionIntent("Where should I put this system in my yard?"
 assert.equal(classifyQuestionIntent("Can you check this proposed HydroPip location?", { image: true }), "site_photo");
 assert.equal(classifyQuestionIntent("Add these seed packets to my Seed Vault", { image: true }), "seed_inventory_photo");
 assert.equal(classifyQuestionIntent("What is wrong with this lettuce?", { image: true }), "photo_diagnosis");
+assert.equal(shouldOfferSeedPhotoExtraction("photo_diagnosis", { subscriptionActive: true }), true);
+assert.equal(shouldOfferSeedPhotoExtraction("photo_diagnosis", { subscriptionActive: false }), false);
+assert.equal(shouldOfferSeedPhotoExtraction("seed_inventory_photo", { subscriptionActive: false }), true);
 assert.deepEqual(normalizeSeedPhotoInventory({
   items: [
     { crop: "Tomato", variety: "Cherokee Purple", source: "Baker Creek", packsOnHand: 1, confidence: 0.92 },

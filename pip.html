@@ -872,7 +872,7 @@ html.pip-pro-route .notebook-paper{overflow:visible}
   document.querySelector("#pipPhotoRemove").addEventListener("click",clearPhoto);
   async function askPip(question,imageAttachment){
     var priorHistory=chatHistory.slice(-8);
-    var displayQuestion=question||(isPro()?"Please inspect this photo.":"Please inspect this HydroPip build photo and tell me the next step.");
+    var displayQuestion=question||(isPro()?"Please inspect this photo and use the most useful Pip Pro photo workflow.":"Please inspect this HydroPip build photo and tell me the next step.");
     addMessage("user",displayQuestion,false,imageAttachment&&imageAttachment.dataUrl);
     remember("user",displayQuestion+(imageAttachment?" [Photo attached]":""));
     var pending=addMessage("pip","Reviewing your question...",true);

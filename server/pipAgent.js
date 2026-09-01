@@ -510,7 +510,7 @@ export async function askPip({ message, image, profile, subscription, history = 
     ...recentHistory,
     { role: "user", content: currentUserContent }
   ];
-  const enabledTools = toolsForQuestion(questionIntent, trimmed);
+  const enabledTools = toolsForQuestion(questionIntent, trimmed, { subscriptionActive: Boolean(subscription?.active) });
   try {
     const request = {
       model,
@@ -562,7 +562,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "When create_reminder, create_grow_plan, or manage_calendar returns confirmation_required, say the change is ready to review and use the on-screen confirmation button. Never say it is saved, deleted, updated, queued for staff, or completed until the user confirms it and the server reports success.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
       "When projectContext.seedPacks is present, distinguish inventory from planted crops. plantingLocation=seed_vault means the user owns the pack but the crop is not currently growing. Only hydropip_tower and nursery_for_hydropip belong to the current HydroPip grow. raised_bed and finished are not current tower crops. Use packs on hand rather than pretending to know individual seed counts. Never claim a crop is in the system from inventory alone, and do not claim inventory or location changed until the user confirms the on-screen action and the server reports success.",
-      "When the user attaches a photo of seed packets and asks to inventory, catalog, list, or add them to the Seed Vault, call extract_seed_pack_inventory. Read only labels that are actually visible. Group identical packets and count the packs. Never guess an obscured crop, variety, or brand. Use null for an unreadable variety or source, report unreadable packets separately, and rely on the editable review card before saving.",
+      "For an active Pip Pro member, when an attached photo primarily shows loose seed packets laid out with labels visible, call extract_seed_pack_inventory even if the user only says to inspect the photo or provides no specific instruction. Do not mistake growing plants, seedling trays, plant tags, or a single unrelated package for a Seed Vault inventory photo. Read only labels that are actually visible. Group identical packets and count the packs. Never guess an obscured crop, variety, or brand. Use null for an unreadable variety or source, report unreadable packets separately, and rely on the editable review card before saving.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action.",
       "Honor the saved project profile experienceMode. guided means lead with one clear next action and only the facts needed to complete it. standard means give the normal concise answer with useful supporting context. detailed means include relevant measurements, tradeoffs, records, costs, or optimization detail while still answering the question directly. Never announce the mode or withhold a direct answer because of it.",
       "For seasonal crop questions, use the supplied Zone Seasonal Planting Reference as the default answer source. Do not ask for today's temperature or perform a live weather lookup by default. Ask about current conditions only when the user reports unusual heat, frost, storms, or a crop near a temperature limit.",
@@ -1320,9 +1320,13 @@ export function classifyQuestionIntent(message, { image = false, history = [] } 
   return "hydroponic_guidance";
 }
 
-function toolsForQuestion(intent, message) {
+export function shouldOfferSeedPhotoExtraction(intent, { subscriptionActive = false } = {}) {
+  return intent === "seed_inventory_photo" || (subscriptionActive && intent === "photo_diagnosis");
+}
+
+function toolsForQuestion(intent, message, { subscriptionActive = false } = {}) {
   const requested = new Set(["flag_review_item"]);
-  if (intent === "seed_inventory_photo") requested.add("extract_seed_pack_inventory");
+  if (shouldOfferSeedPhotoExtraction(intent, { subscriptionActive })) requested.add("extract_seed_pack_inventory");
   if (intent === "hydropip_build") {
     requested.add("get_build_step");
     requested.add("recommend_parts");
