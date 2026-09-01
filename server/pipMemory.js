@@ -2151,19 +2151,21 @@ export async function addProjectSeedPacks({ userId, projectId, items = [], subsc
   for (const item of Array.isArray(items) ? items.slice(0, 30) : []) {
     const crop = cleanOptionalText(item?.crop, 80);
     const variety = cleanOptionalText(item?.variety, 120);
+    const source = cleanOptionalText(item?.source, 160);
     const packsOnHand = normalizePackCount(item?.packsOnHand);
     if (!crop || !packsOnHand) continue;
-    const key = `${crop.toLowerCase()}|${String(variety || "").toLowerCase()}`;
+    const key = `${crop.toLowerCase()}|${String(variety || "").toLowerCase()}|${String(source || "").toLowerCase()}`;
     const current = grouped.get(key);
     if (current) current.packsOnHand += packsOnHand;
-    else grouped.set(key, { crop, variety, packsOnHand });
+    else grouped.set(key, { crop, variety, source, packsOnHand });
   }
   const saved = [];
   let addedCount = 0;
   let updatedCount = 0;
   for (const item of grouped.values()) {
     const existing = existingSeeds.find((seed) => String(seed.crop || "").trim().toLowerCase() === item.crop.toLowerCase()
-      && String(seed.variety || "").trim().toLowerCase() === String(item.variety || "").toLowerCase());
+      && String(seed.variety || "").trim().toLowerCase() === String(item.variety || "").toLowerCase()
+      && String(seed.source || "").trim().toLowerCase() === String(item.source || "").toLowerCase());
     if (existing) {
       const result = await updateProjectSeed({
         userId,

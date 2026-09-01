@@ -75,6 +75,9 @@ assert.match(marketingHomeHtml, /pip\?pro=feedback/, "The homepage account menu 
 assert.match(marketingHomeHtml, /hydropipAccountAvatar/, "The homepage account circle should support the saved HydroPip profile picture");
 assert.match(marketingHomeHtml, /pip\?pro=avatar/, "The profile-picture shortcut should use a query value the Wix bridge already forwards");
 assert.match(pipHtml, /id="pipAvatarDialog"/, "Pip should provide a profile-picture picker");
+assert.match(pipHtml, /id="proSeedPhotoScan"/, "The Seed Vault should offer a seed-packet photo scan path");
+assert.match(pipHtml, /editable Seed Vault list/, "The seed-packet scan should explain that users review results before saving");
+assert.match(pipHtml, /seed-review-row/, "Photo-detected seed packets should render as editable confirmation rows");
 assert.match(pipHtml, /id="pipFeedbackImpact"/, "Member suggestions should record how strongly an issue affected the user");
 assert.match(pipHtml, /data-feedback-open/, "Signed-in members should have a clear Suggest an improvement action");
 assert.equal((pipHtml.match(/data-member-only data-feedback-open/g) || []).length, 2, "Every Pip Pro account dropdown should contain Suggest an improvement");

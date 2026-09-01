@@ -18,6 +18,7 @@ const toolMap = {
   create_grow_plan: createGrowPlan,
   create_reminder: createReminder,
   manage_calendar: (args) => args,
+  extract_seed_pack_inventory: (args) => args,
   flag_review_item: (args) => ({ status: "queued", ...args }),
   get_wizard_schema: getWizardSchema
 };
@@ -198,6 +199,36 @@ const tools = [
   },
   {
     type: "function",
+    name: "extract_seed_pack_inventory",
+    description: "Read visible seed-packet labels from the attached photo and prepare an editable Seed Vault inventory for user confirmation. Never save automatically.",
+    parameters: {
+      type: "object",
+      properties: {
+        items: {
+          type: "array",
+          maxItems: 30,
+          items: {
+            type: "object",
+            properties: {
+              crop: { type: "string", description: "Common crop name clearly visible on the packet." },
+              variety: { type: ["string", "null"], description: "Variety name only when legible; otherwise null." },
+              source: { type: ["string", "null"], description: "Seed company or brand only when legible; otherwise null." },
+              packsOnHand: { type: "integer", minimum: 1, maximum: 30, description: "Count identical visible packets as one inventory row." },
+              confidence: { type: "number", minimum: 0, maximum: 1, description: "Confidence in the crop and variety reading." },
+              notes: { type: ["string", "null"], description: "A very short reason the user should review this row, if needed." }
+            },
+            required: ["crop", "packsOnHand", "confidence"],
+            additionalProperties: false
+          }
+        },
+        unreadableCount: { type: "integer", minimum: 0, maximum: 30 }
+      },
+      required: ["items", "unreadableCount"],
+      additionalProperties: false
+    }
+  },
+  {
+    type: "function",
     name: "flag_review_item",
     description: "Queue a question for HydroPip team review when Pip cannot answer confidently after asking for missing context.",
     parameters: {
@@ -259,7 +290,9 @@ export async function askPip({ message, image, profile, subscription, history = 
     userId,
     projectId,
     role: "user",
-    content: imageInput ? `${trimmed}\n[Photo attached for visual diagnosis]` : trimmed
+    content: imageInput
+      ? `${trimmed}\n[${questionIntent === "seed_inventory_photo" ? "Seed packet inventory photo" : "Photo attached for visual diagnosis"}]`
+      : trimmed
   });
 
   if (isClearlyOffTopic(trimmed)) {
@@ -304,7 +337,7 @@ export async function askPip({ message, image, profile, subscription, history = 
   }
 
   const seedPackInventory = parseSeedPackInventory(trimmed);
-  if (seedPackInventory && !subscription?.active) {
+  if ((seedPackInventory || questionIntent === "seed_inventory_photo") && !subscription?.active) {
     const answer = "I can add seed packs to your saved Seeds area and keep them connected to your grow in Pip Pro. Free Pip can still help choose and sow seeds for the HydroPip build.";
     await rememberProjectMessage(projectContext, {
       userId,
@@ -324,6 +357,11 @@ export async function askPip({ message, image, profile, subscription, history = 
       upgradeCta: proUpgradeCta,
       projectMemory
     };
+  }
+
+  if (questionIntent === "seed_inventory_photo" && subscription?.active && !projectContext) {
+    const answer = "Open or create a Pip Pro grow first, then attach the seed-packet photo again so I can add the reviewed list to the correct Seed Vault.";
+    return { answer, mode: "project_required", sources: [], projectMemory };
   }
 
   if (wantsTracking(trimmed) && !subscription?.active) {
@@ -524,6 +562,7 @@ export async function askPip({ message, image, profile, subscription, history = 
       "When create_reminder, create_grow_plan, or manage_calendar returns confirmation_required, say the change is ready to review and use the on-screen confirmation button. Never say it is saved, deleted, updated, queued for staff, or completed until the user confirms it and the server reports success.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
       "When projectContext.seedPacks is present, distinguish inventory from planted crops. plantingLocation=seed_vault means the user owns the pack but the crop is not currently growing. Only hydropip_tower and nursery_for_hydropip belong to the current HydroPip grow. raised_bed and finished are not current tower crops. Use packs on hand rather than pretending to know individual seed counts. Never claim a crop is in the system from inventory alone, and do not claim inventory or location changed until the user confirms the on-screen action and the server reports success.",
+      "When the user attaches a photo of seed packets and asks to inventory, catalog, list, or add them to the Seed Vault, call extract_seed_pack_inventory. Read only labels that are actually visible. Group identical packets and count the packs. Never guess an obscured crop, variety, or brand. Use null for an unreadable variety or source, report unreadable packets separately, and rely on the editable review card before saving.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action.",
       "Honor the saved project profile experienceMode. guided means lead with one clear next action and only the facts needed to complete it. standard means give the normal concise answer with useful supporting context. detailed means include relevant measurements, tradeoffs, records, costs, or optimization detail while still answering the question directly. Never announce the mode or withhold a direct answer because of it.",
       "For seasonal crop questions, use the supplied Zone Seasonal Planting Reference as the default answer source. Do not ask for today's temperature or perform a live weather lookup by default. Ask about current conditions only when the user reports unusual heat, frost, storms, or a crop near a temperature limit.",
@@ -537,7 +576,9 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
     if (enabledTools.length) {
       request.tools = enabledTools;
-      request.tool_choice = "auto";
+      request.tool_choice = questionIntent === "seed_inventory_photo"
+        ? { type: "function", name: "extract_seed_pack_inventory" }
+        : "auto";
     }
     response = await client.responses.create(request);
   } catch (error) {
@@ -569,6 +610,21 @@ export async function askPip({ message, image, profile, subscription, history = 
         actions.push({ type: "calendar_change", operation: "add", label: "Add to Calendar", reminders: [reminder] });
       } else if (result.status === "queued") {
         result = { status: "project_required", message: "Open or create a grow before adding this reminder." };
+      }
+    } else if (item.name === "extract_seed_pack_inventory") {
+      result = normalizeSeedPhotoInventory(args);
+      if (result.items.length) {
+        actions.push({
+          type: "seed_pack_inventory",
+          operation: "add",
+          label: "Add reviewed seed packs",
+          items: result.items,
+          unreadableCount: result.unreadableCount,
+          fromPhoto: true
+        });
+        result = { ...result, status: "confirmation_required", message: "Review each detected packet before adding it to the Seed Vault." };
+      } else {
+        result = { ...result, status: "no_readable_packets", message: "No seed-packet label was clear enough to add. Try a closer photo with labels facing up." };
       }
     } else if (item.name === "flag_review_item") {
       const review = await createReviewItem({
@@ -637,6 +693,15 @@ export async function askPip({ message, image, profile, subscription, history = 
   }
 
   if (actions.length) {
+    const seedAction = actions.find((action) => action.type === "seed_pack_inventory");
+    if (seedAction) {
+      const count = seedAction.items.length;
+      const unreadable = Number(seedAction.unreadableCount || 0);
+      const answer = `I found ${count} seed-pack entr${count === 1 ? "y" : "ies"}. Review the names and pack counts below before adding them to your Seed Vault.${unreadable ? ` ${unreadable} packet${unreadable === 1 ? " was" : "s were"} too unclear to add.` : ""}`;
+      const sources = safeSourceSummaries(retrieval);
+      await rememberProjectMessage(projectContext, { userId, projectId, role: "assistant", content: answer, mode: "seed_inventory_confirmation", sources });
+      return { answer, mode: "seed_inventory_confirmation", sources, projectMemory, actions, aiUsage: { model, ...combineOpenAiUsage(response) } };
+    }
     const taskCount = actions.reduce((total, action) => total + (action.reminders?.length || 0), 0);
     const destructiveAction = actions.find((action) => ["delete", "delete_all", "replace_all", "update"].includes(action.operation));
     const answer = destructiveAction
@@ -1202,8 +1267,46 @@ function isClearlyOffTopic(message) {
   return /\b(politics|president|stock market|crypto|bitcoin|football|baseball|nba|betting|gambling|wager|wagers|betting picks|sports picks|movie|recipe|dating|homework|essay|code|javascript|python|weather|news|celebrity|song|lyrics)\b/.test(normalized);
 }
 
+function isSeedInventoryPhotoMessage(message) {
+  const normalized = String(message || "").toLowerCase();
+  const mentionsSeeds = /\b(seed|seeds|seed pack|seed packs|packet|packets)\b/.test(normalized);
+  const requestsInventory = /\b(add|save|scan|read|list|catalog|inventory|identify|record|put|move)\b/.test(normalized)
+    || /\b(seed vault|seeds area|what (?:seeds|packs) (?:are|do) i have)\b/.test(normalized);
+  return mentionsSeeds && requestsInventory;
+}
+
+export function normalizeSeedPhotoInventory(input = {}) {
+  const clean = (value, max) => {
+    const text = String(value ?? "").replace(/\s+/g, " ").trim();
+    return text ? text.slice(0, max) : null;
+  };
+  const grouped = new Map();
+  for (const raw of Array.isArray(input.items) ? input.items.slice(0, 30) : []) {
+    const crop = clean(raw?.crop, 80);
+    if (!crop) continue;
+    const variety = clean(raw?.variety, 120);
+    const source = clean(raw?.source, 160);
+    const packsOnHand = Math.max(1, Math.min(30, Math.round(Number(raw?.packsOnHand) || 1)));
+    const confidence = Math.max(0, Math.min(1, Number(raw?.confidence) || 0));
+    const notes = clean(raw?.notes, 180);
+    const key = `${crop.toLowerCase()}|${String(variety || "").toLowerCase()}|${String(source || "").toLowerCase()}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.packsOnHand = Math.min(30, existing.packsOnHand + packsOnHand);
+      existing.confidence = Math.min(existing.confidence, confidence);
+    } else {
+      grouped.set(key, { crop, variety, source, packsOnHand, confidence, notes });
+    }
+  }
+  return {
+    items: [...grouped.values()],
+    unreadableCount: Math.max(0, Math.min(30, Math.round(Number(input.unreadableCount) || 0)))
+  };
+}
+
 export function classifyQuestionIntent(message, { image = false, history = [] } = {}) {
   const normalized = String(message || "").toLowerCase();
+  if (image && isSeedInventoryPhotoMessage(normalized)) return "seed_inventory_photo";
   if (image && isSitePlanningMessage(normalized)) return "site_photo";
   if (image) return "photo_diagnosis";
   if (wantsCalendarChange(normalized) || isCalendarFollowUp(normalized, history)) return /\b(crop plan|planting plan)\b/.test(normalized) ? "crop_plan_action" : "reminder_action";
@@ -1219,6 +1322,7 @@ export function classifyQuestionIntent(message, { image = false, history = [] } 
 
 function toolsForQuestion(intent, message) {
   const requested = new Set(["flag_review_item"]);
+  if (intent === "seed_inventory_photo") requested.add("extract_seed_pack_inventory");
   if (intent === "hydropip_build") {
     requested.add("get_build_step");
     requested.add("recommend_parts");
@@ -1249,6 +1353,7 @@ function selectIntentContext(retrieval, intent) {
     hydropip_build: ["build_guide.md", "pip_system_brain.md"],
     site_planning: ["site_planning.md", "build_guide.md", "pip_system_brain.md"],
     site_photo: ["site_planning.md", "build_guide.md", "pip_system_brain.md"],
+    seed_inventory_photo: ["zone_planting_calendar.json", "pip_system_brain.md"],
     photo_diagnosis: ["troubleshooting.md", "build_guide.md", "feed_and_nutrient_guidance.md", "site_planning.md"]
   };
   const allowed = allowedSources[intent];

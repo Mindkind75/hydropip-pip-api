@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { askPip, classifyQuestionIntent, compactAnswer } from "./pipAgent.js";
+import { askPip, classifyQuestionIntent, compactAnswer, normalizeSeedPhotoInventory } from "./pipAgent.js";
 import { classifyPhotoRequest } from "./pipPhotoAccess.js";
 import { assessSiteFit } from "./pipTools.js";
 
@@ -8,6 +8,23 @@ const proUrl = "https://www.hydropip.com/pip?pro=1";
 
 assert.equal(classifyQuestionIntent("Where should I put this system in my yard?"), "site_planning");
 assert.equal(classifyQuestionIntent("Can you check this proposed HydroPip location?", { image: true }), "site_photo");
+assert.equal(classifyQuestionIntent("Add these seed packets to my Seed Vault", { image: true }), "seed_inventory_photo");
+assert.equal(classifyQuestionIntent("What is wrong with this lettuce?", { image: true }), "photo_diagnosis");
+assert.deepEqual(normalizeSeedPhotoInventory({
+  items: [
+    { crop: "Tomato", variety: "Cherokee Purple", source: "Baker Creek", packsOnHand: 1, confidence: 0.92 },
+    { crop: " Tomato ", variety: "Cherokee Purple", source: "Baker Creek", packsOnHand: 2, confidence: 0.81 },
+    { crop: "Lettuce", variety: null, source: null, packsOnHand: 1, confidence: 0.64, notes: "Variety is obscured" },
+    { crop: "", packsOnHand: 8, confidence: 1 }
+  ],
+  unreadableCount: 2
+}), {
+  items: [
+    { crop: "Tomato", variety: "Cherokee Purple", source: "Baker Creek", packsOnHand: 3, confidence: 0.81, notes: null },
+    { crop: "Lettuce", variety: null, source: null, packsOnHand: 1, confidence: 0.64, notes: "Variety is obscured" }
+  ],
+  unreadableCount: 2
+});
 assert.equal(classifyPhotoRequest({ message: "Can you check this proposed HydroPip location?", projectType: "hydropip_build" }).access, "free_build");
 assert.equal(classifyPhotoRequest({ message: "Can you plan this DWC location?", projectType: "existing_system_setup" }).access, "pip_pro_required");
 assert.deepEqual(assessSiteFit({ towerCount: 4 }).recommended, { widthFeet: 12, depthFeet: 8 });

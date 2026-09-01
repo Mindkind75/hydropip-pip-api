@@ -443,7 +443,7 @@ const profileAwareFallback = await askPip({
   subscription: { active: true }
 });
 assert.equal(profileAwareFallback.answer.includes("Zone 9"), true);
-assert.equal(/basil|chard/i.test(profileAwareFallback.answer), true);
+assert.equal(/lettuce|kale|mustard/i.test(profileAwareFallback.answer), true);
 assert.equal(/Use two pumps in the IBC/i.test(profileAwareFallback.answer), false);
 
 const seasonalWithPumpHistory = await askPip({
@@ -539,7 +539,7 @@ const savedProjectCropAnswer = await askPip({
   ]
 });
 assert.match(savedProjectCropAnswer.answer, /Zone 9/i);
-assert.match(savedProjectCropAnswer.answer, /basil|chard/i);
+assert.match(savedProjectCropAnswer.answer, /lettuce|kale|mustard/i);
 assert.equal(/Use two pumps in the IBC/i.test(savedProjectCropAnswer.answer), false);
 if (savedProfileAiDisabled === undefined) delete process.env.PIP_AI_DISABLED;
 else process.env.PIP_AI_DISABLED = savedProfileAiDisabled;
@@ -992,6 +992,14 @@ const mergedSeedPacks = await addProjectSeedPacks({
 });
 assert.equal(mergedSeedPacks.updatedCount, 1);
 assert.equal(mergedSeedPacks.seeds[0].packsOnHand, 3);
+const sourcedSeedPacks = await addProjectSeedPacks({
+  userId: "test-user",
+  projectId: paidProject.project.id,
+  items: [{ crop: "Basil", variety: "Genovese", source: "Botanical Interests", packsOnHand: 2 }],
+  subscription: { active: true }
+});
+assert.equal(sourcedSeedPacks.addedCount, 1);
+assert.equal(sourcedSeedPacks.seeds[0].source, "Botanical Interests");
 const seedPackChat = await askPip({
   message: "I have green beans, two packs, tomatoes, two packs",
   user: { id: "test-user" },
