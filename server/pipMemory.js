@@ -101,6 +101,7 @@ const defaultState = {
 let stateCache;
 let poolPromise;
 let schemaPromise;
+let seedUsagePricingReconciled = false;
 let forceFileMemory = false;
 
 export function getProjectTemplates() {
@@ -708,6 +709,18 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
 
   if (usesPostgres()) {
     const pool = await readyPool();
+    if (!seedUsagePricingReconciled) {
+      await pool.query(
+        `update pip_usage_events
+         set credits_used = $1,
+             metadata = coalesce(metadata, '{}'::jsonb) || '{"pricingAdjustment":"seed_inventory_v1"}'::jsonb
+         where metadata->>'mode' = 'seed_inventory_confirmation'
+           and coalesce(metadata->>'funding', 'included') = 'included'
+           and credits_used > $1`,
+        [usageConfig.seedScanCreditCost]
+      );
+      seedUsagePricingReconciled = true;
+    }
     const client = await pool.connect();
     try {
       await client.query("begin");
@@ -789,6 +802,16 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
   }
 
   const state = readState();
+  let repricedSeedUsage = false;
+  for (const event of Object.values(state.usageEvents)) {
+    if (event.metadata?.mode !== "seed_inventory_confirmation"
+      || event.metadata?.funding === "top_up"
+      || Number(event.creditsUsed || 0) <= usageConfig.seedScanCreditCost) continue;
+    event.creditsUsed = usageConfig.seedScanCreditCost;
+    event.metadata = { ...(event.metadata || {}), pricingAdjustment: "seed_inventory_v1" };
+    repricedSeedUsage = true;
+  }
+  if (repricedSeedUsage) writeState(state);
   const start = utcDayStart();
   const monthStart = utcMonthStart();
   const events = Object.values(state.usageEvents).filter((event) => usageEventMatches(event, identity, start));
