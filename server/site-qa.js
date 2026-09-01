@@ -242,7 +242,8 @@ assert.match(pipHtml, /post_signup_build_selected/, "Post-signup Track My Build 
 assert.match(pipHtml, /post_signup_pip_selected/, "Post-signup Pip activation must be measurable");
 assert.match(pipHtml, /post_signup_grow_selected/, "Post-signup grow activation must be measurable");
 assert.match(pipHtml, /data-account-action=["']subscriptions["']/, "Pro members need a subscription-management action");
-assert.match(pipHtml, /data-account-action=["']wallet["']/, "Pro members need a payment-method action");
+assert.match(pipHtml, /Update payment method/, "Pro members need a payment-method action");
+assert.doesNotMatch(pipHtml, /data-account-action=["']wallet["']/, "Payment changes must use the active Pip Pro subscription, not Wix My Wallet");
 assert.match(pipHtml, /HYDROPIP_PIP_READY/, "The completed checkout flow should recheck Wix while Pro access propagates");
 assert.match(pipHtml, /\/api\/pip\/projects\//, "Pip Pro workspace is not connected to project APIs");
 assert.match(pipHtml, /requestedProjectType/, "Pip Pro project links should open the matching chat project");

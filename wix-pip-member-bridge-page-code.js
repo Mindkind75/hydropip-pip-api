@@ -178,7 +178,9 @@ async function handlePipLoginRequest(mode) {
   }
 
   if (mode === "wallet") {
-    wixLocation.to("/account/my-wallet");
+    // A saved card in My Wallet does not update an active Pricing Plans subscription.
+    // Keep this legacy action pointed at the subscription that owns the payment method.
+    wixLocation.to("/account/my-subscriptions");
     return;
   }
 
