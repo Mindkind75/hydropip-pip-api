@@ -189,11 +189,14 @@ for (const page of ["profile", "planner", "calendar", "log", "history"]) {
   assert.match(pipHtml, new RegExp(`data-pro-page=["']${page}["']`), `pip.html is missing the ${page} notebook tab`);
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }
-for (const id of ["proSeedDashboard", "proSeedPlantNow", "proSeedStartNext", "proSeedTiming", "proSeedUseDate", "proSeedAddPlanner"]) {
+for (const id of ["proSeedDashboard", "proSeedPlantNow", "proSeedStartNext", "proSeedManageGrow"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Seeds workspace control ${id}`);
 }
-assert.match(pipHtml, /seed-plan/, "The Seeds workspace should load zone-aware sowing recommendations");
-assert.match(pipHtml, /reminders\/batch/, "The Seeds workspace should add approved seed tasks to Planner and Calendar");
+assert.match(pipHtml, /data-seed-action=["']use["']/, "Seed Vault records should hand selected crops to Rhythm");
+assert.match(pipHtml, /openRhythmSetup\(proProjectSelect\.value,item\.crop\)/, "Use in grow should open Rhythm with the selected crop");
+assert.doesNotMatch(pipHtml, /id=["']proSeedForm["'][\s\S]{0,2500}name=["']plantingLocation["']/, "Seed Vault should not manage active crop locations");
+assert.doesNotMatch(pipHtml, /id=["']proSeedForm["'][\s\S]{0,2500}name=["']sowDate["']/, "Seed Vault should not manage sow dates");
+assert.match(pipHtml, /inventory=allSeeds\.filter\(function\(item\)\{return\(item\.plantingLocation\|\|["']seed_vault["']\)===["']seed_vault["']\}\)/, "Seed Vault should display packet inventory only");
 assert.match(pipHtml, /activateProPage/, "Pip Pro notebook tabs are not wired to page navigation");
 assert.match(pipHtml, /id=["']proArrangeTabs["']/, "Pip Pro needs an Arrange tabs control");
 assert.match(pipHtml, /class=["'][^"']*workspace-tab[^"']*arrange-tabs[^"']*["'][^>]*id=["']proArrangeTabs["']/, "Arrange tabs should live inside the notebook tab strip");
