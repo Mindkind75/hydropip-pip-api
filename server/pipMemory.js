@@ -845,7 +845,7 @@ export async function reserveAiUsage({ userId, ipHash, tier, creditsRequired, ev
   return { allowed: true, reservationId, funding, dailyLimit, monthlyLimit, usedToday, usedThisMonth, creditsRequired: required, topUpBalance, resetAt: dailyResetAt() };
 }
 
-export async function completeAiUsage({ reservationId, model, inputTokens, outputTokens, estimatedCostUsd, metadata = {} } = {}) {
+export async function completeAiUsage({ reservationId, model, inputTokens, outputTokens, estimatedCostUsd, creditsUsed, metadata = {} } = {}) {
   const id = requireUsageId(reservationId);
   const usagePatch = {
     ...normalizeUsageMetadata(metadata),
@@ -853,29 +853,77 @@ export async function completeAiUsage({ reservationId, model, inputTokens, outpu
   };
   if (usesPostgres()) {
     const pool = await readyPool();
-    const result = await pool.query(
-      `update pip_usage_events set
-         model = $2,
-         input_tokens = $3,
-         output_tokens = $4,
-         estimated_cost_usd = $5,
-         metadata = coalesce(metadata, '{}'::jsonb) || $6::jsonb
-       where id = $1
-       returning *`,
-      [id, cleanUsageText(model, 120), optionalNonnegativeInteger(inputTokens), optionalNonnegativeInteger(outputTokens), optionalNonnegativeNumber(estimatedCostUsd), JSON.stringify(usagePatch)]
-    );
-    return result.rows[0] ? rowToUsageEvent(result.rows[0]) : null;
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      const reservedResult = await client.query("select * from pip_usage_events where id = $1 for update", [id]);
+      const reserved = reservedResult.rows[0];
+      if (!reserved) {
+        await client.query("rollback");
+        return null;
+      }
+      const reservedCredits = Number(reserved.credits_used || 0);
+      const finalCredits = creditsUsed == null
+        ? reservedCredits
+        : Math.min(reservedCredits, normalizeCreditAmount(creditsUsed, "creditsUsed"));
+      const refund = Math.max(0, reservedCredits - finalCredits);
+      const result = await client.query(
+        `update pip_usage_events set
+           credits_used = $2,
+           model = $3,
+           input_tokens = $4,
+           output_tokens = $5,
+           estimated_cost_usd = $6,
+           metadata = coalesce(metadata, '{}'::jsonb) || $7::jsonb
+         where id = $1
+         returning *`,
+        [id, finalCredits, cleanUsageText(model, 120), optionalNonnegativeInteger(inputTokens), optionalNonnegativeInteger(outputTokens), optionalNonnegativeNumber(estimatedCostUsd), JSON.stringify(usagePatch)]
+      );
+      if (refund > 0 && reserved.metadata?.funding === "top_up" && reserved.user_id) {
+        await client.query(
+          `insert into pip_credit_ledger (id, user_id, amount, reason, source, usage_event_id, metadata, created_at)
+           values ($1, $2, $3, 'Seed inventory photo adjustment', 'usage_refund', $4, $5::jsonb, now())`,
+          [makeId("credit"), reserved.user_id, refund, id, JSON.stringify({ finalCredits })]
+        );
+      }
+      await client.query("commit");
+      return rowToUsageEvent(result.rows[0]);
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
   const state = readState();
   const event = state.usageEvents[id];
   if (!event) return null;
+  const reservedCredits = Number(event.creditsUsed || 0);
+  const finalCredits = creditsUsed == null
+    ? reservedCredits
+    : Math.min(reservedCredits, normalizeCreditAmount(creditsUsed, "creditsUsed"));
+  const refund = Math.max(0, reservedCredits - finalCredits);
   Object.assign(event, {
+    creditsUsed: finalCredits,
     model: cleanUsageText(model, 120),
     inputTokens: optionalNonnegativeInteger(inputTokens),
     outputTokens: optionalNonnegativeInteger(outputTokens),
     estimatedCostUsd: optionalNonnegativeNumber(estimatedCostUsd),
     metadata: { ...(event.metadata || {}), ...usagePatch }
   });
+  if (refund > 0 && event.metadata?.funding === "top_up" && event.userId) {
+    const ledgerId = makeId("credit");
+    state.creditLedger[ledgerId] = {
+      id: ledgerId,
+      userId: event.userId,
+      amount: refund,
+      reason: "Seed inventory photo adjustment",
+      source: "usage_refund",
+      usageEventId: id,
+      metadata: { finalCredits },
+      createdAt: nowIso()
+    };
+  }
   writeState(state);
   return event;
 }

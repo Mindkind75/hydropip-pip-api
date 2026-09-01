@@ -10,6 +10,7 @@ const DEFAULTS = Object.freeze({
   globalMonthlyCredits: 100000,
   textCreditCost: 1,
   detailedCreditCost: 3,
+  seedScanCreditCost: 3,
   photoCreditCost: 10,
   inputCostPerMillion: 0.25,
   outputCostPerMillion: 2,
@@ -31,6 +32,7 @@ export function getPipUsageConfig() {
     globalMonthlyCredits: envNumber("PIP_GLOBAL_MONTHLY_AI_CREDITS", DEFAULTS.globalMonthlyCredits),
     textCreditCost: envNumber("PIP_TEXT_CREDIT_COST", DEFAULTS.textCreditCost),
     detailedCreditCost: envNumber("PIP_DETAILED_CREDIT_COST", DEFAULTS.detailedCreditCost),
+    seedScanCreditCost: envNumber("PIP_SEED_SCAN_CREDIT_COST", DEFAULTS.seedScanCreditCost),
     photoCreditCost: envNumber("PIP_PHOTO_CREDIT_COST", DEFAULTS.photoCreditCost),
     inputCostPerMillion: envNumber("PIP_MODEL_INPUT_COST_PER_MILLION", DEFAULTS.inputCostPerMillion),
     outputCostPerMillion: envNumber("PIP_MODEL_OUTPUT_COST_PER_MILLION", DEFAULTS.outputCostPerMillion),
@@ -90,14 +92,25 @@ export function validateChatPayload({ message, history, image, tier = "visitor" 
   return { ok: true };
 }
 
-export function estimateAiCreditCost({ message, hasPhoto } = {}, config = getPipUsageConfig()) {
+export function estimateAiCreditCost({ message, history, hasPhoto, photoIntent } = {}, config = getPipUsageConfig()) {
+  if (hasPhoto && isSeedInventoryPhotoUsage({ message, history, photoIntent })) return config.seedScanCreditCost;
   if (hasPhoto) return config.photoCreditCost;
   return wantsDetailedAnswer(message) ? config.detailedCreditCost : config.textCreditCost;
 }
 
-export function aiUsageEventType({ message, hasPhoto } = {}) {
+export function aiUsageEventType({ message, history, hasPhoto, photoIntent } = {}) {
+  if (hasPhoto && isSeedInventoryPhotoUsage({ message, history, photoIntent })) return "seed_inventory_photo";
   if (hasPhoto) return "photo_answer";
   return wantsDetailedAnswer(message) ? "detailed_answer" : "text_answer";
+}
+
+export function isSeedInventoryPhotoUsage({ message, history, photoIntent } = {}) {
+  if (String(photoIntent || "").toLowerCase() === "seed_inventory") return true;
+  const recent = Array.isArray(history) ? history.slice(-6) : [];
+  const context = [message, ...recent.map((entry) => entry?.content)].filter(Boolean).join(" ").toLowerCase();
+  const mentionsSeeds = /\bseed(?:s|ed)?\b|\bsow(?:ing)?\b/.test(context);
+  const mentionsInventory = /\bpacket(?:s)?\b|\bpack(?:s)?\b|\bseed vault\b|\binventor(?:y|ies)\b|\bcatalog(?:ue)?\b|\beditable list\b/.test(context);
+  return mentionsSeeds && mentionsInventory;
 }
 
 export function clientIpHash(req) {

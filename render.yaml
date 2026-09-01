@@ -71,6 +71,8 @@ services:
         value: 1
       - key: PIP_DETAILED_CREDIT_COST
         value: 3
+      - key: PIP_SEED_SCAN_CREDIT_COST
+        value: 3
       - key: PIP_PHOTO_CREDIT_COST
         value: 10
       - key: PIP_AI_DISABLED

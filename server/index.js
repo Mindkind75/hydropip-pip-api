@@ -1196,17 +1196,24 @@ app.post("/api/pip/chat", async (req, res, next) => {
       subscription: access.subscription,
       beforeAiCall: async () => {
         if (access.user?.id) await upsertUser(access.user);
-        const creditsRequired = estimateAiCreditCost({ message: req.body?.message, hasPhoto });
+        const usageRequest = {
+          message: req.body?.message,
+          history: req.body?.history,
+          hasPhoto,
+          photoIntent: req.body?.image?.intent
+        };
+        const creditsRequired = estimateAiCreditCost(usageRequest);
         aiReservation = await reserveAiUsage({
           userId: access.user?.id || null,
           ipHash: clientIpHash(req),
           tier,
           creditsRequired,
-          eventType: aiUsageEventType({ message: req.body?.message, hasPhoto }),
+          eventType: aiUsageEventType(usageRequest),
           metadata: {
             projectId: req.body?.projectId || null,
             conversationId: req.body?.conversationId || null,
-            hasPhoto
+            hasPhoto,
+            photoIntent: aiUsageEventType(usageRequest) === "seed_inventory_photo" ? "seed_inventory" : null
           }
         });
         if (!aiReservation.allowed) {
@@ -1225,22 +1232,28 @@ app.post("/api/pip/chat", async (req, res, next) => {
     if (aiReservation?.allowed) {
       if (result.aiUsage) {
         const estimatedCostUsd = estimateModelCost(result.aiUsage);
-        await completeAiUsage({
+        const completedCredits = result.mode === "seed_inventory_confirmation"
+          ? estimateAiCreditCost({ hasPhoto: true, photoIntent: "seed_inventory" })
+          : aiReservation.creditsRequired;
+        const completedUsage = await completeAiUsage({
           reservationId: aiReservation.reservationId,
           model: result.aiUsage.model,
           inputTokens: result.aiUsage.inputTokens,
           outputTokens: result.aiUsage.outputTokens,
           estimatedCostUsd,
+          creditsUsed: completedCredits,
           metadata: { mode: result.mode }
         });
+        const creditsUsed = completedUsage?.creditsUsed ?? completedCredits;
+        const creditRefund = Math.max(0, aiReservation.creditsRequired - creditsUsed);
         result.usage = {
-          creditsUsed: aiReservation.creditsRequired,
+          creditsUsed,
           funding: aiReservation.funding,
           dailyLimit: aiReservation.dailyLimit,
           monthlyLimit: aiReservation.monthlyLimit,
-          usedToday: aiReservation.usedToday + (aiReservation.funding === "included" ? aiReservation.creditsRequired : 0),
-          usedThisMonth: aiReservation.usedThisMonth + aiReservation.creditsRequired,
-          topUpBalance: aiReservation.topUpBalance,
+          usedToday: aiReservation.usedToday + (aiReservation.funding === "included" ? creditsUsed : 0),
+          usedThisMonth: aiReservation.usedThisMonth + creditsUsed,
+          topUpBalance: aiReservation.topUpBalance + (aiReservation.funding === "top_up" ? creditRefund : 0),
           resetAt: aiReservation.resetAt
         };
         aiReservation = null;

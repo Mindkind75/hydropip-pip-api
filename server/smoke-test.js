@@ -58,7 +58,7 @@ import { calculateNutrients, createGrowPlan, createReminder, estimateBuild, getB
 import { retrieveHydroPipContext } from "./ragStore.js";
 import { issuePipSession, verifyPipSession } from "./pipAuth.js";
 import { classifyPhotoRequest, photoAnalysisSucceeded } from "./pipPhotoAccess.js";
-import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
+import { combineOpenAiUsage, estimateAiCreditCost, estimateModelCost, isSeedInventoryPhotoUsage, makeDailyLimitPayload, resolvePipUsageTier } from "./pipUsage.js";
 import { getCropRhythmEstimate, getSeedPlanningDashboard, getSeedSowRecommendation, getZonePlantingGuidance, seedPlanReminders } from "./plantingCalendar.js";
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { feedbackPortfolioInsights, heuristicFeedbackAnalysis } from "./feedbackTriage.js";
@@ -404,6 +404,9 @@ assert.equal(await getPipCreditBalance({ userId: "usage-refund" }), 2);
 assert.equal((await getDailyAiUsageSummary({ userId: "usage-refund", ipHash: "refund-ip", tier: "free_member" })).eventCountToday, 0);
 
 assert.equal(estimateAiCreditCost({ message: "Quick question", hasPhoto: true }), 10);
+assert.equal(estimateAiCreditCost({ message: "Scan these seed packets into my Seed Vault", hasPhoto: true }), 3);
+assert.equal(estimateAiCreditCost({ message: "Please inspect this photo", history: [{ role: "assistant", content: "Review the seed-pack entries before adding them to your Seed Vault." }], hasPhoto: true }), 3);
+assert.equal(isSeedInventoryPhotoUsage({ message: "Catalog these seed packs" }), true);
 assert.equal(estimateAiCreditCost({ message: "Give me a detailed walkthrough" }), 3);
 assert.equal(estimateAiCreditCost({ message: "Quick question" }), 1);
 assert.equal(estimateModelCost({ inputTokens: 100, outputTokens: 50 }), 0.000125);
@@ -414,6 +417,13 @@ const privacyReservation = await reserveAiUsage({ ipHash: "privacy-ip", tier: "v
 const privacyEvent = await completeAiUsage({ reservationId: privacyReservation.reservationId, model: "gpt-5-mini", inputTokens: 10, outputTokens: 5, estimatedCostUsd: 0.0000125 });
 assert.equal(Object.hasOwn(privacyEvent.metadata, "prompt"), false);
 assert.equal(privacyEvent.metadata.safeFlag, true);
+await upsertUser({ id: "usage-seed-adjustment" });
+await grantPipCredits({ userId: "usage-seed-adjustment", amount: 10, reason: "Seed adjustment test grant" });
+const adjustedReservation = await reserveAiUsage({ userId: "usage-seed-adjustment", ipHash: "seed-adjustment-ip", tier: "free_member", creditsRequired: 10, eventType: "photo_answer" });
+assert.equal(adjustedReservation.allowed, true);
+const adjustedUsage = await completeAiUsage({ reservationId: adjustedReservation.reservationId, model: "gpt-5-mini", creditsUsed: 3, metadata: { mode: "seed_inventory_confirmation" } });
+assert.equal(adjustedUsage.creditsUsed, 3);
+assert.equal(await getPipCreditBalance({ userId: "usage-seed-adjustment" }), 7);
 assert.equal(resolvePipUsageTier({ user: { id: "member" }, subscription: { active: true, verified: false } }), "free_member");
 assert.equal(resolvePipUsageTier({ user: { id: "member" }, subscription: { active: true, verified: true } }), "pip_pro");
 const priorOpenAiKey = process.env.OPENAI_API_KEY;
