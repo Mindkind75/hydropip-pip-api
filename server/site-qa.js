@@ -329,7 +329,9 @@ assert.match(homeHtml, /@media\(min-width:1001px\).*\.band\{padding-top:60px;pad
 assert.match(wixHomeBridge, /hasMeasuredHomeHeight/, "The Wix home bridge must protect measured height from fallback overrides");
 assert.doesNotMatch(wixHomeBridge, /14000|12600|8300/, "The Wix home bridge must not restore oversized legacy fallback heights");
 assert.match(wixHomeBridge, /1500/, "Home should use a compact loading height before its real content measurement arrives");
-assert.match(homeHtml, /HYDROPIP_EMBED_WHEEL/, "The embedded Home page should forward mouse-wheel movement to Wix");
+// Home now uses native scroll chaining for touch and wheel input. Browser
+// gesture checks cover this behavior; the legacy Wix receiver stays compatible
+// with visitors who still have the previous embedded page cached.
 assert.match(wixHomeBridge, /HYDROPIP_EMBED_WHEEL/, "The Wix Home bridge should receive embedded mouse-wheel movement");
 assert.match(wixHomeBridge, /wixWindowFrontend\.scrollBy/, "The Wix Home bridge should apply forwarded wheel movement to the outer page");
 assert.match(homeHtml, /Start My Free Build/, "The mobile-first homepage CTA should state that build guidance is free");
