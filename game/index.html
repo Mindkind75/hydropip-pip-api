@@ -8,13 +8,13 @@
 <meta name="apple-mobile-web-app-title" content="HydroPip">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./pip-app-icon.png">
+<link rel="apple-touch-icon" href="./pip-icon-180.png">
 <meta name="robots" content="noindex,nofollow">
 <title>HydroPip: Growing Adventure</title>
 <meta name="description" content="Build Pip's persistent HydroPip homestead, grow tower starts, finish vegetables in the garden, and serve the neighborhood market.">
 <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
-  <script type="module" crossorigin src="./assets/campaign-DByhJula.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/campaign-CKR8AWY0.css">
+  <script type="module" crossorigin src="./assets/campaign-DY5Yip6v.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/campaign-BA40Lt1x.css">
 </head>
 <body>
 <main class="campaign-app">
@@ -86,10 +86,17 @@
         <button id="closeOrders" class="close-button" type="button" aria-label="Close market orders" title="Close">&#215;</button>
       </header>
       <p id="orderIntro" hidden></p>
+      <div class="order-scroll">
       <div id="orderList" class="order-list"></div>
+      <details id="marketOptions" class="market-options" open>
+      <summary>Order details &amp; market</summary>
+      <div id="mobileOrderDetails"></div>
       <button id="orderMarketUpgrade" class="economy-command order-market-upgrade" type="button">Next stand section</button>
       <button id="sellFarmEggs" class="economy-command" type="button" hidden>Sell eggs</button>
       <div class="rack-summary"><span>Harvest Rack</span><strong id="rackSummary">Empty</strong></div>
+      </details>
+      </div>
+      <div id="mobileOrderAction" class="mobile-order-action" hidden></div>
     </aside>
 
     <button id="marketChip" class="market-chip" type="button" hidden>
@@ -122,7 +129,9 @@
         <div class="display-content">
           <p id="displayMessage"></p>
           <p id="displayInstructions"></p>
+          <ol id="installSteps" class="install-steps" hidden></ol>
           <p id="displaySaveNote" hidden>A Home Screen app may have a separate farm. Export a backup in Settings before switching.</p>
+          <button id="installGame" class="primary-command" type="button" hidden>Install game</button>
           <button id="enterFullscreen" class="primary-command" type="button">Full screen</button>
           <button id="displayBackup" class="display-secondary" type="button" hidden>Open backup settings</button>
           <button id="keepWindowed" class="display-secondary" type="button">Keep playing here</button>
@@ -138,6 +147,7 @@
           <h2 id="welcomeTitle">Restore the Homestead</h2>
           <p>The first tower is quiet and the Veg Stand is closed. Help Pip bring the farm back one crop at a time.</p>
           <button id="beginCampaign" class="primary-command" type="button">Start restoring</button>
+          <button class="display-secondary install-entry" data-install-game type="button">Add to Home Screen</button>
         </div>
       </div>
     </section>
@@ -148,6 +158,7 @@
         <h2 id="pauseTitle">Your crops are safe.</h2>
         <p id="pauseReason">Campaign progress has been saved.</p>
         <button id="resumeButton" class="primary-command" type="button">Resume</button>
+        <button class="display-secondary" data-install-game type="button">Add to Home Screen</button>
         <a id="leaveGame" class="display-secondary" href="https://www.hydropip.com/">Return to HydroPip</a>
       </div>
     </section>
@@ -188,6 +199,7 @@
           <details class="system-notes"><summary>Backup recovery</summary><p>Farms stay in this browser, not an online account. Export a backup before changing devices or clearing browser data.</p><button id="exportRecovery" class="secondary-command" type="button">Download pre-restore farm</button></details>
         </div>
         <div class="launch-tools">
+          <button class="secondary-command" data-install-game type="button">Add to Home Screen</button>
           <a class="real-build-link" data-real-build="settings" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_blank" rel="noopener noreferrer">Build a real HydroPip &#8599;</a>
           <button id="reportProblem" class="secondary-command" type="button">Report a problem</button>
           <div id="feedbackForm" hidden>
