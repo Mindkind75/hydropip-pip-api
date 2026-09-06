@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#102d21">
+<meta name="robots" content="noindex,nofollow">
+<title>HydroPip: Growing Adventure</title>
+<meta name="description" content="Build Pip's persistent HydroPip homestead, grow tower starts, finish vegetables in the garden, and serve the neighborhood market.">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+  <script type="module" crossorigin src="./assets/campaign-Dw82CpJv.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/campaign-C5Il0Wey.css">
+</head>
+<body>
+<main class="campaign-app">
+  <header class="campaign-topbar">
+    <a class="brand-lockup" href="./" aria-label="HydroPip Growing Adventure home">
+      <img src="./assets/pip-head-transparent-CKWFf6EM.webp" alt="" width="42" height="42">
+      <div><span>HydroPip</span><strong>Growing Adventure</strong></div>
+    </a>
+
+    <div class="farm-stats" aria-label="Farm progress">
+      <div><span>Coins</span><strong id="coinValue">45</strong></div>
+      <div><span>Level</span><strong id="levelValue">1</strong></div>
+      <div class="xp-stat"><span>XP</span><strong id="xpValue">0 / 35</strong><i><b id="xpFill"></b></i></div>
+      <div><span>Chapter</span><strong id="chapterValue">1 / 3</strong></div>
+    </div>
+
+    <div class="header-actions">
+      <button id="settingsButton" class="icon-button" type="button" aria-label="Open settings" title="Settings">AA</button>
+      <button id="soundButton" class="icon-button" type="button" aria-label="Mute sound" title="Mute sound">&#9835;</button>
+      <button id="pauseButton" class="icon-button" type="button" aria-label="Pause game" title="Pause game">&#8545;</button>
+    </div>
+  </header>
+
+  <section class="farm-stage" id="farmStage" aria-label="Pip's persistent HydroPip homestead">
+    <div id="campaignScene" class="campaign-scene" tabindex="0" aria-label="Three-dimensional market garden"></div>
+    <button id="saveWarning" class="save-warning" type="button" hidden>Progress not saved. Open recovery</button>
+
+    <button id="objectiveBar" class="objective-bar" type="button" aria-expanded="false" aria-controls="taskDrawer">
+      <span id="objectiveChapter">Chapter 1</span>
+      <strong id="objectiveTitle">Bring the tower online</strong>
+      <span id="objectiveProgress">Open tasks</span>
+    </button>
+
+    <aside id="homesteadDrawer" class="task-drawer homestead-drawer" aria-label="Homestead goals" hidden></aside>
+    <aside id="taskDrawer" class="task-drawer" aria-label="Farm tasks" hidden>
+      <header>
+        <div><span id="taskChapter">Chapter 1</span><h2 id="taskTitle">Restore the Homestead</h2></div>
+        <button id="closeTasks" class="close-button" type="button" aria-label="Close tasks" title="Close">&#215;</button>
+      </header>
+      <p id="taskStory" class="task-story">Pip: One good tower is enough to bring this garden back.</p>
+      <section class="primary-task">
+        <span>Primary task</span>
+        <strong id="primaryTaskTitle">Bring the tower online</strong>
+        <p id="primaryTaskDetail">Repair the first HydroPip tower.</p>
+        <ul id="taskMilestones" class="task-milestones" aria-label="Task progress"></ul>
+        <div id="taskUpgradeOptions" class="choice-actions" aria-label="Capacity upgrade choices" hidden></div>
+        <div class="task-reward" id="primaryTaskReward">15 coins + 15 XP</div>
+        <p id="nextFarmUnlock" class="next-unlock"></p>
+      </section>
+      <section class="task-list" aria-label="Chapter task list">
+        <div id="chapterTaskList"></div>
+      </section>
+      <button id="focusTaskButton" class="primary-command" type="button">Show target</button>
+    </aside>
+
+    <aside id="interactionPanel" class="interaction-panel" aria-label="Selected farm object" hidden>
+      <header>
+        <div><span id="interactionKicker">Farm equipment</span><h2 id="interactionTitle">Hydro Tower 1</h2></div>
+        <button id="closeInteraction" class="close-button" type="button" aria-label="Close equipment panel" title="Close">&#215;</button>
+      </header>
+      <p id="interactionSummary"></p>
+      <div id="interactionContent" class="interaction-content"></div>
+    </aside>
+
+    <aside id="orderDrawer" class="order-drawer" aria-label="Pip's Veg Stand orders" hidden>
+      <header>
+        <div><span>Neighborhood market</span><h2>Pip's Veg Stand</h2></div>
+        <button id="closeOrders" class="close-button" type="button" aria-label="Close market orders" title="Close">&#215;</button>
+      </header>
+      <p id="orderIntro" hidden></p>
+      <div id="orderList" class="order-list"></div>
+      <button id="orderMarketUpgrade" class="economy-command order-market-upgrade" type="button"><span>Upgrade Veg Stand</span><strong>95 coins</strong></button>
+      <button id="sellFarmEggs" class="economy-command" type="button" hidden>Sell eggs</button>
+      <div class="rack-summary"><span>Harvest Rack</span><strong id="rackSummary">Empty</strong></div>
+    </aside>
+
+    <button id="marketChip" class="market-chip" type="button" hidden>
+      <span id="marketChipCustomer">Market</span>
+      <strong id="marketChipDemand">No orders</strong>
+    </button>
+
+    <div id="carryChip" class="carry-chip" hidden>
+      <span id="carryKind">Starter</span><strong id="carryContents">Lettuce</strong>
+    </div>
+
+    <div id="campaignMessage" class="campaign-message" role="status" aria-live="polite">The homestead is ready.</div>
+
+    <div class="camera-tools" aria-label="Camera controls">
+      <button id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out">&#8722;</button>
+      <button id="recenter" type="button" aria-label="Recenter camera on Pip" title="Recenter on Pip">&#9678;</button>
+      <button id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in">&#43;</button>
+    </div>
+
+    <section id="welcomeOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
+      <div class="welcome-panel">
+        <img src="./assets/pip-mascot-transparent-DujOxSaL.webp" alt="Pip the HydroPip farmer">
+        <div>
+          <span>Chapter 1</span>
+          <h2 id="welcomeTitle">Restore the Homestead</h2>
+          <p>The first tower is quiet and the Veg Stand is closed. Help Pip bring the farm back one crop at a time.</p>
+          <button id="beginCampaign" class="primary-command" type="button">Start restoring</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="pauseOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden>
+      <div class="pause-panel">
+        <span>Farm paused</span>
+        <h2 id="pauseTitle">Your crops are safe.</h2>
+        <p>Campaign progress has been saved.</p>
+        <button id="resumeButton" class="primary-command" type="button">Resume</button>
+      </div>
+    </section>
+
+    <section id="chapterOverlay" class="modal-overlay chapter-overlay" role="dialog" aria-modal="true" aria-labelledby="chapterResultTitle" hidden>
+      <div class="chapter-panel">
+        <div class="chapter-reward-art" id="chapterRewardArt">
+          <img src="./assets/pip-pro-celebration-transparent-IQLOdfWW.webp" alt="Pro Pip cheering with confetti">
+        </div>
+        <div class="chapter-copy">
+          <span id="chapterResultKicker">Chapter complete</span>
+          <h2 id="chapterResultTitle">The Homestead is growing.</h2>
+          <p id="chapterResultSummary">The first tower and Veg Stand are back in business.</p>
+          <div class="chapter-rewards" aria-label="Chapter rewards">
+            <div><span>Coins</span><strong id="chapterCoins">+40</strong></div>
+            <div><span>XP</span><strong id="chapterXp">+35</strong></div>
+            <div><span>Unlocked</span><strong id="chapterUnlock">Split Flow</strong></div>
+          </div>
+          <button id="continueChapter" class="primary-command" type="button">Continue</button>
+          <a class="real-build-link" data-real-build="chapter" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_blank" rel="noopener noreferrer">Build a real HydroPip &#8599;</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="settingsOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+      <div class="settings-panel">
+        <header><div><span>Player settings</span><h2 id="settingsTitle">Accessibility and sound</h2></div><button id="closeSettings" class="close-button" type="button" aria-label="Close settings" title="Close">&#215;</button></header>
+        <label class="setting-row"><span><strong>High contrast UI</strong><small>Strengthens panel edges and warning states.</small></span><input id="highContrastSetting" type="checkbox"></label>
+        <label class="setting-row"><span><strong>Reduce motion</strong><small>Limits camera travel, particles, and crop movement.</small></span><input id="reducedMotionSetting" type="checkbox"></label>
+        <label class="volume-row"><span><strong>Music</strong><output id="musicValue">22%</output></span><input id="musicSetting" type="range" min="0" max="100" step="5"></label>
+        <label class="volume-row"><span><strong>Effects</strong><output id="effectsValue">68%</output></span><input id="effectsSetting" type="range" min="0" max="100" step="5"></label>
+        <div class="save-recovery">
+          <p id="saveStatus" role="status">Progress saved in this browser</p>
+          <div class="launch-actions"><button id="retrySave" class="secondary-command" type="button">Retry save</button><button id="exportSave" class="secondary-command" type="button">Export farm</button><button id="importSave" class="secondary-command" type="button">Restore farm</button></div>
+          <input id="importFile" type="file" accept=".json,application/json" hidden>
+          <p id="importStatus" role="status" aria-live="polite"></p>
+          <div id="restoreConfirmation" hidden><p id="restoreSummary"></p><div class="launch-actions"><button id="cancelRestore" class="secondary-command" type="button">Keep current farm</button><button id="confirmRestore" class="danger-command" type="button">Replace farm</button></div></div>
+          <details class="system-notes"><summary>Backup recovery</summary><p>Farms stay in this browser, not an online account. Export a backup before changing devices or clearing browser data.</p><button id="exportRecovery" class="secondary-command" type="button">Download pre-restore farm</button></details>
+        </div>
+        <div class="launch-tools">
+          <a class="real-build-link" data-real-build="settings" href="https://hydropip-pip-api.onrender.com/track-start.html" target="_blank" rel="noopener noreferrer">Build a real HydroPip &#8599;</a>
+          <button id="reportProblem" class="secondary-command" type="button">Report a problem</button>
+          <div id="feedbackForm" hidden>
+            <label for="reportNotes">What happened?</label><textarea id="reportNotes" rows="4" maxlength="1500" placeholder="What were you doing, and what went wrong?"></textarea>
+            <details class="system-notes"><summary>Review report details</summary><pre id="reportPreview"></pre></details>
+            <p>Email opens a draft to info@hydropip.com for you to review and send. No farm backup is attached.</p>
+            <div class="launch-actions"><a id="emailReport" class="secondary-command" href="mailto:info@hydropip.com">Email report</a><button id="downloadReport" class="secondary-command" type="button">Download report</button></div>
+          </div>
+          <p class="build-version">Preview <span id="gameVersion"></span></p>
+        </div>
+        <div class="settings-actions"><button id="resetFarm" type="button">Reset farm</button><button id="settingsDone" class="primary-command" type="button">Done</button></div>
+      </div>
+    </section>
+
+    <section id="resetOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="resetTitle" hidden>
+      <div class="confirm-panel">
+        <span>Permanent action</span><h2 id="resetTitle">Start a new homestead?</h2>
+        <p>This removes your farm, coins, XP, crops, tasks, homestead projects, and crop mastery.</p>
+        <div><button id="cancelReset" type="button">Keep farm</button><button id="confirmReset" class="danger-command" type="button">Reset farm</button></div>
+      </div>
+    </section>
+  </section>
+
+  <nav class="campaign-controls" aria-label="Farm movement controls">
+    <button data-move="left" type="button" aria-label="Move left" title="Move left">&#8592;</button>
+    <button data-move="up" type="button" aria-label="Move up" title="Move up">&#8593;</button>
+    <button data-move="down" type="button" aria-label="Move down" title="Move down">&#8595;</button>
+    <button data-move="right" type="button" aria-label="Move right" title="Move right">&#8594;</button>
+    <button id="actionButton" class="action-button" type="button">Inspect</button>
+    <button id="homesteadButton" class="homestead-button" type="button" aria-controls="homesteadDrawer" aria-expanded="false" hidden>Goals</button>
+  </nav>
+</main>
+<script>
+if (location.protocol === "file:") location.href = "http://127.0.0.1:8791/";
+window.__HYDROPIP_CAMPAIGN_READY__ = false;
+</script>
+
+</body>
+</html>
