@@ -14,6 +14,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  const results=[];
  async function fixture(options={}){
   const context=await browser.newContext({...devices['iPhone 13']});
+  await context.addInitScript(()=>{window.fixtureNavigations=[];window.open=(url,target)=>{window.fixtureNavigations.push({url,target});return null}});
   const state={holdHistory:options.holdHistory,historyRoutes:[],chatRequests:[],holdChat:options.holdChat,chatRoutes:[],errors:[],projectLookups:0,projectCreates:0};
   async function json(route,data){await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)})}
   await context.route('**/*',async route=>{
@@ -47,9 +48,9 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    const ext=path.extname(filename);
    await route.fulfill({status:200,contentType:ext==='.html'?'text/html':ext==='.js'?'application/javascript':ext==='.png'?'image/png':ext==='.webp'?'image/webp':'application/octet-stream',body:fs.readFileSync(filename)});
   });
-  async function open(){const page=await context.newPage();page.on('pageerror',e=>state.errors.push(e.message));await page.goto(origin+'/pip.html?start=grow');return page}
+  async function open(){const page=await context.newPage();page.on('pageerror',e=>state.errors.push(e.message));await page.goto(origin+(options.path||'/pip.html?start=grow'));return page}
   const page=await open();
-  async function start(target=page){await target.evaluate(data=>window.postMessage(data,location.origin),session)}
+  async function start(target=page){await target.evaluate(data=>window.postMessage(data,location.origin),options.session||session)}
   async function releaseHistory(messages=[]){state.holdHistory=false;for(const route of state.historyRoutes.splice(0))await json(route,{messages});await delay(100)}
   async function releaseChat(){state.holdChat=false;for(const route of state.chatRoutes.splice(0))await json(route,{answer});await delay(100)}
   async function waitFor(predicate){for(let i=0;i<100&&!predicate();i++)await delay(20);if(!predicate())throw Error('Fixture request did not arrive')}
@@ -108,6 +109,21 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    await f.start();await delay(200);
    const text=await f.page.locator('#pipLog').innerText();
    results.push({name:'Existing saved conversations still restore',pass:text.includes('Previously saved question.')&&text.includes('Previously saved answer.')});
+   await f.context.close();
+  }
+  for(const [name,query,pro,expected] of [
+   ['Calculator signup returns to the calculator','pro=signup&tool=nutrients',false,'/nutrient-calculator.html#session='],
+   ['Calculator login returns to the calculator','pro=login&tool=nutrients',false,'/nutrient-calculator.html#session='],
+   ['Pro calculator login preserves the requested tool','pro=login&tool=nutrients',true,'/nutrient-calculator.html#session='],
+   ['Checklist login returns to the checklist','pro=login&return=track',false,'https://www.hydropip.com/track-my-build'],
+   ['Checklist signup returns to the checklist','pro=signup&return=track',false,'https://www.hydropip.com/track-my-build'],
+   ['Returning Pro members open their workspace','pro=login',true,'https://www.hydropip.com/pip?pro=1'],
+   ['Returning free members receive free next steps','pro=login',false,null]
+  ]){
+   const f=await fixture({path:'/pip.html?'+query,session:{...session,subscription:{active:pro,plan:pro?'pro':'free_member'}}});
+   await f.start();await delay(250);
+   const nav=await f.page.evaluate(()=>window.fixtureNavigations);
+   results.push({name,pass:expected?nav.some(n=>n.url.startsWith(expected)):nav.length===0&&await f.page.locator('#pipAuthTitle').isVisible()});
    await f.context.close();
   }
   console.log(JSON.stringify(results,null,2));

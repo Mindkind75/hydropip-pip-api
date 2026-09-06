@@ -1,6 +1,6 @@
 import { buildCatalog, hydropipSystem, systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
-import { assessSiteFit, calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, recommendParts } from "./pipTools.js";
+import { assessSiteFit, calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, isCropSelectionQuestion, recommendParts } from "./pipTools.js";
 import { affiliateProductLabel, appendNamedProductSearchLinks, normalizeAmazonAffiliateLinks } from "./pipProductLinks.js";
 import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
@@ -1310,7 +1310,7 @@ export function classifyQuestionIntent(message, { image = false, history = [] } 
   if (image && isSitePlanningMessage(normalized)) return "site_photo";
   if (image) return "photo_diagnosis";
   if (wantsCalendarChange(normalized) || isCalendarFollowUp(normalized, history)) return /\b(crop plan|planting plan)\b/.test(normalized) ? "crop_plan_action" : "reminder_action";
-  if (/\b(what|which|when|should|can)\b.*\b(plant|grow|sow|transplant|crop|variety|varieties|tomatoes?|peppers?|lettuce|greens|herbs?|basil|chard|kale|spinach|cilantro|strawberr(?:y|ies))\b|\b(this time of year|right now|this season|crop rotation|succession planting|tower order)\b/.test(normalized)) return "crop_selection";
+  if (isCropSelectionQuestion(normalized)) return "crop_selection";
   if (/\b(yellow|pale|wilt|droop|spot|spots|holes|chewed|bug|bugs|pest|pests|aphid|gnat|mildew|mold|rot|roots?|disease|symptom)\b/.test(normalized)) return "plant_health";
   if (/\b(ph|ec|tds|ppm|nutrient|nutrients|masterblend|feed timing|feeding|runoff|water temperature)\b/.test(normalized)) return "feeding_nutrients";
   if (/\b(cost|price|estimate|how much.*build|build.*cheaper|already own|what.*still need)\b/.test(normalized)) return "parts_shopping";

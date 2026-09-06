@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { askPip, assessAnswerRelevance, buildDirectCalendarConfirmation, buildDirectRhythmSetupAction, classifyQuestionIntent, compactAnswer, normalizeImageInput, stripSummaryLabel } from "./pipAgent.js";
-import { fallbackAnswer } from "./pipTools.js";
+import { fallbackAnswer, highConfidenceAnswer } from "./pipTools.js";
 import {
   addProjectSeedPacks,
   applyProjectReminderAction,
@@ -172,6 +172,11 @@ assert.match(btLinkedAnswer, /Bacillus\+thuringiensis\+kurstaki\+caterpillar\+co
 assert.match(btLinkedAnswer, /tag=hydrpip200202-20/);
 assert.doesNotMatch(btLinkedAnswer, /food\+safe\+garden\+pest\+control/);
 assert.match(fallbackAnswer("I am not sure what to ask", { matches: [] }), /^Immediate:/);
+const firstGrowRequest = "I am a first-time HydroPip grower with outdoor space in ZIP 34711. I want lettuce and basil. Help me choose a simple first grow.";
+assert.equal(classifyQuestionIntent(firstGrowRequest), "crop_selection");
+assert.equal(highConfidenceAnswer(firstGrowRequest), null, "Incidental outdoor space must not replace a crop request with a fixed footprint answer");
+assert.equal(highConfidenceAnswer("What should I grow in my HydroPip backyard space?"), null);
+assert.match(highConfidenceAnswer("Where should I put HydroPip in my yard?"), /12 x 8/);
 assert.equal(classifyQuestionIntent("Got the towers set. What should I plant this time of year?"), "crop_selection");
 assert.equal(classifyQuestionIntent("Where can I buy the small tower tubing?"), "parts_shopping");
 assert.equal(classifyQuestionIntent("Delete all", { history: [{ role: "assistant", content: "I found four calendar reminders." }] }), "reminder_action");

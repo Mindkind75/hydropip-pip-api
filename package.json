@@ -16,7 +16,8 @@
     "qa:conversions": "node server/conversion-tracking-test.js",
     "qa:affiliate": "node server/affiliate-link-test.js",
     "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip",
-    "qa:chat-ui": "node server/pip-chat-ui-test.cjs"
+    "qa:chat-ui": "node server/pip-chat-ui-test.cjs",
+    "qa:embed-ui": "node server/embed-viewport-ui-test.cjs"
   },
   "dependencies": {
     "@simplewebauthn/server": "13.2.2",

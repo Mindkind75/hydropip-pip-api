@@ -271,11 +271,17 @@ function formatTimerEnd(hour, minute, durationMinutes) {
   return `${displayHour}:${String(displayMinute).padStart(2, "0")}`;
 }
 
+export function isCropSelectionQuestion(value) {
+  const q = String(value || "").toLowerCase();
+  return /\b(what|which|when|should|can)\b.*\b(plant|grow|sow|transplant|crop|variety|varieties|tomatoes?|peppers?|lettuce|greens|herbs?|basil|chard|kale|spinach|cilantro|strawberr(?:y|ies))\b|\b(this time of year|right now|this season|crop rotation|succession planting|tower order)\b/.test(q)
+    || /\b(?:help (?:me|us) (?:choose|plan)|plan (?:my|our|a|the)|planning (?:my|our|a|the))\b[^.!?]*\b(?:crops?|grow|planting)\b/.test(q);
+}
+
 export function highConfidenceAnswer(question = "", retrieval = { matches: [] }, profile = {}) {
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
 
-  if (isSitePlanningQuestion(q)) {
+  if (isSitePlanningQuestion(q) && !isCropSelectionQuestion(q)) {
     const dimensions = parseSiteDimensions(q);
     const towerCount = parseTowerCount(q) || Number(profile?.towerCount) || 4;
     const dominantCropType = /\b(tomato|pepper|cucumber|squash|strawberr|fruiting)\b/.test(q) ? "fruiting" : profile?.dominantCropType || "mixed";

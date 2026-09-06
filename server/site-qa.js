@@ -274,8 +274,10 @@ assert.match(pipHtml, /your HydroPip grow partner/, "Pip should open with a clea
 assert.match(pipHtml, /class=["']chat-head["'][^>]*>[\s\S]*?pip-head-transparent\.webp/, "Pip chat header should use the optimized head-only avatar");
 assert.match(pipHtml, /var mascot = ["']\/assets\/branding\/pip-head-transparent\.png["']/, "Pip replies should use the head-only avatar");
 assert.match(pipHtml, /proPipFloat/, "The Pip Pro conversion hero should give Pip restrained motion");
-assert.match(pipHtml, /Build the system step by step/, "Pip's introduction should explain build guidance");
-assert.match(pipHtml, /in-app calendar and reminders/, "Pip's introduction should explain the Pro value without a long sales pitch");
+const welcomeIntro = pipHtml.match(/var pipWelcomeIntro="([^"\n]*)";/)?.[1] || "";
+assert.match(welcomeIntro, /parts, the build, and your first grow/, "Pip's introduction should explain build guidance");
+assert.match(welcomeIntro, /save this conversation/, "Pip's introduction should explain when sign-in helps");
+assert.ok(welcomeIntro.split(/\s+/).length <= 65, "The first greeting should fit a phone chat without a long sales pitch");
 assert.match(pipHtml, /pipBetaWelcomeDialog/, "Pip should include the beta welcome experience");
 assert.match(pipHtml, /pipBetaChecklist/, "Pip Pro should include the beta test checklist");
 assert.match(pipHtml, /Was this useful\?/, "Fresh Pip answers should support beta ratings");

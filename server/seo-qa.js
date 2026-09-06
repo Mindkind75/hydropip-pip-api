@@ -63,7 +63,7 @@ for (const page of indexablePages) {
 
 const home = read("home.html");
 assert.match(title(home), /DIY Hydroponic Tower/i, "home title must target DIY hydroponic tower intent");
-assert.match(home, /commercial-quality DIY hydroponic tower system/i, "home H1 must explain the product immediately");
+assert.match(home, /<h1>[^<]*build[^<]*hydroponic tower system[^<]*<\/h1>/i, "home H1 must explain the product immediately");
 assert.match(read("field-guide.html"), /How to Build a DIY Hydroponic Tower/i, "Field Guide must target build intent");
 assert.match(read("how-it-works.html"), /FAQPage/, "How It Works must include FAQ structured data");
 assert.match(read("hydroponic-tower-placement.html"), /approximately 12 by 8 feet/i, "Placement guide must provide a practical four-tower footprint");
