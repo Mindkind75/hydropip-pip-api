@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "HydroPip: Growing Adventure",
+  "short_name": "HydroPip",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#071a12",
+  "theme_color": "#102d21",
+  "icons": [{ "src": "./pip-app-icon.png", "sizes": "1098x947", "type": "image/png", "purpose": "any" }]
+}

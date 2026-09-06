@@ -4,12 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#102d21">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HydroPip">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./pip-app-icon.png">
 <meta name="robots" content="noindex,nofollow">
 <title>HydroPip: Growing Adventure</title>
 <meta name="description" content="Build Pip's persistent HydroPip homestead, grow tower starts, finish vegetables in the garden, and serve the neighborhood market.">
 <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
-  <script type="module" crossorigin src="./assets/campaign-zLuoTOIK.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/campaign-0ttEvb4A.css">
+  <script type="module" crossorigin src="./assets/campaign-Cyvhk-F0.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/campaign-CgWKMNfY.css">
 </head>
 <body>
 <main class="campaign-app">
@@ -27,6 +32,7 @@
     </div>
 
     <div class="header-actions">
+      <button id="exitFullscreen" class="icon-button" type="button" aria-label="Exit full screen and pause" title="Exit full screen" hidden>&#215;</button>
       <button id="settingsButton" class="icon-button" type="button" aria-label="Open settings" title="Settings">AA</button>
       <button id="soundButton" class="icon-button" type="button" aria-label="Mute sound" title="Mute sound">&#9835;</button>
       <button id="pauseButton" class="icon-button" type="button" aria-label="Pause game" title="Pause game">&#8545;</button>
@@ -98,10 +104,31 @@
     <div id="campaignMessage" class="campaign-message" role="status" aria-live="polite">The homestead is ready.</div>
 
     <div class="camera-tools" aria-label="Camera controls">
+      <button id="fullscreenButton" type="button" aria-label="Full screen options" title="Full screen">&#9974;</button>
       <button id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out">&#8722;</button>
       <button id="recenter" type="button" aria-label="Recenter camera on Pip" title="Recenter on Pip">&#9678;</button>
       <button id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in">&#43;</button>
     </div>
+
+    <aside id="landscapeNotice" class="landscape-notice" role="status" hidden>
+      <span id="landscapeNoticeText">Rotate for a wider farm.</span>
+      <button id="landscapeOptions" type="button" aria-label="Open landscape and full screen options" title="Full screen options">&#9974;</button>
+      <button id="dismissLandscapeNotice" type="button" aria-label="Dismiss landscape suggestion" title="Dismiss">&#215;</button>
+    </aside>
+
+    <section id="displayOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="displayTitle" hidden>
+      <div class="settings-panel display-panel">
+        <header><h2 id="displayTitle">Landscape play</h2><button id="closeDisplay" class="close-button" type="button" aria-label="Close full screen options" title="Close">&#215;</button></header>
+        <div class="display-content">
+          <p id="displayMessage"></p>
+          <p id="displayInstructions"></p>
+          <p id="displaySaveNote" hidden>A Home Screen app may have a separate farm. Export a backup in Settings before switching.</p>
+          <button id="enterFullscreen" class="primary-command" type="button">Full screen</button>
+          <button id="displayBackup" class="display-secondary" type="button" hidden>Open backup settings</button>
+          <button id="keepWindowed" class="display-secondary" type="button">Keep playing here</button>
+        </div>
+      </div>
+    </section>
 
     <section id="welcomeOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
       <div class="welcome-panel">
@@ -119,8 +146,9 @@
       <div class="pause-panel">
         <span>Farm paused</span>
         <h2 id="pauseTitle">Your crops are safe.</h2>
-        <p>Campaign progress has been saved.</p>
+        <p id="pauseReason">Campaign progress has been saved.</p>
         <button id="resumeButton" class="primary-command" type="button">Resume</button>
+        <a id="leaveGame" class="display-secondary" href="https://www.hydropip.com/">Return to HydroPip</a>
       </div>
     </section>
 
