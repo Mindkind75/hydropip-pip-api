@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readdirSync } from "node:fs";
 
 const productionWithoutDatabase = spawnSync(
   process.execPath,
@@ -114,6 +115,20 @@ const server = await new Promise((resolve) => {
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
 try {
   const joinPageResponse = await fetch(`${baseUrl}/join`);
+  const gamePage = await fetch(`${baseUrl}/game/`);
+  assert.equal(gamePage.status, 200);
+  const gamePolicy = gamePage.headers.get("content-security-policy");
+  assert.match(gamePolicy, /script-src 'self';/);
+  assert.doesNotMatch(gamePolicy, /script-src[^;]*unsafe-inline/);
+  assert.match(gamePolicy, /connect-src 'self';/);
+  assert.match(gamePage.headers.get("permissions-policy"), /camera=\(\)/);
+  assert.match(gamePage.headers.get("cache-control"), /no-cache/);
+  const audioAsset = readdirSync("game/assets").find(name => /^garden-loop-.*\.(mp3|wav)$/.test(name));
+  assert.ok(audioAsset);
+  const audioResponse = await fetch(`${baseUrl}/game/assets/${audioAsset}`, { method: "HEAD" });
+  assert.equal(audioResponse.status, 200);
+  assert.match(audioResponse.headers.get("cache-control"), /max-age=31536000, immutable/);
+  assert.match(joinPageResponse.headers.get("content-security-policy"), /script-src[^;]*unsafe-inline/, "Existing site policy is preserved");
   assert.equal(joinPageResponse.status, 200);
   assert.match(await joinPageResponse.text(), /Create Your Free HydroPip Account/);
   assert.equal((await fetch(`${baseUrl}/join.html`, { redirect: "manual" })).status, 301);

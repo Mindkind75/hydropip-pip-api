@@ -138,9 +138,16 @@ app.use((req, res, next) => {
   res.set("X-Request-Id", requestId);
   res.set("X-Content-Type-Options", "nosniff");
   res.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.set("Permissions-Policy", "camera=(self), microphone=(), geolocation=()");
+  const gameRequest = req.path === "/game" || req.path.startsWith("/game/");
+  res.set("Permissions-Policy", gameRequest ? "camera=(), microphone=(), geolocation=(), payment=(), fullscreen=(self)" : "camera=(self), microphone=(), geolocation=()");
   res.set("Cross-Origin-Resource-Policy", "cross-origin");
-  res.set("Content-Security-Policy", contentSecurityPolicy());
+  res.set("Content-Security-Policy", gameRequest ? [
+    "default-src 'self'", "base-uri 'self'", "object-src 'none'", "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self'",
+    "media-src 'self'", "connect-src 'self'", "worker-src 'self'", "frame-src 'none'",
+    "frame-ancestors 'self' https://www.hydropip.com https://hydropip.com https://*.wixsite.com https://*.wixstudio.com",
+    "form-action 'none'", ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : [])
+  ].join("; ") : contentSecurityPolicy());
   if (process.env.NODE_ENV === "production") {
     res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
@@ -233,6 +240,11 @@ app.get(["/signup", "/signup.html"], (_req, res) => res.redirect(302, "/join"));
 app.use(express.static(rootDir, {
   setHeaders(res, filePath) {
     const extension = path.extname(filePath).toLowerCase();
+    const relative = path.relative(rootDir, filePath).split(path.sep).join("/");
+    if (/^game\/assets\/.+-[\w-]{8}\.(?:js|css|png|jpe?g|webp|avif|svg|wav|mp3|m4a|ogg|woff2?)$/.test(relative)) {
+      res.set("Cache-Control", "public, max-age=31536000, immutable");
+      return;
+    }
     if (extension === ".html") {
       res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
       return;

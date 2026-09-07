@@ -30,8 +30,8 @@
 <meta name="twitter:image" content="https://hydropip-pip-api.onrender.com/game/hydropip-growing-adventure-cover-v1.png">
 <meta name="twitter:image:alt" content="Pip harvests fresh vegetables on his lush HydroPip homestead beneath the Growing Adventure game title.">
 <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
-  <script type="module" crossorigin src="./assets/campaign-Cg4AkyHE.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/campaign-CdazUvRu.css">
+  <script type="module" crossorigin src="./assets/campaign-DunqDCh7.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/campaign-fs7FsLIZ.css">
 </head>
 <body>
 <main class="campaign-app">
@@ -210,11 +210,12 @@
         <label class="volume-row"><span><strong>Effects</strong><output id="effectsValue">68%</output></span><input id="effectsSetting" type="range" min="0" max="100" step="5"></label>
         <div class="save-recovery">
           <p id="saveStatus" role="status">Progress saved in this browser</p>
+          <button id="reloadSavedFarm" class="secondary-command" type="button" hidden>Reload newer saved farm</button>
           <div class="launch-actions"><button id="retrySave" class="secondary-command" type="button">Retry save</button><button id="exportSave" class="secondary-command" type="button">Export farm</button><button id="importSave" class="secondary-command" type="button">Restore farm</button></div>
           <input id="importFile" type="file" accept=".json,application/json" hidden>
           <p id="importStatus" role="status" aria-live="polite"></p>
           <div id="restoreConfirmation" hidden><p id="restoreSummary"></p><div class="launch-actions"><button id="cancelRestore" class="secondary-command" type="button">Keep current farm</button><button id="confirmRestore" class="danger-command" type="button">Replace farm</button></div></div>
-          <details class="system-notes"><summary>Backup recovery</summary><p>Farms stay in this browser, not an online account. Export a backup before changing devices or clearing browser data.</p><button id="exportRecovery" class="secondary-command" type="button">Download pre-restore farm</button></details>
+          <details class="system-notes"><summary>Backup recovery</summary><p>Farms stay in this browser, not an online account. Export a backup before changing devices or clearing browser data.</p><button id="exportRecovery" class="secondary-command" type="button">Download pre-restore farm</button><button id="exportLastGood" class="secondary-command" type="button">Download previous autosave</button></details>
         </div>
         <div class="launch-tools">
           <button class="secondary-command" data-install-game type="button">Add to Home Screen</button>
