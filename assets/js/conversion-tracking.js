@@ -142,6 +142,8 @@
     if (conversion) track(conversion.name, conversion.metadata);
     try {
       var url=new URL(link.href,location.href);
+      // An in-page jump must not gain a query string and reload the app.
+      if(url.hash&&url.origin===location.origin&&url.pathname===location.pathname&&url.search===location.search)return;
       if(['https://www.hydropip.com','https://hydropip.com','https://hydropip-pip-api.onrender.com'].includes(url.origin)){
         var attribution=readAttribution();
         Object.keys(campaignFields).forEach(function(key){var value=attribution[campaignFields[key]];if(value&&!url.searchParams.has(key))url.searchParams.set(key,value)});
