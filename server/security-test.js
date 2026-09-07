@@ -117,12 +117,16 @@ try {
   const joinPageResponse = await fetch(`${baseUrl}/join`);
   const gamePage = await fetch(`${baseUrl}/game/`);
   assert.equal(gamePage.status, 200);
+  assert.doesNotMatch(await gamePage.text(), /<script\b(?![^>]*\bsrc=)[^>]*>/i, "Game startup must not require inline scripts");
   const gamePolicy = gamePage.headers.get("content-security-policy");
   assert.match(gamePolicy, /script-src 'self';/);
   assert.doesNotMatch(gamePolicy, /script-src[^;]*unsafe-inline/);
   assert.match(gamePolicy, /connect-src 'self';/);
   assert.match(gamePage.headers.get("permissions-policy"), /camera=\(\)/);
   assert.match(gamePage.headers.get("cache-control"), /no-cache/);
+  const encodedGame = await fetch(`${baseUrl}/g%61me/`);
+  assert.equal(encodedGame.status, 200);
+  assert.equal(encodedGame.headers.get("content-security-policy"), gamePolicy, "Encoded game paths retain the game policy");
   const audioAsset = readdirSync("game/assets").find(name => /^garden-loop-.*\.(mp3|wav)$/.test(name));
   assert.ok(audioAsset);
   const audioResponse = await fetch(`${baseUrl}/game/assets/${audioAsset}`, { method: "HEAD" });

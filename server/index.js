@@ -138,7 +138,9 @@ app.use((req, res, next) => {
   res.set("X-Request-Id", requestId);
   res.set("X-Content-Type-Options", "nosniff");
   res.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  const gameRequest = req.path === "/game" || req.path.startsWith("/game/");
+  let policyPath = req.path;
+  try { policyPath = path.posix.normalize(decodeURIComponent(policyPath).replaceAll("\\", "/")); } catch { /* Invalid paths are rejected below. */ }
+  const gameRequest = policyPath === "/game" || policyPath.startsWith("/game/");
   res.set("Permissions-Policy", gameRequest ? "camera=(), microphone=(), geolocation=(), payment=(), fullscreen=(self)" : "camera=(self), microphone=(), geolocation=()");
   res.set("Cross-Origin-Resource-Policy", "cross-origin");
   res.set("Content-Security-Policy", gameRequest ? [
