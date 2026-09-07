@@ -11,4 +11,12 @@
     if (visible.bottom > 0) root.style.setProperty("--embed-visible-bottom", Math.floor(visible.bottom) + "px");
   }, { threshold: Array.from({ length: 201 }, function (_, index) { return index / 200; }) });
   observer.observe(root);
+  // A resized iframe can stay fully intersecting, so its ratio never crosses
+  // a threshold. Reset the bounds and request a new observation on resize.
+  window.addEventListener('resize', function () {
+    root.style.setProperty('--embed-visible-width', window.innerWidth + 'px');
+    root.style.setProperty('--embed-visible-bottom', window.innerHeight + 'px');
+    observer.unobserve(root);
+    observer.observe(root);
+  });
 })();

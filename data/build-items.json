@@ -5,7 +5,7 @@
   "standardTowers": 4,
   "standardTiersPerTower": 10,
   "pocketsPerTier": 4,
-  "broadFourTowerBaseline": { "low": 400, "high": 550 },
+  "broadFourTowerBaseline": { "low": 524, "high": 1162 },
   "disclaimer": "Estimates are planning ranges, not guaranteed prices. Retailer pricing, shipping, taxes, location, and availability change.",
   "items": [
     {"id":"planter-order","category":"structure","name":"Mr. Stacky five-tier planter order","description":"Five stackable four-pocket tiers with a center support opening.","required":true,"unit":"order","baseQuantity":0,"quantityRule":"twoPerTower","lowPrice":18,"typicalPrice":22,"highPrice":30,"url":"https://www.amazon.com/dp/B007TFTXAC?tag=hydrpip200202-20","active":true},

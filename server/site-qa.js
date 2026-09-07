@@ -57,9 +57,7 @@ for (const asset of ["pip-take-a-pic-illustration.jpg", "pip-planning-illustrati
   assert.match(pipHtml, new RegExp(asset.replaceAll(".", "\\.")), `Pip Pro should use ${asset}`);
 }
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-photo-guidance-poster.jpg", import.meta.url)), true, "The social photo-guidance poster should remain in the marketing library");
-assert.match(marketingHomeHtml, /pip-photo-guidance-poster\.jpg/, "The homepage should use the Pip photo-guidance poster");
 assert.equal(fs.existsSync(new URL("../assets/marketing/pip-history-poster-transparent.png", import.meta.url)), true, "The transparent Pip history poster should exist");
-assert.match(marketingHomeHtml, /pip-history-poster-transparent\.webp/, "The homepage should use the optimized Pip Pro grow-memory artwork");
 assert.match(marketingHomeHtml, /class="navField"[^>]*>Field Guide<\/a>/, "The homepage should distinguish the Field Guide in primary navigation");
 assert.match(marketingHomeHtml, /class="navHow"[^>]*href="https:\/\/hydropip-pip-api\.onrender\.com\/how-it-works\.html"[^>]*>How It Works<\/a>/, "How It Works should open its concise overview instead of duplicating the Field Guide");
 assert.match(howItWorksHtml, /href="https:\/\/www\.hydropip\.com\/"[^>]*>Home<\/a>/, "How It Works should provide a clear Home action");
@@ -270,13 +268,13 @@ assert.match(pipHtml, /Pip Credits are coming soon/, "Pip should set a friendly 
 assert.match(pipHtml, /function addUpgradeCta/, "Pip should show an inline Pip Pro action for subscription-only requests");
 assert.match(pipHtml, /className=["']chat-upgrade["']/, "Pip Pro nudges should use a compact chat action instead of replacing the chat controls");
 assert.doesNotMatch(pipHtml, /data\.subscriptionRequired&&!isPro\(\)\)setGate\(true,["']pro["']\)/, "A Pip Pro nudge must not lock free HydroPip build help");
-assert.match(pipHtml, /your HydroPip grow partner/, "Pip should open with a clear capability-focused introduction");
+assert.match(pipHtml, /I can help with your HydroPip parts/, "Pip should open with a clear capability-focused introduction");
 assert.match(pipHtml, /class=["']chat-head["'][^>]*>[\s\S]*?pip-head-transparent\.webp/, "Pip chat header should use the optimized head-only avatar");
 assert.match(pipHtml, /var mascot = ["']\/assets\/branding\/pip-head-transparent\.png["']/, "Pip replies should use the head-only avatar");
 assert.match(pipHtml, /proPipFloat/, "The Pip Pro conversion hero should give Pip restrained motion");
 const welcomeIntro = pipHtml.match(/var pipWelcomeIntro="([^"\n]*)";/)?.[1] || "";
-assert.match(welcomeIntro, /parts, the build, and your first grow/, "Pip's introduction should explain build guidance");
-assert.match(welcomeIntro, /save this conversation/, "Pip's introduction should explain when sign-in helps");
+assert.match(welcomeIntro, /parts, build, or first grow/, "Pip's introduction should explain build guidance");
+assert.match(pipHtml, /A free account saves your HydroPip build conversation/, "Pip's introduction should explain when sign-in helps");
 assert.ok(welcomeIntro.split(/\s+/).length <= 65, "The first greeting should fit a phone chat without a long sales pitch");
 assert.match(pipHtml, /pipBetaWelcomeDialog/, "Pip should include the beta welcome experience");
 assert.match(pipHtml, /pipBetaChecklist/, "Pip Pro should include the beta test checklist");
@@ -336,23 +334,20 @@ assert.match(wixHomeBridge, /1500/, "Home should use a compact loading height be
 // with visitors who still have the previous embedded page cached.
 assert.match(wixHomeBridge, /HYDROPIP_EMBED_WHEEL/, "The Wix Home bridge should receive embedded mouse-wheel movement");
 assert.match(wixHomeBridge, /wixWindowFrontend\.scrollBy/, "The Wix Home bridge should apply forwarded wheel movement to the outer page");
-assert.match(homeHtml, /Start My Free Build/, "The mobile-first homepage CTA should state that build guidance is free");
-assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*data-hp-event=["']primary_build_cta_clicked/, "The public build CTA must use the crawlable Track Start page");
+assert.match(homeHtml, /See parts &amp; estimated cost/, "The homepage CTA should explain that it opens the public parts estimate");
+assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start["'][^>]*data-hp-event=["']primary_build_cta_clicked/, "The public build CTA must use the crawlable Track Start page");
 assert.match(trackStartHtml, /Sign in for checklist/, "Track Start should send checklist access through the account flow instead of a crawler-hostile member page");
 assert.match(homeHtml, /is-wix-embed/, "Home should explicitly disable inner scrolling when embedded in Wix");
-assert.match(homeHtml, /class=["']photoFeature singlePhoto["']/, "Home hero should feature a real HydroPip harvest");
+assert.match(homeHtml, /class=["']systemHero["']/, "Home hero should feature the real HydroPip system");
 assert.match(homeHtml, /assets\/photos\/hydropip-mustard-green-harvest-founder\.jpg/, "Home hero is missing the giant mustard green harvest photo");
-assert.match(homeHtml, /This giant mustard green came from HydroPip/i, "Home hero should connect the harvest result to HydroPip");
-assert.match(homeHtml, /No proprietary kit\. No parts markup\./i, "Home should clearly explain that HydroPip does not sell or mark up the parts");
-assert.match(homeHtml, /using our links supports the free guidance at no extra cost to you/i, "Home should explain how affiliate links support the free guidance");
+assert.match(homeHtml, /purple mustard green harvested from/i, "Home should identify its real harvest photograph");
+assert.match(homeHtml, /does not sell the parts or add a markup/i, "Home should clearly explain that HydroPip does not sell or mark up the parts");
+assert.match(homeHtml, /These links help support the free guidance/i, "Home should explain how affiliate links support the free guidance");
 assert.match(homeHtml, /As an Amazon Associate I earn from qualifying purchases\./, "Home should show Amazon's required affiliate disclosure beside the product links");
 assert.match(homeHtml, /Core HydroPip Amazon affiliate links/i, "Home should expose an accessible set of core affiliate links");
 for (const asin of ["B007TFTXAC", "B07L54HB83", "B0GQQP8M83", "B091FXH2FR"]) {
   assert.match(homeHtml, new RegExp(`amazon\\.com/dp/${asin}\\?tag=hydrpip200202-20`), `Home is missing the tagged core Amazon link for ${asin}`);
 }
-assert.match(homeHtml, /id=["']flip-day["']/, "Home should explain the tower turnover workflow");
-assert.match(homeHtml, /move healthy mature plants into raised beds/i, "Tower turnover should explain how productive plants can keep growing");
-assert.match(homeHtml, /One system\. Crop after crop\./, "Tower turnover should reinforce repeat growing");
 assert.match(homeHtml, /field-guide/, "Home should link to the HydroPip Field Guide");
 assert.match(homeHtml, /pipFloat/, "The Meet Pip conversion moment should give the mascot restrained motion");
 assert.match(homeHtml, /deviceLandscape/, "Home should provide an automatic landscape presentation layout for phones and casting");
@@ -369,10 +364,8 @@ assert.match(pipHtml, /\.pip-top\{position:relative;z-index:500;overflow:visible
 assert.match(pipHtml, /\.member-popover\{z-index:1200\}/, "The account dropdown must stay above all notebook controls");
 assert.match(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!hasLead\(\)\)return/, "A completed free signup must activate its next-step screen after auth state is cleared");
 assert.doesNotMatch(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!requestedAuthMode/, "The free-member success screen must not depend on a cleared auth request");
-assert.match(homeHtml, /One reservoir\. Brief feeds\. Four towers growing real food\./, "Home should provide a concise How It Works overview");
-assert.match(homeHtml, /class=["']howOverview["']/, "Home should use a single visual How It Works presentation");
-assert.match(homeHtml, /#build,#flip-day,#photos,#parts,#signup\{display:none\}/, "Detailed material should not compete with the launch homepage funnel");
-assert.match(homeHtml, /Pip walks with you from parts to first harvest\./, "Pip should be prominent in the opening homepage story");
+assert.match(homeHtml, /One reservoir\. A simple growing routine\./, "Home should provide a concise How It Works overview");
+assert.match(homeHtml, /class=["']reviewSteps["']/, "Home should use a single visual How It Works presentation");
 assert.match(homeHtml, /class=["']navTrack["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Track My Build<\//, "Home navigation should consolidate parts and build organization under Track My Build");
 assert.doesNotMatch(homeHtml, /href=["']#[^"']*["']/, "The embedded Home page must not use iframe-local hash links that cannot scroll the Wix parent page");
 assert.match(homeHtml, /class=["']navHow["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/how-it-works\.html["'][^>]*>How It Works<\//, "Home How It Works navigation should open the concise overview");

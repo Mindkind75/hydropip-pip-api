@@ -60,10 +60,10 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
   {
    const f=await fixture();
-   const before=await f.page.locator('#pipLog').innerText();
+   const before=await f.page.locator('#pipLog .msg .bubble').first().innerText();
    await f.start();await delay(200);
-   const after=await f.page.locator('#pipLog').innerText();
-   results.push({name:'Plan My Grow has a stable, relevant opening',pass:before.includes('ZIP code')&&after.includes('ZIP code')&&after===before,before:before.slice(0,150),after:after.slice(0,150)});
+   const after=await f.page.locator('#pipLog .msg .bubble').first().innerText();
+   results.push({name:'Plan My Grow has a stable, relevant opening',pass:before.includes('What would you like to harvest?')&&after===before&&await f.page.locator('.pip-starters button').count()===3,before:before.slice(0,150),after:after.slice(0,150)});
    await f.context.close();
   }
   for(const holdChat of [false,true]){

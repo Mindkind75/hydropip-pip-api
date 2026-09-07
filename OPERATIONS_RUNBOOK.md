@@ -78,6 +78,7 @@ After rotation, test member session exchange, Pip chat, Pip Pro entitlement, adm
 4. Run `npm run qa:seo`.
 5. Run `npm run qa:conversions`.
 6. Run `npm run qa:pip` for prompt or knowledge changes.
+   For first-visit or embed changes, also run `npm run qa:chat-ui`, `npm run qa:embed-ui`, and `npm run qa:first-visit-ui` with Playwright available.
 7. Push only the intended files to `main`.
 8. Confirm the Render deployment is healthy.
 9. Verify Home, Track My Build, Pip, signup, and Pip Pro on desktop and phone.
@@ -89,3 +90,13 @@ After rotation, test member session exchange, Pip chat, Pip Pro entitlement, adm
 - Run `npm audit --omit=dev` and review dependency updates.
 - Complete the PostgreSQL and Wix recovery drills.
 - Review Privacy, Terms, Safety, cancellation, and affiliate disclosures for product changes.
+
+## Wix host integrations
+
+The Render files `assets/js/wix-embed-host.js` and `assets/js/wix-attribution-host.js` are loaded by Wix Custom Embeds. Deploy the files to Render before updating their Wix loaders.
+
+- **HydroPip responsive embeds** (ESSENTIAL, HEAD): sizes only the Home and Pip app frames and their containing section. It replaces the old Pip footer viewport snippet. Keep it enabled for scrolling and keyboard visibility.
+- **HydroPip campaign attribution** (ANALYTICS, HEAD): forwards only the five UTM fields to the known Render frame. Wix analytics preferences control whether this loader runs. Do not classify attribution code as essential.
+- Keep the Meta domain verification snippet and unrelated embeds intact.
+
+After a change, test a tagged homepage visit, the public estimate, login return destinations, phone rotation, and a shortened chat viewport. Verify both frame height and outer document height to catch empty space left by a Wix section minimum height. Keep the host snippets in step with the deployed child viewport script.

@@ -4,6 +4,21 @@
   var visitorKey = "hydropipConversionVisitorV1";
   var attributionKey = "hydropipAttributionV1";
   var sessionToken = null;
+  var campaignFields = {utm_source:'utmSource',utm_medium:'utmMedium',utm_campaign:'utmCampaign',utm_content:'utmContent',utm_term:'utmTerm'};
+  var parentReady = window.parent === window;
+  var pendingAttribution = [];
+  function releaseAttribution(){parentReady=true;pendingAttribution.splice(0).forEach(function(resolve){resolve()})}
+  window.addEventListener('message',function(event){
+    if(event.source!==window.parent||!['https://www.hydropip.com','https://hydropip.com'].includes(event.origin)||!event.data||event.data.type!=='HYDROPIP_ATTRIBUTION')return;
+    var incoming={},fields=event.data.fields||{};
+    Object.keys(campaignFields).forEach(function(key){if(typeof fields[key]==='string'&&fields[key].trim())incoming[campaignFields[key]]=fields[key].trim().slice(0,160)});
+    if(Object.keys(incoming).length)safeStorageSet(attributionKey,JSON.stringify(incoming));
+    releaseAttribution();
+  });
+  if(!parentReady){
+    function requestAttribution(){var host="https://www.hydropip.com";try{var ref=new URL(document.referrer).origin;if(ref==="https://hydropip.com")host=ref}catch(error){}window.parent.postMessage({type:"HYDROPIP_ATTRIBUTION_REQUEST"},host)}
+    requestAttribution();[100,350,800].forEach(function(delay){setTimeout(function(){if(!parentReady)requestAttribution()},delay)});setTimeout(releaseAttribution,1500);
+  }
 
   function safeStorageGet(key) {
     try { return localStorage.getItem(key); } catch (_error) { return null; }
@@ -60,6 +75,7 @@
   }
 
   function track(eventName, metadata) {
+    if(!parentReady)return new Promise(function(resolve){pendingAttribution.push(resolve)}).then(function(){return track(eventName,metadata)});
     var attribution = readAttribution();
     var payload = {
       clientEventId: randomId("hpe"),
@@ -124,12 +140,20 @@
     if (!link) return;
     var conversion = classifyLink(link);
     if (conversion) track(conversion.name, conversion.metadata);
+    try {
+      var url=new URL(link.href,location.href);
+      if(['https://www.hydropip.com','https://hydropip.com','https://hydropip-pip-api.onrender.com'].includes(url.origin)){
+        var attribution=readAttribution();
+        Object.keys(campaignFields).forEach(function(key){var value=attribution[campaignFields[key]];if(value&&!url.searchParams.has(key))url.searchParams.set(key,value)});
+        link.href=url.href;
+      }
+    } catch(error) {}
   }, true);
 
   document.addEventListener("DOMContentLoaded", function () {
     track("page_view", { surface: document.body && document.body.dataset.trackingSurface || location.pathname });
     var params = new URLSearchParams(location.search);
-    if (/\/pip\/?$/.test(location.pathname)) {
+    if (/\/pip(?:\.html)?\/?$/.test(location.pathname)) {
       if (params.get("pro") === "1") track("pip_pro_viewed", { surface: "pip_pro_page" });
       else if (!["signup", "login"].includes(params.get("pro"))) track("pip_opened", { surface: "pip_chat" });
     }
