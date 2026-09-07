@@ -81,7 +81,7 @@ assert.match(pipHtml, /data-feedback-open/, "Signed-in members should have a cle
 assert.equal((pipHtml.match(/data-member-only data-feedback-open/g) || []).length, 2, "Every Pip Pro account dropdown should contain Suggest an improvement");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "feedback"/, "Pip should support a direct signed feedback route");
 assert.match(pipHtml, /authMode==="login"[\s\S]*pip\?pro=1/, "Pro Login should continue directly to the workspace after Wix verifies the member");
-assert.match(pipHtml, /Pip organizes similar ideas/, "The feedback form should explain AI-assisted grouping without promising automatic changes");
+assert.match(pipHtml, /Pip groups similar suggestions/, "The feedback form should explain AI-assisted grouping without promising automatic changes");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "login" \? "login"/, "The branded account page should distinguish Wix login from signup");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "signup" \? "signup"/, "The branded account page should be able to open Wix signup through the Pip bridge");
 assert.match(pipHtml, /class="auth-entry-screen"/, "Signup and login should open over a branded account welcome screen instead of active chat");
@@ -383,7 +383,7 @@ assert.match(fieldGuideHtml, /prefers-reduced-motion/, "Field Guide animation sh
 assert.match(fieldGuideHtml, /\.pipCue \.btn\{color:var\(--ink\)\}/, "Field Guide closing buttons need readable text contrast");
 assert.match(fieldGuideHtml, /Turn the care rhythm into your calendar/, "Field Guide should explain the timely value of Pip Pro");
 assert.match(fieldGuideHtml, /id=["']meet-pip["']/, "Field Guide should introduce Pip before the build stages");
-assert.match(fieldGuideHtml, /Pip helps turn the guide into your next decision\./, "Field Guide needs a concise Pip capability introduction");
+assert.match(fieldGuideHtml, /Need a hand\? Ask Pip\./, "Field Guide needs a concise Pip capability introduction");
 assert.match(fieldGuideHtml, /Pip Pro remembers your grow zone/, "Field Guide should explain the practical Pip Pro memory benefit");
 assert.match(fieldGuideHtml, /class=["']heroPanel["']/, "Field Guide hero copy needs a high-contrast reading panel");
 assert.match(fieldGuideHtml, /aria-label=["']Field Guide actions["']/, "Field Guide should provide clear global navigation");

@@ -213,7 +213,7 @@
     document.body.classList.remove("access-pending");
     document.body.classList.add("access-blocked");
     accessTitle.textContent = "Sign in to calculate your mix.";
-    accessText.textContent = message || "A free HydroPip account unlocks the calculator for the HydroPip system. Pip Pro adds other hydroponic systems, nutrient programs, saved grow history, and personalized planning.";
+    accessText.textContent = message || "A free HydroPip account includes the HydroPip nutrient calculator. Pip Pro adds other hydroponic systems, nutrient programs, saved grow history, and personalized planning.";
     accessActions.hidden = false;
   }
 
@@ -221,8 +221,8 @@
     document.body.classList.remove("access-pending", "access-blocked");
     if (config.access.pro) {
       document.querySelector("#heroEyebrow").textContent = "Pip Pro nutrient calculator";
-      document.querySelector("#heroTitle").textContent = "Mix for the grow you actually have.";
-      document.querySelector("#heroText").textContent = "Choose your system, reservoir, crop, stage, water, and nutrient program. Pip Pro scales the supported recipe or your product-label rate and keeps it connected to the grow.";
+      document.querySelector("#heroTitle").textContent = "Calculate a mix for your system.";
+      document.querySelector("#heroText").textContent = "Choose your system, reservoir, crop, stage, water, and nutrient program. Pip Pro calculates the amounts from a supported recipe or the rate on your product label.";
       document.querySelector("#heroCardTitle").textContent = "One calculator. More ways to grow.";
       document.querySelector("#heroCardText").textContent = "HydroPip, DWC, NFT, Kratky, drip, Dutch buckets, ebb and flow, aeroponics, and custom programs stay in one workspace.";
       return;

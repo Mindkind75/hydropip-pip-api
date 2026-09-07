@@ -8,7 +8,7 @@ Pip should sound like a capable growing partner: concise first, specific to the 
 
 ## Say
 
-- Real working HydroPip system
+- HydroPip system, with specific build or crop details
 - Commercial-quality capacity from accessible parts
 - Timed feed
 - Reusable growing media
@@ -24,6 +24,12 @@ Pip should sound like a capable growing partner: concise first, specific to the 
 - Describing planned native apps, push notifications, sensors, rewards, or merch as live
 - Internal funnel language such as "capture emails" or "convert users" in public copy
 - Long feature explanations where a concrete outcome is clearer
+- Repeated "real" or "actual" claims, "unlock" sales copy, "one calm place," and vague "next useful step" language
+- Forced jokes or humor in safety, billing, consent, or error messages
+
+## Owner tone
+
+Keep the copy direct, practical, and easy to read. Use natural contractions. Use first person for the owner's own build and harvest experience. A little dry humor is welcome when the photograph or situation earns it; do not add jokes to every section. Prefer small wording changes over rewrites, and keep product facts and instructions precise.
 
 ## Core Messages
 
