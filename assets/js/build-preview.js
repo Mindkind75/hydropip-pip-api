@@ -17,7 +17,7 @@
   function render(){
     var towers=select?Number(select.value):4;
     var result=estimate(towers);
-    priceLabels.forEach(function(label){label.textContent='Typical parts estimate: '+money(result.typical)});
+    priceLabels.forEach(function(label){label.textContent='Full parts-list estimate: '+money(result.typical)});
     if(!select)return;
     document.querySelector('#previewRange').textContent=money(result.low)+'–'+money(result.high)+' catalog range';
     document.querySelector('#previewCapacity').textContent=towers+' tower'+(towers===1?'':'s')+' · '+(towers*40)+' planting pockets';
@@ -31,7 +31,7 @@
       var cost=document.createElement('td');cost.textContent=money(item.quantity*item.typicalPrice);
       row.append(name,qty,cost);rows.appendChild(row);
     });
-    status.textContent='Includes a used, verified food-grade IBC and galvanized supports; no optional upgrades. Catalog prices last reviewed '+catalog.lastPriceReviewDate+'. Shipping and tax are additional. Existing parts can reduce your cost.';
+    status.textContent='Assumes buying every listed part, including a used, verified food-grade IBC and galvanized supports; no optional upgrades. Catalog prices last reviewed '+catalog.lastPriceReviewDate+'. Shipping and tax are additional. Parts you already own and local deals can reduce what you spend.';
   }
   if(!priceLabels.length&&!select)return;
   fetch('/data/build-items.json').then(function(response){if(!response.ok)throw new Error('catalog');return response.json()}).then(function(data){catalog=data;render();if(select)select.addEventListener('change',render)}).catch(function(){if(status)status.textContent='The price list could not load. Refresh to retry, or email info@hydropip.com for help.';priceLabels.forEach(function(label){label.textContent='Parts estimate temporarily unavailable'})});
