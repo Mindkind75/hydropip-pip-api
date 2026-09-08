@@ -29,8 +29,8 @@
 <meta name="twitter:description" content="Grow seedlings in HydroPip towers, transplant them into garden beds, and serve your neighbors. Build your homestead with Pip.">
 <meta name="twitter:image" content="https://hydropip-pip-api.onrender.com/game/hydropip-growing-adventure-cover-v1.png">
 <meta name="twitter:image:alt" content="Pip harvests fresh vegetables on his lush HydroPip homestead beneath the Growing Adventure game title.">
-  <script type="module" crossorigin src="./assets/campaign-DunqDCh7.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/campaign-fs7FsLIZ.css">
+  <script type="module" crossorigin src="./assets/campaign-CPc_egww.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/campaign-CNiI7pI6.css">
 </head>
 <body>
 <main class="campaign-app">
@@ -72,11 +72,13 @@
         <button id="closeTasks" class="close-button" type="button" aria-label="Close tasks" title="Close">&#215;</button>
       </header>
       <p id="taskStory" class="task-story">Pip: One good tower is enough to bring this garden back.</p>
+      <p id="taskNextStep" class="task-story"></p>
       <section class="primary-task">
         <span>Primary task</span>
-        <strong id="primaryTaskTitle">Bring the tower online</strong>
-        <p id="primaryTaskDetail">Repair the first HydroPip tower.</p>
+        <strong id="primaryTaskTitle">Repair Tower 1</strong>
+        <p id="primaryTaskDetail">Repair Tower 1 for free.</p>
         <ul id="taskMilestones" class="task-milestones" aria-label="Task progress"></ul>
+        <p id="taskMarketStep" hidden></p>
         <div id="taskUpgradeOptions" class="choice-actions" aria-label="Capacity upgrade choices" hidden></div>
         <div class="task-reward" id="primaryTaskReward">15 coins + 15 XP</div>
         <p id="nextFarmUnlock" class="next-unlock"></p>
@@ -84,7 +86,7 @@
       <section class="task-list" aria-label="Chapter task list">
         <div id="chapterTaskList"></div>
       </section>
-      <button id="focusTaskButton" class="primary-command" type="button">Show target</button>
+      <button id="focusTaskButton" class="primary-command" type="button">Show next step</button>
     </aside>
 
     <aside id="interactionPanel" class="interaction-panel" aria-label="Selected farm object" hidden>
@@ -94,6 +96,10 @@
       </header>
       <p id="interactionSummary"></p>
       <div id="interactionContent" class="interaction-content"></div>
+      <details id="systemFieldNotes" class="system-notes equipment-field-notes" hidden>
+        <summary>Field notes</summary>
+        <div data-field-notes-body></div>
+      </details>
     </aside>
 
     <aside id="orderDrawer" class="order-drawer" aria-label="Pip's Veg Stand orders" hidden>
@@ -110,6 +116,11 @@
       <button id="orderMarketUpgrade" class="economy-command order-market-upgrade" type="button">Next stand section</button>
       <button id="sellFarmEggs" class="economy-command" type="button" hidden>Sell eggs</button>
       <div class="rack-summary"><span>Harvest Rack</span><strong id="rackSummary">Empty</strong></div>
+      </details>
+      <details id="standUpgrades" class="stand-upgrades" hidden>
+        <summary id="standUpgradeSummary">Stand upgrades</summary>
+        <p>Optional. Benefits apply to new visits. Reserved customers still stay until you finish.</p>
+        <div id="standUpgradeList"></div>
       </details>
       </div>
       <div id="mobileOrderAction" class="mobile-order-action" hidden></div>
