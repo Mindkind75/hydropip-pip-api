@@ -18,7 +18,7 @@ export function buildRhythmSetupPlan({ profile = {}, input = {}, now = new Date(
     batchStartDate,
     currentTankLevel: cleanText(input.currentTankLevel ?? profile.currentTankLevel, 80),
     expectedRefillWindow: cleanText(input.expectedRefillWindow ?? profile.expectedRefillWindow, 80),
-    preferredTaskDays: [preferredTaskDay],
+    preferredTaskDays: Array.from(new Set([preferredTaskDay, ...(profile.preferredTaskDays || []).filter(day => day !== profile.preferredTaskDays?.[0])])),
     preferredTaskTime,
     lastMaintenanceDate,
     rhythmConfiguredAt: new Date(now).toISOString()

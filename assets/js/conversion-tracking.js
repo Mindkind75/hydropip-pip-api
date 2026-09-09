@@ -1,6 +1,7 @@
 (function () {
   "use strict";
 
+  var contract = fetch('/assets/js/event-contract.json').then(function(response){if(!response.ok)throw Error('Event contract unavailable');return response.json()}).catch(function(){return null});
   var visitorKey = "hydropipConversionVisitorV1";
   var attributionKey = "hydropipAttributionV1";
   var sessionToken = null;
@@ -75,6 +76,10 @@
   }
 
   function track(eventName, metadata) {
+    return contract.then(function(schema){if(!schema||schema.events.indexOf(eventName)===-1)return null;var cleaned={};schema.metadata.forEach(function(key){if(metadata&&metadata[key]!==undefined)cleaned[key]=metadata[key]});return send(eventName,cleaned)});
+  }
+
+  function send(eventName, metadata) {
     if(!parentReady)return new Promise(function(resolve){pendingAttribution.push(resolve)}).then(function(){return track(eventName,metadata)});
     var attribution = readAttribution();
     var payload = {
@@ -92,13 +97,13 @@
     };
     var headers = { "Content-Type": "application/json" };
     if (sessionToken) headers.Authorization = "Bearer " + sessionToken;
-    return fetch("/api/pip/conversions", {
+    function attempt(remaining){return fetch("/api/pip/conversions", {
       method: "POST",
       headers: headers,
       body: JSON.stringify({ event: payload }),
       keepalive: true,
       credentials: "same-origin"
-    }).catch(function () {});
+    }).then(function(response){if(response.status>=500&&remaining)return attempt(remaining-1);return response}).catch(function(){return remaining?attempt(remaining-1):null})}return attempt(1);
   }
 
   function identify(token, member, subscription) {
@@ -163,5 +168,6 @@
     if (/field-guide/.test(location.pathname)) track("field_guide_opened", { surface: location.pathname });
   });
 
+  window.addEventListener('load',function(){setTimeout(function(){var entry=performance.getEntriesByType('navigation')[0];if(entry)track('page_loaded',{durationMs:Math.round(entry.loadEventEnd||performance.now()),surface:cleanPage()})},0)});
   window.HydroPipTracking = { track: track, identify: identify };
 })();

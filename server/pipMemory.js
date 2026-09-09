@@ -6,6 +6,7 @@ import { dailyLimitForTier, dailyResetAt, getPipUsageConfig, monthlyLimitForTier
 import { resetKnowledgeIndex } from "./ragStore.js";
 import { buildRhythmSetupPlan, isCurrentGrowSeed, localDueAt, rhythmCropKey, rhythmSetupStatus } from "./rhythmSetup.js";
 
+const eventContract = JSON.parse(fs.readFileSync(new URL('../assets/js/event-contract.json', import.meta.url), 'utf8'));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultDataFile = path.join(__dirname, ".data", "pip-memory.json");
 const dataFile = process.env.PIP_MEMORY_FILE || defaultDataFile;
@@ -294,6 +295,11 @@ export async function getConversionSummary({ days = 30 } = {}) {
     uniqueByEvent: Object.fromEntries(Object.entries(visitorsByEvent).map(([name, visitors]) => [name, visitors.size])),
     sources: Object.entries(sources).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name, count]) => ({ name, count })),
     daily: Object.entries(daily).sort((a, b) => a[0].localeCompare(b[0])).map(([date, values]) => ({ date, ...values })),
+    performance: Object.fromEntries(['page_loaded','chat_loaded','pip_answer_completed','save_succeeded','save_failed'].map(name => {
+      const values = events.filter(event => event.eventName === name && typeof event.metadata.durationMs === 'number').map(event => event.metadata.durationMs).sort((a,b)=>a-b);
+      const percentile = fraction => values.length ? values[Math.max(0, Math.ceil(values.length*fraction)-1)] : null;
+      return [name, { samples:values.length, medianMs:percentile(0.5), p95Ms:percentile(0.95) }];
+    })),
     latestAt: events[0]?.createdAt || null
   };
 }
@@ -1739,7 +1745,7 @@ export async function updateProject({ userId, projectId, patch = {} } = {}) {
   const allowed = ["title", "status", "systemProfile"];
   for (const key of allowed) {
     if (patch[key] !== undefined) {
-      project[key] = key === "systemProfile" ? normalizeSystemProfile(patch[key], project.type) : patch[key];
+      project[key] = key === "systemProfile" ? normalizeSystemProfile({ ...project.systemProfile, ...patch[key] }, project.type) : patch[key];
     }
   }
   project.updatedAt = nowIso();
@@ -2869,18 +2875,7 @@ function redactLocalSecret(key, value) {
 }
 
 function normalizeConversionEvent(event = {}) {
-  const allowedEvents = new Set([
-    "page_view",
-    "signup_started",
-    "member_session_connected",
-    "pip_opened",
-    "pip_question_asked",
-    "track_build_opened",
-    "field_guide_opened",
-    "affiliate_link_clicked",
-    "pip_pro_viewed",
-    "pro_checkout_started"
-  ]);
+  const allowedEvents = new Set(eventContract.events);
   const eventName = String(event.eventName || "").trim();
   if (!allowedEvents.has(eventName)) {
     throw Object.assign(new Error("Unsupported conversion event"), { statusCode: 400 });
@@ -2891,10 +2886,15 @@ function normalizeConversionEvent(event = {}) {
     throw Object.assign(new Error("A visitor identifier is required"), { statusCode: 400 });
   }
   const metadata = {};
-  const allowedMetadata = new Set(["surface", "linkLabel", "productId", "destinationHost", "mode", "memberState"]);
+  const allowedMetadata = new Set(eventContract.metadata);
   if (event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)) {
     for (const [key, value] of Object.entries(event.metadata)) {
       if (!allowedMetadata.has(key)) continue;
+      if (eventContract.numericMetadata.includes(key)) {
+        const number = Number(value);
+        if (value !== null && value !== '' && Number.isFinite(number) && number >= 0 && number <= 86400000) metadata[key] = number;
+        continue;
+      }
       const cleaned = cleanConversionValue(value, key === "linkLabel" ? 160 : 100);
       if (cleaned) metadata[key] = cleaned;
     }
@@ -3097,7 +3097,7 @@ function normalizeSystemProfile(profile = {}, type) {
   return {
     systemType: profile.systemType || (type === "hydropip_build" ? "hydropip_tower" : "unknown"),
     title: profile.title || null,
-    growZone: cleanOptionalText(profile.growZone, 12),
+    growZone: cleanOptionalText(profile.growZone, 12)?.toLowerCase() || null,
     location: cleanOptionalText(profile.location, 160),
     areaType: cleanOptionalText(profile.areaType, 40),
     exposure: cleanOptionalText(profile.exposure, 40),
@@ -3115,7 +3115,7 @@ function normalizeSystemProfile(profile = {}, type) {
     reservoirGallons: normalizeOptionalNumber(profile.reservoirGallons),
     plantSites: normalizeOptionalNumber(profile.plantSites),
     towerCount: normalizeOptionalNumber(profile.towerCount),
-    crops: Array.isArray(profile.crops) ? profile.crops.map(String).slice(0, 20) : [],
+    crops: Array.isArray(profile.crops) ? [...new Set(profile.crops.map(value => String(value).trim()).filter(Boolean))].slice(0, 20) : [],
     goals: Array.isArray(profile.goals) ? profile.goals.map(String).slice(0, 12) : [],
     medium: profile.medium || null,
     nutrientBrand: profile.nutrientBrand || null,
@@ -3127,7 +3127,7 @@ function normalizeSystemProfile(profile = {}, type) {
     indoorOutdoor: profile.indoorOutdoor || null,
     pumpSchedule: profile.pumpSchedule || null,
     preferredTaskDays: Array.isArray(profile.preferredTaskDays)
-      ? profile.preferredTaskDays.map(String).filter((day) => ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"].includes(day)).slice(0, 3)
+      ? [...new Set(profile.preferredTaskDays.map(value => String(value).trim().toLowerCase()).filter((day) => ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"].includes(day)))]
       : [],
     preferredTaskTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(profile.preferredTaskTime || "")) ? String(profile.preferredTaskTime) : "09:00",
     experienceMode: normalizeExperienceMode(profile.experienceMode),

@@ -17,9 +17,9 @@ function canonical(keys, value) {
 }
 
 export class BuildEstimateSync {
-  constructor({memberId, storage = localStorage, request, onChange, onStatus, retryMs = 5000}) {
+  constructor({memberId, storage = localStorage, request, onChange, onStatus, onEvent = () => {}, retryMs = 5000}) {
     this.key = 'hydropipBuildSyncV3:' + encodeURIComponent(memberId);
-    this.storage=storage; this.request=request; this.onChange=onChange; this.onStatus=onStatus;
+    this.storage=storage; this.request=request; this.onChange=onChange; this.onStatus=onStatus; this.onEvent=onEvent;
     this.retryMs=retryMs; this.disposed=false; this.timer=null; this.running=null;
     this.state=this.read();
   }
@@ -79,6 +79,7 @@ export class BuildEstimateSync {
     return this.running;
   }
   async sync() {
+    const started=performance.now();
     try {
       for(let attempt=0;attempt<4;attempt++) {
         const latest=await this.request('GET');
@@ -98,12 +99,15 @@ export class BuildEstimateSync {
           this.state.base=result.preferences.buildEstimate;
           for (const [key,edit] of Object.entries(edits)) if (this.state.pending[key]?.id===edit.id) delete this.state.pending[key];
           this.persist();
+          this.onEvent('build_estimate_saved',{operation:'checklist',durationMs:Math.round(performance.now()-started)});
+          this.onEvent('save_succeeded',{operation:'checklist',durationMs:Math.round(performance.now()-started)});
           if (!Object.keys(this.state.pending).length) { this.status('Estimate, checkmarks, and purchase notes saved to your account.'); return; }
         } catch(error) { if (error.status!==409) throw error; }
       }
       this.status('Newer account edits found. Your pending changes are kept; retrying shortly.');
       this.schedule(this.retryMs);
     } catch(error) {
+      if(Object.keys(this.state.pending).length)this.onEvent('save_failed',{operation:'checklist',status:error.status||'network',durationMs:Math.round(performance.now()-started)});
       this.status(!this.cacheAvailable ? 'Changes are not saved yet. Keep this page open and reconnect to save your progress.' : error.status===401 ? 'Sign in again to sync. Your pending edits are kept on this device.' : 'Saved on this device. Account sync will retry when the connection returns.');
       if(error.status!==401) this.schedule(this.retryMs);
     }

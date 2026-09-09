@@ -20,7 +20,8 @@
     "qa:launch-ui": "node server/launch-ui-test.js",
     "qa:chat-ui": "node server/pip-chat-ui-test.cjs",
     "qa:embed-ui": "node server/embed-viewport-ui-test.cjs",
-    "qa:first-visit-ui": "node server/first-visit-ui-test.cjs"
+    "qa:first-visit-ui": "node server/first-visit-ui-test.cjs",
+    "qa:batch-one": "node server/batch-one-test.js"
   },
   "overrides": {
     "qs": "6.16.0"

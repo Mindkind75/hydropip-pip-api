@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "events": ["page_view", "signup_started", "member_session_connected", "pip_opened", "pip_question_asked", "track_build_opened", "field_guide_opened", "affiliate_link_clicked", "pip_pro_viewed", "pro_checkout_started", "primary_build_cta_clicked", "build_part_collected", "build_estimate_updated", "build_estimate_saved", "build_checklist_completed", "build_completion_field_guide_clicked", "grow_first_saved", "grow_saved", "save_succeeded", "save_failed", "grow_resumed", "page_loaded", "chat_loaded", "pip_answer_completed", "conversation_routed", "conversation_route_choice", "conversation_route_corrected"],
+  "metadata": ["surface", "linkLabel", "productId", "destinationHost", "mode", "memberState", "partId", "collected", "total", "towers", "tiers", "typical", "signedIn", "projectId", "conversationId", "destinationId", "operation", "durationMs", "status", "reason", "exchangeId"],
+  "numericMetadata": ["collected", "total", "towers", "tiers", "typical", "durationMs"]
+}
