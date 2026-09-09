@@ -117,7 +117,7 @@ assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/
 assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
 assert.match(partsChecklistHtml, /\/data\/build-items\.json/, "Track My Build should load its prices from the centralized build catalog");
 assert.match(partsChecklistHtml, /class="track-access"/, "Track My Build should hide the checklist behind a branded member gate until Wix verifies the session");
-assert.match(partsChecklistHtml, /if\(sessionToken\)unlockTrackAccess\(\);else showTrackAccess\(\)/, "Track My Build must not unlock from client-supplied member labels without a signed session");
+assert.match(partsChecklistHtml, /if\(!sessionToken\|\|!memberKey\)return/, "Track My Build must require a session token before starting member sync; API authorization validates its signature");
 assert.match(partsChecklistHtml, /pro=signup&amp;return=track/, "Track My Build signup should return the new member to the checklist");
 assert.match(pipHtml, /authReturn==="track"[\s\S]*hydropip\.com\/track-my-build/, "Pip authentication should return build-path members to Track My Build");
 assert.doesNotMatch(trackStartHtml, /nutrient-calculator\.html/, "The pre-build Track page should not duplicate the member nutrient tool");

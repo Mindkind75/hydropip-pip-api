@@ -48,7 +48,7 @@ html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behav
     <div class="hero-copy">
       <p class="eyebrow">Track My Build</p>
       <h1>Get your build organized.</h1>
-      <p>Collect the right parts, confirm quantities, and check off each item before installation. Your progress stays on this device. When everything is ready, open the Field Guide or ask Pip to begin the build step by step.</p>
+      <p>Collect the right parts, confirm quantities, and check off each item before installation. Your progress saves to your account, with pending edits kept on this device. When everything is ready, open the Field Guide or ask Pip to begin the build step by step.</p>
     </div>
   </section>
   <details class="estimator" id="buildEstimator" data-track-section data-section-label="Build calculator" open>
@@ -64,7 +64,7 @@ html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behav
         <label id="customReservoirLabel" hidden>Custom reservoir estimate ($)<input id="customReservoirPrice" type="number" min="0" max="10000" step="1" value="0"></label>
         <label>Support type<select id="supportChoice"><option value="galvanized" selected>Galvanized metal pipe</option><option value="pvc">PVC support pipe</option><option value="owned">I already own support pipes</option></select></label>
         <fieldset class="estimate-wide" style="border:0;padding:0;margin:0"><legend style="margin-bottom:7px;color:var(--deep);font-size:.85rem;font-weight:900">Optional upgrades</legend><div class="optional-picks" id="optionalPicks"></div></fieldset>
-        <div class="actions estimate-wide"><button class="btn primary" type="submit">Update estimate</button><button class="btn" id="saveEstimate" type="button">Save estimate</button><button class="btn" type="button" data-jump-to="#checklistTools">Continue to parts &darr;</button></div>
+        <div class="actions estimate-wide"><button class="btn primary" type="submit">Update estimate</button><button class="btn" id="saveEstimate" type="button">Save estimate</button><button class="btn" id="importDeviceEstimate" type="button" hidden>Use older device copy</button><button class="btn" type="button" data-jump-to="#checklistTools">Continue to parts &darr;</button></div>
         <p class="estimate-note estimate-wide" id="estimateStatus" aria-live="polite">Your selections and purchase details stay on this device. Use only a reservoir with safe materials and a known, verified history.</p>
       </form>
       <section class="estimate-results" id="estimateResults" aria-live="polite"><p>Loading the HydroPip build catalog...</p></section>
@@ -97,6 +97,9 @@ html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behav
   var key="hydropipMemberPartsChecklist",estimateKey="hydropipBuildEstimateV2",purchaseKey="hydropipBuildPurchasesV2",completionKey="hydropipBuildCompletionCelebratedV2",sessionToken=null,memberKey="",accessTimer=null;
   var checked=JSON.parse(localStorage.getItem(key)||"{}"),saved=JSON.parse(localStorage.getItem(estimateKey)||"{}"),purchases=JSON.parse(localStorage.getItem(purchaseKey)||"{}");
   var catalog=null,sitePlanning=null,parts=[],estimate=null;
+  var estimateSync=null,sessionGeneration=0;
+  var legacyEstimate={options:saved,checked:checked,purchases:purchases};
+  var syncModule=import("/assets/js/build-estimate-sync.js");
   var labels={structure:"Structure",flow:"Water flow",care:"Nutrients + care",tools:"Electrical + controls",optional:"Optional upgrades"};
   var grid=document.querySelector("#partsGrid");
   var progress=document.querySelector("#progress");
@@ -109,13 +112,15 @@ html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behav
   var active="all";
   function track(eventName,metadata){if(window.HydroPipTracking)window.HydroPipTracking.track(eventName,metadata||{})}
   function esc(value){return String(value||"").replace(/[&<>\"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
-  function save(){localStorage.setItem(key,JSON.stringify(checked))}
+  function save(){recordEstimateChange()}
+  function recordEstimateChange(){if(estimateSync)estimateSync.stage(savedEstimatePayload())}
   function requestHeaders(){var headers={"Content-Type":"application/json"};if(sessionToken)headers.Authorization="Bearer "+sessionToken;return headers}
   function syncConditionalFields(){document.querySelector("#customTowerLabel").hidden=document.querySelector("#systemSize").value!=="custom";document.querySelector("#ownedPlanterLabel").hidden=document.querySelector("#planterChoice").value!=="some";document.querySelector("#customReservoirLabel").hidden=document.querySelector("#reservoirChoice").value!=="custom"}
   function applySavedOptions(next){if(!next||typeof next!=="object")return;saved=next;if(saved.towers){document.querySelector("#systemSize").value=saved.towers<=4?String(saved.towers):"custom";document.querySelector("#towerCount").value=saved.towers}if(saved.tiers)document.querySelector("#tiersPerTower").value=saved.tiers;if(saved.planterChoice)document.querySelector("#planterChoice").value=saved.planterChoice;if(saved.ownedPlanterTiers!==undefined)document.querySelector("#ownedPlanterTiers").value=saved.ownedPlanterTiers;if(saved.reservoir)document.querySelector("#reservoirChoice").value=saved.reservoir;if(saved.customReservoirPrice!==undefined)document.querySelector("#customReservoirPrice").value=saved.customReservoirPrice;if(saved.support)document.querySelector("#supportChoice").value=saved.support;syncConditionalFields();Array.prototype.forEach.call(optionalPicks.querySelectorAll("input"),function(box){box.checked=(saved.optional||[]).indexOf(box.value)!==-1});if(catalog)estimateNow()}
   function savedEstimatePayload(){return{version:2,options:options(),checked:checked,purchases:purchases,summary:estimate?{low:estimate.low,typical:estimate.typical,high:estimate.high,positions:estimate.positions,savings:estimate.savings}:{},savedAt:new Date().toISOString()}}
-  async function loadAccountEstimate(){if(!sessionToken)return;try{var response=await fetch("/api/pip/users/me/preferences",{headers:requestHeaders()}),data=await response.json();if(!response.ok)throw new Error(data.message||data.error||"Could not load account estimate");var account=data.preferences&&data.preferences.buildEstimate;if(account){if(account.checked)checked=Object.assign({},account.checked);if(account.purchases)purchases=Object.assign({},account.purchases);localStorage.setItem(key,JSON.stringify(checked));localStorage.setItem(purchaseKey,JSON.stringify(purchases));localStorage.setItem(estimateKey,JSON.stringify(account.options||{}));applySavedOptions(account.options||{});status.textContent="Your saved HydroPip account estimate is loaded."}updateProgress()}catch(error){status.textContent="The device copy is ready. Account sync will retry when you return.";updateProgress()}}
-  async function saveAccountEstimate(){localStorage.setItem(estimateKey,JSON.stringify(options()));if(!sessionToken){status.textContent="Estimate saved on this device. Sign in to keep it with your HydroPip account.";return}status.textContent="Saving estimate to your HydroPip account...";try{var response=await fetch("/api/pip/users/me/preferences",{method:"PATCH",headers:requestHeaders(),body:JSON.stringify({patch:{buildEstimate:savedEstimatePayload()}})}),data=await response.json();if(!response.ok)throw new Error(data.message||data.error||"Could not save account estimate");status.textContent="Estimate, checkmarks, and purchase notes saved to your HydroPip account and this device."}catch(error){status.textContent="Saved on this device. Account sync could not finish yet."}}
+  function applyAccountEstimate(account){checked=Object.assign({},account.checked||{});purchases=Object.assign({},account.purchases||{});form.reset();applySavedOptions(account.options||{});if(catalog)estimateNow();updateProgress()}
+  async function loadAccountEstimate(){if(estimateSync)await estimateSync.load()}
+  async function saveAccountEstimate(){if(!estimateSync){status.textContent="Sign in to save your build progress.";return}recordEstimateChange();await estimateSync.flush()}
   function qty(item,towers,tiers){if(item.quantityRule==="perTower")return towers;if(item.quantityRule==="twoPerTower")return Math.ceil(tiers/5*towers);if(item.quantityRule==="perTwoTowers")return Math.max(1,Math.ceil(towers/2));return Number(item.baseQuantity||1)}
   function options(){var size=document.querySelector("#systemSize").value;var towers=size==="custom"?Number(document.querySelector("#towerCount").value):Number(size);var planterChoice=document.querySelector("#planterChoice").value;var tiers=Math.max(1,Math.min(30,Math.round(Number(document.querySelector("#tiersPerTower").value)||10)));var safeTowers=Math.max(1,Math.min(40,Math.round(towers||4)));var ownedTiers=planterChoice==="all"?safeTowers*tiers:planterChoice==="some"?Math.max(0,Math.round(Number(document.querySelector("#ownedPlanterTiers").value)||0)):0;return{towers:safeTowers,tiers:tiers,planterChoice:planterChoice,ownedPlanterTiers:Math.min(safeTowers*tiers,ownedTiers),reservoir:document.querySelector("#reservoirChoice").value,customReservoirPrice:Math.max(0,Number(document.querySelector("#customReservoirPrice").value)||0),support:document.querySelector("#supportChoice").value,optional:Array.from(optionalPicks.querySelectorAll("input:checked")).map(function(box){return box.value})}}
   function selectedItems(opts){var excluded={};excluded[opts.reservoir==="new"?"ibc-used":"ibc-new"]=true;excluded[opts.support==="pvc"?"support-galvanized":"support-pvc"]=true;if(opts.reservoir==="owned"||opts.reservoir==="custom"){excluded["ibc-used"]=true;excluded["ibc-new"]=true}if(opts.support==="owned"){excluded["support-galvanized"]=true;excluded["support-pvc"]=true}return catalog.items.filter(function(item){return item.active&&!excluded[item.id]&&(item.required||opts.optional.indexOf(item.id)!==-1)})}
@@ -145,7 +150,7 @@ html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behav
     bar.style.width=total?Math.round(done/total*100)+"%":"0%";
     if(total&&done===total)celebrateCompletedBuild();
   }
-  function tokenMemberKey(token){try{var payload=JSON.parse(atob(String(token||"").split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));return String(payload.sub||payload.userId||payload.memberId||"")}catch(error){return""}}
+  function tokenMemberKey(token){try{var payload=JSON.parse(atob(String(token||"").split(".")[String(token||"").split(".").length===2?0:1].replace(/-/g,"+").replace(/_/g,"/")));return String(payload.sub||payload.userId||payload.memberId||"")}catch(error){return""}}
   function completionSignature(){return parts.map(function(part){return part.id}).sort().join("|")}
   function memberCompletionKey(){return completionKey+":"+(memberKey||"signed-member")}
   function openBuildCompleteDialog(){if(!buildCompleteDialog||buildCompleteDialog.open)return;if(typeof buildCompleteDialog.showModal==="function")buildCompleteDialog.showModal();else{buildCompleteDialog.setAttribute("open","");buildCompleteDialog.classList.add("is-open");document.body.classList.add("build-complete-open")}}
@@ -161,15 +166,21 @@ html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behav
   grid.addEventListener("change",function(event){
     var box=event.target.closest(".check");
     if(box){checked[box.dataset.id]=box.checked;save();box.closest(".part").classList.toggle("done",box.checked);updateProgress();if(box.checked)track("build_part_collected",{partId:box.dataset.id,collected:parts.filter(function(part){return checked[part.id]}).length,total:parts.length});return}
-    var owned=event.target.closest(".owned");if(owned){purchases[owned.dataset.id]=Object.assign({},purchases[owned.dataset.id],{owned:owned.checked});localStorage.setItem(purchaseKey,JSON.stringify(purchases));estimateNow();return}
-    if(event.target.matches(".paid,.date,.retailer")){var id=event.target.dataset.id,record=purchases[id]||{};record[event.target.className]=event.target.value;purchases[id]=record;localStorage.setItem(purchaseKey,JSON.stringify(purchases))}
+    var owned=event.target.closest(".owned");if(owned){purchases[owned.dataset.id]=Object.assign({},purchases[owned.dataset.id],{owned:owned.checked});estimateNow();recordEstimateChange();return}
+    if(event.target.matches(".paid,.date,.retailer")){var id=event.target.dataset.id,record=purchases[id]||{};record[event.target.className]=event.target.value;purchases[id]=record;recordEstimateChange()}
   });
-  form.addEventListener("submit",function(event){event.preventDefault();estimateNow();track("build_estimate_updated",{towers:estimate&&estimate.opts.towers,tiers:estimate&&estimate.opts.tiers,typical:estimate&&estimate.typical})});
+  form.addEventListener("submit",function(event){event.preventDefault();estimateNow();recordEstimateChange();track("build_estimate_updated",{towers:estimate&&estimate.opts.towers,tiers:estimate&&estimate.opts.tiers,typical:estimate&&estimate.typical})});
   document.querySelector("#systemSize").addEventListener("change",function(){syncConditionalFields();estimateNow()});
   document.querySelector("#planterChoice").addEventListener("change",function(){syncConditionalFields();estimateNow()});
   document.querySelector("#reservoirChoice").addEventListener("change",function(){syncConditionalFields();estimateNow()});
   form.addEventListener("change",function(event){if(["systemSize","planterChoice","reservoirChoice"].indexOf(event.target.id)===-1)estimateNow()});
   form.addEventListener("input",function(event){if(["towerCount","tiersPerTower","ownedPlanterTiers","customReservoirPrice"].indexOf(event.target.id)!==-1)estimateNow()});
+  form.addEventListener("input",recordEstimateChange);
+  form.addEventListener("change",recordEstimateChange);
+  grid.addEventListener("input",function(event){if(!event.target.matches(".paid,.date,.retailer"))return;var id=event.target.dataset.id;var record=purchases[id]||{};record[event.target.className]=event.target.value;purchases[id]=record;recordEstimateChange()});
+  document.querySelector("#importDeviceEstimate").addEventListener("click",function(){if(!estimateSync||!window.confirm("Use the older device copy for this signed-in account? Review that this is your build. This replaces its displayed estimate and progress."))return;applyAccountEstimate(legacyEstimate);recordEstimateChange();estimateSync.flush();this.hidden=true});
+  window.addEventListener("online",function(){if(estimateSync)estimateSync.flush()});
+  window.addEventListener("storage",function(event){if(estimateSync&&event.key===estimateSync.key)estimateSync.refreshFromStorage()});
   document.querySelector("#saveEstimate").addEventListener("click",function(){track("build_estimate_saved",{signedIn:Boolean(sessionToken),towers:estimate&&estimate.opts.towers});saveAccountEstimate()});
   buildCompleteClose.addEventListener("click",closeBuildCompleteDialog);
   buildCompleteDialog.addEventListener("click",function(event){if(event.target===buildCompleteDialog)closeBuildCompleteDialog()});
@@ -184,7 +195,23 @@ html.is-wix-embed body{height:100%;min-height:0;overflow-y:auto;overscroll-behav
   function showTrackAccess(){document.body.classList.remove("track-access-pending");document.body.classList.add("track-access-blocked");trackAccessTitle.textContent="Create a free account to track your build.";trackAccessText.textContent="Your account keeps the parts checklist, estimate, and progress connected without spam or a required subscription.";trackAccessActions.hidden=false}
   function unlockTrackAccess(){clearTimeout(accessTimer);document.body.classList.remove("track-access-pending","track-access-blocked");trackAccessActions.hidden=true;loadAccountEstimate()}
   accessTimer=setTimeout(showTrackAccess,2200);
-  window.addEventListener("message",function(event){var data=event.data||{};if(data.type!=="HYDROPIP_TRACK_SESSION")return;sessionToken=data.sessionToken||null;memberKey=tokenMemberKey(sessionToken);if(sessionToken)unlockTrackAccess();else showTrackAccess()});
+  window.addEventListener("message",async function(event){
+    var data=event.data||{};if(data.type!=="HYDROPIP_TRACK_SESSION")return;
+    var nextToken=data.sessionToken||null,nextMember=tokenMemberKey(nextToken)||String(data.member&&data.member.id||"");
+    if(nextToken===sessionToken&&nextMember===memberKey&&estimateSync){estimateSync.flush();return}
+    var generation=++sessionGeneration;if(estimateSync)estimateSync.dispose();estimateSync=null;
+    sessionToken=nextToken;memberKey=nextMember;
+    // Hide the old account's records immediately while the new session loads.
+    applyAccountEstimate({});showTrackAccess();
+    if(!sessionToken||!memberKey)return;
+    try{
+      var module=await syncModule;if(generation!==sessionGeneration)return;
+      var token=nextToken;
+      estimateSync=new module.BuildEstimateSync({memberId:nextMember,onChange:applyAccountEstimate,onStatus:function(message){status.textContent=message},request:async function(method,body){var response=await fetch("/api/pip/users/me/preferences",{method:method,headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:body?JSON.stringify(body):undefined});var result=await response.json();if(!response.ok)throw Object.assign(new Error(result.message||result.error||"Account sync failed"),{status:response.status});return result}});
+      document.querySelector("#importDeviceEstimate").hidden=!(Object.keys(legacyEstimate.options).length||Object.keys(legacyEstimate.checked).length||Object.keys(legacyEstimate.purchases).length);
+      unlockTrackAccess();
+    }catch(error){status.textContent="Build sync could not start. Refresh to retry."}
+  });
   Promise.all([fetch('/data/build-items.json').then(function(r){return r.json()}),fetch('/data/site-planning.json').then(function(r){return r.json()})]).then(function(data){catalog=data[0];sitePlanning=data[1];optionalPicks.innerHTML=catalog.items.filter(function(item){return item.category==="optional"&&item.active}).map(function(item){return'<label><input type="checkbox" value="'+item.id+'"><span>'+esc(item.name)+'</span></label>'}).join('');applySavedOptions(saved);estimateNow();try{window.parent.postMessage({type:"HYDROPIP_TRACK_READY"},"*")}catch(error){}}).catch(function(){results.innerHTML='<p class="note">The build catalog could not load. Refresh the page or ask Pip for help.</p>'});
 })();
 </script>

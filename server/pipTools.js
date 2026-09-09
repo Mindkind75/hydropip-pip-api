@@ -1,3 +1,4 @@
+import { parseTowerCount, savedPumpAnswer } from "./growFacts.js";
 import { buildCatalog, buildSteps, hydropipSystem, parts, schedulingRules, setupWizardSchema, sitePlanning } from "./pipData.js";
 import { pestProductLinks } from "./pipProductLinks.js";
 
@@ -291,6 +292,7 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] },
       availableDepthFeet: dimensions?.depthFeet,
       dominantCropType
     });
+    const cropLead = Array.isArray(profile.crops) && profile.crops.length ? `For your ${profile.crops.join(" and ")} grow: ` : "";
     const trackUrl = "https://www.hydropip.com/track-my-build";
     if (plan.available) {
       const available = `${plan.available.widthFeet} x ${plan.available.depthFeet} ft`;
@@ -302,11 +304,13 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] },
       }
       return `${contextLead}A ${available} space is too tight for the full ${plan.towerCount}-tower HydroPip working layout, which plans around ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft.\n- Reduce tower count, move the IBC outside that rectangle, or choose another location.\n- Keep service access, sun, drainage, water, GFCI power, and utility clearance intact.\n- Recalculate in Track My Build: ${trackUrl}`;
     }
-    return `${contextLead}Plan about ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft for ${plan.towerCount} HydroPip tower${plan.towerCount === 1 ? "" : "s"}, including the IBC, mature foliage, and a usable service path.\n- Choose level drainage with ${plan.directSunHours}+ hours of useful sun, nearby water, and GFCI power.\n- Keep about ${plan.servicePathFeet} ft to reach the IBC, pumps, hoses, and tower backs; call 811 before driving pipe.\n- You can upload a wide yard photo plus measurements, or check Track My Build: ${trackUrl}`;
+    return `${contextLead}${cropLead}Plan about ${plan.recommended.widthFeet} x ${plan.recommended.depthFeet} ft for ${plan.towerCount} HydroPip tower${plan.towerCount === 1 ? "" : "s"}, including the IBC, mature foliage, and a usable service path.\n- Choose level drainage with ${plan.directSunHours}+ hours of useful sun, nearby water, and GFCI power.\n- Keep about ${plan.servicePathFeet} ft to reach the IBC, pumps, hoses, and tower backs; call 811 before driving pipe.\n- You can upload a wide yard photo plus measurements, or check Track My Build: ${trackUrl}`;
   }
 
   if (/\b(timer|timers|smart plug|smart plugs|outlet|outlets)\b/.test(q) && /\b(schedule|set|program|time|times|timing|run|cycle)\b/.test(q)) {
-    const feedMinutes = Math.max(1, Number(profile?.feedDurationMinutes) || 5);
+    const savedAnswer = savedPumpAnswer(profile, question);
+    if (savedAnswer) return savedAnswer;
+    const feedMinutes = Number(profile?.feedDurationMinutes) > 0 ? Number(profile.feedDurationMinutes) : 5;
     return `${contextLead}Program the two smart-plug outlets as paired cycles: run the internal mixing pump for 15 minutes immediately before every tower feed, then run the feed pump for its calibrated duration.\n- Morning example: mix 6:45-7:00 AM; feed 7:00-${formatTimerEnd(7, 0, feedMinutes)} AM.\n- Afternoon example: mix 4:45-5:00 PM; feed 5:00-${formatTimerEnd(5, 0, feedMinutes)} PM.\n- If you add a midday feed, add its own 15-minute pre-mix too. Tune only the feed duration/frequency from media moisture and runoff.\n\nSet it like this: MIX 15 min -> FEED ${feedMinutes} min, before every feed window.`;
   }
 
@@ -322,10 +326,7 @@ export function highConfidenceAnswer(question = "", retrieval = { matches: [] },
 
   const buildCostQuestion = /\b(cost|price|estimate|build.*cheaper|what.*still need)\b/.test(q) || (/\bhow much\b/.test(q) && /\b(build|system|tower|towers)\b/.test(q));
   if (buildCostQuestion) {
-    const towerMatch = q.match(/\b(\d{1,2})[- ]?tower\b/);
-    const wordTowerMatch = q.match(/\b(one|two|three|four)[- ]tower\b/);
-    const wordTowers = { one: 1, two: 2, three: 3, four: 4 };
-    const towerCount = towerMatch ? Number(towerMatch[1]) : wordTowerMatch ? wordTowers[wordTowerMatch[1]] : 4;
+    const towerCount = parseTowerCount(q) || Number(profile.towerCount) || 4;
     const reservoir = /\b(already|own|have)\b.{0,30}\bibc\b|\bibc\b.{0,30}\b(already|own|have)\b/.test(q) ? "owned" : /\bnew ibc|new tote\b/.test(q) ? "new" : "used";
     const estimate = estimateBuild({ towerCount, reservoir });
     return `${contextLead}A ${estimate.towerCount}-tower HydroPip build currently estimates about $${estimate.total.low} low, $${estimate.total.typical} typical, and $${estimate.total.high} high with ${reservoir === "owned" ? "your IBC excluded" : `${reservoir} IBC pricing`}.\n- ${estimate.plantingPositions} planting pockets at ${estimate.tiersPerTower} four-pocket tiers per tower.\n- Open Track My Build for the itemized estimate and already-owned savings: https://www.hydropip.com/track-my-build`;
@@ -428,18 +429,12 @@ function parseSiteDimensions(value) {
   return { widthFeet: Number(match[1]), depthFeet: Number(match[2]) };
 }
 
-function parseTowerCount(value) {
-  const q = String(value || "").toLowerCase();
-  const numeric = q.match(/\b(\d{1,2})[- ]?tower/);
-  if (numeric) return Number(numeric[1]);
-  const word = q.match(/\b(one|two|three|four|five|six|seven|eight)[- ]?tower/);
-  return word ? ({ one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 })[word[1]] : null;
-}
 
-export function fallbackAnswer(question = "", retrieval = { matches: [] }) {
+
+export function fallbackAnswer(question = "", retrieval = { matches: [] }, profile = {}) {
   const q = question.toLowerCase();
   const contextLead = buildContextLead(retrieval);
-  const direct = highConfidenceAnswer(question, retrieval);
+  const direct = highConfidenceAnswer(question, retrieval, profile);
   if (direct) return direct;
   if (/\b(shorter|short|smaller|fit|space|footprint|height|compact|scale down|two towers|2 towers|fewer towers|less towers)\b/.test(q) && /\b(tower|towers|system|pots|pot)\b/.test(q)) {
     return `${contextLead}Yes, you can scale HydroPip down to fit a smaller space.\n- HydroPip uses four-pot stack sections, so five sections equals 20 pockets per tower.\n- Keep each center pipe securely driven and the 3/4 inch tee loose/removable.\n- Recalibrate feed time by runoff because shorter towers wet faster.\n\nSend width, depth, height, and wind exposure and I will sanity-check it.`;

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { nextRecurringDate, prepareRepeat, dateInZone } from "../assets/js/reminder-schedule.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { dailyLimitForTier, dailyResetAt, getPipUsageConfig, monthlyLimitForTier, monthlyResetAt } from "./pipUsage.js";
@@ -1083,34 +1084,50 @@ export async function getUserPreferences({ userId } = {}) {
 
 export async function updateUserPreferences({ userId, patch = {} } = {}) {
   const ownerId = requireUserId(userId);
-  const current = await getUserPreferences({ userId: ownerId });
-  const next = { ...current };
-  if (Object.prototype.hasOwnProperty.call(patch || {}, "workspaceTabOrder")) {
-    next.workspaceTabOrder = normalizeWorkspaceTabOrder(patch.workspaceTabOrder);
-  }
-  if (Object.prototype.hasOwnProperty.call(patch || {}, "accountAvatar")) {
-    next.accountAvatar = normalizeAccountAvatar(patch.accountAvatar);
-  }
-  if (Object.prototype.hasOwnProperty.call(patch || {}, "buildEstimate")) {
-    next.buildEstimate = normalizeBuildEstimate(patch.buildEstimate);
-  }
-  if (Object.prototype.hasOwnProperty.call(patch || {}, "experienceMode")) {
-    next.experienceMode = normalizeExperienceMode(patch.experienceMode);
-  }
-  if (Object.prototype.hasOwnProperty.call(patch || {}, "celebratedMilestones")) {
-    next.celebratedMilestones = normalizeCelebratedMilestones(patch.celebratedMilestones);
-  }
+  function apply(current) {
+    const next = { ...current };
+    if (Object.prototype.hasOwnProperty.call(patch || {}, "workspaceTabOrder")) {
+      next.workspaceTabOrder = normalizeWorkspaceTabOrder(patch.workspaceTabOrder);
+    }
+    if (Object.prototype.hasOwnProperty.call(patch || {}, "accountAvatar")) {
+      next.accountAvatar = normalizeAccountAvatar(patch.accountAvatar);
+    }
+    if (Object.prototype.hasOwnProperty.call(patch || {}, "buildEstimate")) {
+      const revision = Number(current.buildEstimate?.revision || 0);
+      if (patch.buildEstimateBaseRevision !== undefined && patch.buildEstimateBaseRevision !== revision) {
+        throw Object.assign(new Error("The account estimate changed. Reload it and merge your pending edits."), { statusCode: 409 });
+      }
+      next.buildEstimate = normalizeBuildEstimate(patch.buildEstimate);
+      if (next.buildEstimate) next.buildEstimate.revision = revision + 1;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch || {}, "experienceMode")) {
+      next.experienceMode = normalizeExperienceMode(patch.experienceMode);
+    }
+    if (Object.prototype.hasOwnProperty.call(patch || {}, "celebratedMilestones")) {
+      next.celebratedMilestones = normalizeCelebratedMilestones(patch.celebratedMilestones);
+    }
 
+    return next;
+  }
   if (usesPostgres()) {
     const pool = await readyPool();
-    const result = await pool.query(
-      "update pip_users set preferences = $1::jsonb, updated_at = now() where id = $2 returning preferences",
-      [JSON.stringify(next), ownerId]
-    );
-    return normalizeUserPreferences(result.rows[0]?.preferences);
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      const locked = await client.query("select preferences from pip_users where id = $1 for update", [ownerId]);
+      if (!locked.rows[0]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+      const next = apply(normalizeUserPreferences(locked.rows[0].preferences));
+      const result = await client.query("update pip_users set preferences = $1::jsonb, updated_at = now() where id = $2 returning preferences", [JSON.stringify(next), ownerId]);
+      await client.query("commit");
+      return normalizeUserPreferences(result.rows[0].preferences);
+    } catch (error) { await client.query("rollback"); throw error; }
+    finally { client.release(); }
   }
-
+  // Read/apply/write synchronously: concurrent file-mode requests must not
+  // both check the same revision before either has committed its changes.
   const state = readState();
+  if (!state.users[ownerId]) throw Object.assign(new Error("Pip member record not found"), { statusCode: 404 });
+  const next = apply(normalizeUserPreferences(state.users[ownerId].preferences));
   state.users[ownerId].preferences = next;
   state.users[ownerId].updatedAt = nowIso();
   writeState(state);
@@ -1980,7 +1997,7 @@ export async function createProjectReminder({ userId, projectId, reminder = {}, 
     category: String(reminder.category || "general"),
     dueDate: reminder.dueDate || reminder.date || null,
     dueAt: normalizeOptionalDate(reminder.dueAt),
-    repeat: reminder.repeat || null,
+    repeat: prepareRepeat(reminder.repeat, reminder.dueAt || reminder.dueDate || reminder.date || nowIso(), reminder.timezone),
     notify: Boolean(reminder.notify),
     timezone: cleanOptionalText(reminder.timezone, 80),
     status: "active",
@@ -2053,12 +2070,16 @@ export async function updateProjectReminder({ userId, projectId, reminderId, pat
     status: patch.status === undefined ? existing.status : String(patch.status || "active"),
     updatedAt: nowIso()
   };
+  if (saved.repeat?.frequency) {
+    const rescheduled = ["dueAt", "dueDate", "timezone", "repeat"].some(key => Object.prototype.hasOwnProperty.call(patch, key));
+    saved.repeat = prepareRepeat(rescheduled ? { frequency: saved.repeat.frequency } : saved.repeat, saved.dueAt || saved.dueDate || saved.updatedAt, saved.timezone);
+  }
   if (patch.status === "completed") {
     saved.lastCompletedAt = saved.updatedAt;
     saved.completionCount = Number(existing.completionCount || 0) + 1;
     if (saved.repeat?.frequency) {
-      saved.dueAt = nextRecurringDate(existing.dueAt || existing.dueDate, saved.repeat.frequency, saved.updatedAt);
-      saved.dueDate = saved.dueAt ? saved.dueAt.slice(0, 10) : existing.dueDate;
+      saved.dueAt = nextRecurringDate(saved.dueAt || saved.dueDate, saved.repeat.frequency, saved.updatedAt, saved.timezone, saved.repeat);
+      saved.dueDate = saved.dueAt ? dateInZone(saved.dueAt, saved.timezone) : existing.dueDate;
       saved.status = "active";
     }
   }
@@ -3011,6 +3032,7 @@ function normalizeBuildEstimate(value) {
   const summary = value.summary && typeof value.summary === "object" ? value.summary : {};
   return {
     version: 2,
+    revision: Number.isSafeInteger(value.revision) && value.revision >= 0 ? value.revision : 0,
     options: {
       towers: clampInteger(sourceOptions.towers, 1, 40, 4),
       tiers: clampInteger(sourceOptions.tiers, 1, 30, 10),
@@ -3576,19 +3598,7 @@ function normalizeOptionalDate(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function nextRecurringDate(value, frequency, completedAt) {
-  const completed = new Date(completedAt || Date.now());
-  let date = value ? new Date(value) : new Date(completed);
-  if (Number.isNaN(date.getTime())) date = new Date(completed);
-  date.setSeconds(0, 0);
-  const step = () => {
-    if (frequency === "daily") date.setDate(date.getDate() + 1);
-    else if (frequency === "weekly") date.setDate(date.getDate() + 7);
-    else if (frequency === "monthly") date.setMonth(date.getMonth() + 1);
-  };
-  do step(); while (date <= completed);
-  return date.toISOString();
-}
+
 
 function reminderIsDue(reminder, now = new Date()) {
   const dueDate = String(reminder?.dueDate || "").slice(0, 10);
