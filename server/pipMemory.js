@@ -107,6 +107,7 @@ const defaultState = {
 let stateCache;
 let poolPromise;
 let schemaPromise;
+let actionReviewsMigrationPromise;
 let conversationMigrationPromise;
 let growResourcesMigrationPromise;
 let seedUsagePricingReconciled = false;
@@ -1646,6 +1647,7 @@ export async function deleteUserData({ userId } = {}) {
   Object.values(state.usageEvents).filter((item) => item.userId === ownerId).forEach((item) => delete state.usageEvents[item.id]);
   Object.values(state.creditLedger).filter((item) => item.userId === ownerId).forEach((item) => delete state.creditLedger[item.id]);
   Object.values(state.reviewItems || {}).filter((item) => item.userId === ownerId).forEach((item) => delete state.reviewItems[item.id]);
+  Object.values(state.actionReviews || {}).filter((item) => item.userId === ownerId).forEach((item) => delete state.actionReviews[item.id]);
   Object.entries(state.pushSubscriptions || {}).filter(([, item]) => item.userId === ownerId).forEach(([id]) => delete state.pushSubscriptions[id]);
   Object.values(state.conversionEvents || {}).filter((item) => item.userId === ownerId).forEach((item) => {
     item.userId = null;
@@ -2554,14 +2556,22 @@ export async function buildProjectContext({ userId, projectId, conversationId, q
     activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
     reminderCount: (reminders || []).length,
     recentReadings: (readings || []).slice(-10),
-    seedPacks: (seeds || []).map((item) => ({
+    seedRecordCount: (seeds || []).length,
+    seedPacks: (seeds || []).slice().sort((a,b)=>Number(isCurrentGrowSeed(b))-Number(isCurrentGrowSeed(a))||String(b.updatedAt).localeCompare(String(a.updatedAt))).slice(0,40).map((item) => ({
+      id: item.id,
       crop: item.crop,
       variety: item.variety,
       packsOnHand: item.packsOnHand,
       status: item.status,
       plantingLocation: item.plantingLocation,
-      sowDate: item.sowDate
-    })).slice(0, 40)
+      sowDate: item.sowDate,
+      seedsSown: item.seedsSown,
+      seedsSprouted: item.seedsSprouted,
+      notes: item.notes,
+      expectedHarvestDate: item.expectedHarvestDate,
+      expectedHarvestEnd: item.expectedHarvestEnd,
+      timingEstimated: item.timingEstimateBasis === 'crop_stage_estimate'
+    }))
   };
 }
 
@@ -2835,7 +2845,9 @@ async function ensureSchema(pool) {
   conversationMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/001-conversation-routing.sql',import.meta.url),'utf8')).catch(error=>{conversationMigrationPromise=null;throw error});
   await conversationMigrationPromise;
   growResourcesMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/002-grow-resources.sql',import.meta.url),'utf8')).catch(error=>{growResourcesMigrationPromise=null;throw error});
-  return growResourcesMigrationPromise;
+  await growResourcesMigrationPromise;
+  actionReviewsMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/003-action-reviews.sql',import.meta.url),'utf8')).catch(error=>{actionReviewsMigrationPromise=null;throw error});
+  return actionReviewsMigrationPromise;
 }
 
 async function upsertUserPg(normalized) {
@@ -3584,7 +3596,7 @@ function rowToMessage(row) {
   };
 }
 
-function rowToReminder(row) {
+export function rowToReminder(row) {
   return {
     id: row.id,
     title: row.title,
@@ -3656,7 +3668,7 @@ function subscriptionRequired(message) {
   return { status: "subscription_required", message, upgradeReason: "Pip Pro saves grow plans, reminders, logs, seeds, and project history." };
 }
 
-function normalizeSeed(seed = {}) {
+export function normalizeSeed(seed = {}) {
   const seedsSown = normalizeOptionalNumber(seed.seedsSown);
   const seedsSprouted = normalizeOptionalNumber(seed.seedsSprouted);
   const status = cleanOptionalText(seed.status, 40) || "on_hand";

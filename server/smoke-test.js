@@ -166,7 +166,7 @@ const linkedCompact = compactAnswer(
 );
 assert.equal(linkedCompact.includes("https://www.amazon.com/dp/B07L54HB83?tag=hydrpip200202-20"), true);
 assert.equal(linkedCompact.includes("As an Amazon Associate I earn from qualifying purchases."), true);
-assert.equal(linkedCompact.split(/\s+/).filter(Boolean).length <= 100, true);
+assert.equal((linkedCompact.match(/Check the vertical lift and pump head before changing the layout\./g)||[]).length,14,'Post-processing must preserve complete guidance, including the final instruction and link');
 const btLinkedAnswer = compactAnswer("Use Bt kurstaki for the confirmed cabbage caterpillars and follow the edible-crop label.", "What should I use?", {});
 assert.match(btLinkedAnswer, /Bacillus\+thuringiensis\+kurstaki\+caterpillar\+control\+vegetables/);
 assert.match(btLinkedAnswer, /tag=hydrpip200202-20/);

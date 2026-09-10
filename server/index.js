@@ -92,7 +92,8 @@ import {
 import { nutrientProgramsForSubscription } from "./nutrientPrograms.js";
 import { getSeedPlanningDashboard, getSeedSowRecommendation, seedPlanReminders } from "./plantingCalendar.js";
 import { analyzeFeedbackSuggestion, feedbackPortfolioInsights } from "./feedbackTriage.js";
-import { buildRhythmOverview } from "./rhythm.js";
+import { previewAction, applyReviewedAction } from './actionReviews.js';
+import { growWorkspace } from './growWorkspace.js';
 import {
   adminPasskeyStatus,
   beginAdminPasskeyAuthentication,
@@ -1043,26 +1044,26 @@ app.get("/api/pip/projects/:projectId/seed-plan", async (req, res, next) => {
 
 app.get("/api/pip/projects/:projectId/rhythm", async (req, res, next) => {
   try {
-    if (!req.pipSubscription?.active) {
-      res.status(402).json({ error: "subscription_required", message: "The personalized growing rhythm is available in Pip Pro." });
-      return;
-    }
-    const project = await getProject({ userId: req.pipUser.id, projectId: req.params.projectId });
-    if (!project) return res.status(404).json({ error: "project_not_found" });
-    const [reminders, seeds, readings] = await Promise.all([
-      listProjectReminders({ userId: req.pipUser.id, projectId: project.id }),
-      listProjectSeeds({ userId: req.pipUser.id, projectId: project.id }),
-      listProjectReadings({ userId: req.pipUser.id, projectId: project.id })
-    ]);
-    const profile = project.systemProfile || {};
-    const seedDashboard = profile.growZone ? getSeedPlanningDashboard({
-      growZone: profile.growZone,
-      location: profile.location,
-      areaType: profile.areaType
-    }) : null;
-    const understanding = await growUnderstanding({userId:req.pipUser.id,projectId:project.id});
-    res.json({ rhythm: {...buildRhythmOverview({ project, reminders, seeds, readings, seedDashboard }),latestSavedBatch:understanding.latestBatch,batchConflicts:understanding.conflicts} });
-  } catch (error) { next(error); }
+    if(!req.pipSubscription?.active)return res.status(402).json({error:'subscription_required'});
+    const data=await growWorkspace({userId:req.pipUser.id,projectId:req.params.projectId,timezone:req.query.timezone||"UTC"});
+    if(!data)return res.status(404).json({error:'project_not_found'});
+    res.set('Cache-Control','private, no-store').json({rhythm:data.rhythm});
+  }catch(error){next(error);}
+});
+
+app.get('/api/pip/projects/:projectId/workspace',async(req,res,next)=>{
+  try{
+    if(!req.pipSubscription?.active)return res.status(402).json({error:'subscription_required'});
+    const data=await growWorkspace({userId:req.pipUser.id,projectId:req.params.projectId,timezone:req.query.timezone||"UTC"});
+    if(!data)return res.status(404).json({error:'project_not_found'});
+    res.set('Cache-Control','private, no-store').json(data);
+  }catch(error){next(error);}
+});
+app.post('/api/pip/projects/:projectId/action-reviews',async(req,res,next)=>{
+  try{const review=await previewAction({userId:req.pipUser.id,projectId:req.params.projectId,subscription:req.pipSubscription,action:req.body?.action,refresh:req.body?.refresh,timezone:req.body?.timezone});res.set('Cache-Control','private, no-store').json({review});}catch(error){next(error);}
+});
+app.post('/api/pip/projects/:projectId/action-reviews/:reviewId/apply',async(req,res,next)=>{
+  try{const review=await applyReviewedAction({userId:req.pipUser.id,projectId:req.params.projectId,subscription:req.pipSubscription,reviewId:req.params.reviewId,reviewRevision:req.body?.reviewRevision,confirm:req.body?.confirm});res.set('Cache-Control','private, no-store').json({review});}catch(error){next(error);}
 });
 
 app.post("/api/pip/projects/:projectId/rhythm/setup", async (req, res, next) => {

@@ -284,10 +284,10 @@ assert.match(pipHtml, /pipBetaChecklist/, "Pip Pro should include the beta test 
 assert.match(pipHtml, /Was this useful\?/, "Fresh Pip answers should support beta ratings");
 assert.match(pipHtml, /Include this question and Pip's reply/, "Chat context sharing should be explicit");
 assert.doesNotMatch(pipHtml, /Add to Home Screen|pipInstallNudge|requestInstall|webcal:|\/api\/pip\/users\/me\/calendar/, "Pip should stay in-app without legacy install or external-calendar flows");
-assert.match(pipHtml, /Ready for your Calendar/, "Pip chat should present reviewable calendar actions");
-assert.match(pipHtml, /\/reminders\/batch/, "Pip chat calendar actions should save through the authenticated batch endpoint");
-assert.match(pipHtml, /Confirm Calendar change/, "Destructive Pip Calendar requests should display a real confirmation card");
-assert.match(pipHtml, /\/reminders\/actions/, "Pip chat should execute confirmed update, replace, and delete actions through the authenticated endpoint");
+assert.match(pipHtml, /Review Planner changes/, "Pip chat should present reviewable task actions");
+assert.match(pipHtml, /actionReviewPromise/, "Pip chat should use the shared authenticated review flow");
+assert.match(pipHtml, /Return to the original account and grow/, "Review cards should guard their original account and grow");
+
 assert.match(pipHtml, /\/api\/pip\/users\/me/, "Members should have a self-service Pip data deletion path");
 for (const id of ["proInviteLink", "proCopyInvite", "proShareInvite", "proInviteShareChoices", "proInviteText", "proInviteEmail", "proInviteFacebook"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `Pip Invite is missing ${id}`);

@@ -1,3 +1,4 @@
+import {dailyGuidance} from './pipGuidance.js';
 import { isFollowup } from "./conversationRouting.js";
 import { recallGrowResources } from './growResources.js';
 import { conversationGrowFacts, statedGrowFacts, recallGrowFacts, durableProfileSuggestion } from "./growFacts.js";
@@ -5,7 +6,7 @@ import { buildCatalog, hydropipSystem, systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
 import { assessSiteFit, calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, isCropSelectionQuestion, recommendParts } from "./pipTools.js";
 import { affiliateProductLabel, appendNamedProductSearchLinks, normalizeAmazonAffiliateLinks } from "./pipProductLinks.js";
-import { appendProjectMessage, buildProjectContext, createReviewItem, getProject } from "./pipMemory.js";
+import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 import { combineOpenAiUsage, getPipUsageConfig, pipAiDisabled } from "./pipUsage.js";
 import { formatSeedPackSummary, parseSeedPackInventory } from "./seedInventory.js";
@@ -256,15 +257,18 @@ const tools = [
 ];
 
 export async function askPip(args) {
-  const result=await answerPip(args);
+  let savedProfile;
+  const started=performance.now();
+  const result=await answerPip({...args,onSavedProfile:profile=>{savedProfile=profile;}});
+  result.performance={answerMs:Math.round(performance.now()-started)};
   if(args.subscription?.active&&args.user?.id&&args.projectId&&!args.image&&!['off_topic','safety_refusal','subscription_gate'].includes(result.mode)){
-    const project=await getProject({userId:args.user.id,projectId:args.projectId});
-    if(project){const patch=durableProfileSuggestion(args.message,project.systemProfile);if(Object.keys(patch).length)result.actions=[...(result.actions||[]),{type:'profile_change',patch,label:'Review profile update'}];}
+    if(savedProfile){const patch=durableProfileSuggestion(args.message,savedProfile);if(Object.keys(patch).length)result.actions=[...(result.actions||[]),{type:'profile_change',patch,label:'Review profile update'}];}
   }
+  if(args.exchangeId&&Array.isArray(result.actions))result.actions=result.actions.map((action,index)=>({...action,proposalId:args.exchangeId+'_'+index}));
   return result;
 }
 
-async function answerPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, exchangeId, beforeAiCall }) {
+async function answerPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, exchangeId, beforeAiCall, onSavedProfile }) {
   const usageConfig = getPipUsageConfig();
   const imageInput = normalizeImageInput(image, {
     maxBytes: subscription?.active ? usageConfig.proImageBytes : usageConfig.freeMemberImageBytes
@@ -278,6 +282,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
   const userId = String(user?.id || user?.email || "").trim();
   const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId, conversationId, question: trimmed }) : null;
   if(projectContext){projectContext.exchangeId=exchangeId||null;recentHistory=normalizeHistory(projectContext.recentMessages);}
+  onSavedProfile?.(projectContext?.project?.systemProfile);
   const questionIntent = classifyQuestionIntent(trimmed, { image: Boolean(imageInput), history: recentHistory });
   const rawRetrieval = retrieveHydroPipContext(trimmed, { limit: 10 });
   const retrieval = selectIntentContext(rawRetrieval, questionIntent);
@@ -550,8 +555,6 @@ async function answerPip({ message, image, profile, subscription, history = [], 
       store: false,
       instructions: [
       systemBrain,
-      `CURRENT QUESTION INTENT: ${questionIntent}. Answer this intent; do not drift to a different HydroPip topic.`,
-      `AUTHORITATIVE USER AND GROW CONTEXT:\n${formatAnswerContext(answerContext)}`,
       "Use the saved grow profile whenever it contains relevant details. Do not ask for zone, location, area type, system stage, tower count, reservoir size, crops, medium, nutrients, or goals when that value is already present.",
       "Start with a direct answer to the current question. Conversation history is useful for references and follow-ups, but an older topic must never override a clear new question.",
       "Use HydroPip tools only when one is available for the current intent. Do not call a parts or build tool for crop-selection, seasonal, plant-health, or general growing questions.",
@@ -588,14 +591,14 @@ async function answerPip({ message, image, profile, subscription, history = [], 
       "General hydroponics education is allowed in free mode when it helps the user understand HydroPip or decide to build. Custom plans, optimization, troubleshooting, schedules, logs, reminders, or saved memory for a different non-HydroPip system are Pip Pro.",
       "If the retrieved context is not enough for an exact recommendation, say what is missing and ask one focused follow-up question.",
       "If a focused follow-up still would not let you answer, or the knowledge base lacks the needed HydroPip-specific information, call flag_review_item. Do not bluff, invent specs, invent policy, or wander to products.",
-      "For ambiguous wording, ask one concise clarifying question. For plant-health, troubleshooting, or schedule tuning, ask only for the next 2-4 critical facts needed, such as crop, pH, EC/TDS, feed duration, runoff, photos, weather/heat, or exact part.",
+      "For ambiguous wording, ask the one missing question that most changes the next step. Never repeat a question answered by the current grow context.",
       "If the user is frustrated because a prior answer failed, acknowledge that briefly, correct course, and either answer the exact request or flag_review_item if the system lacks the capability.",
       "Free users may receive HydroPip setup/build guidance and one HydroPip grow plan.",
       `Free-member photo checks are only for inspecting the HydroPip physical build, proposed HydroPip installation location, parts, plumbing, and assembly. Plant health, pest, root, nutrient-symptom, crop, and non-HydroPip photo diagnosis requires Pip Pro. When relevant, say that text-based HydroPip help remains available and include ${proSignupUrl}. Do not invite a free user to send a plant-health photo without explaining that boundary.`,
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "When create_reminder, create_grow_plan, or manage_calendar returns confirmation_required, say the change is ready to review and use the on-screen confirmation button. Never say it is saved, deleted, updated, queued for staff, or completed until the user confirms it and the server reports success.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
-      "When projectContext.seedPacks is present, distinguish inventory from planted crops. plantingLocation=seed_vault means the user owns the pack but the crop is not currently growing. Only hydropip_tower and nursery_for_hydropip belong to the current HydroPip grow. raised_bed and finished are not current tower crops. Use packs on hand rather than pretending to know individual seed counts. Never claim a crop is in the system from inventory alone, and do not claim inventory or location changed until the user confirms the on-screen action and the server reports success.",
+      "When projectContext.seedPacks is present, distinguish inventory from planted crops. plantingLocation=seed_vault means the user owns the pack but the crop is not currently growing. Only hydropip_tower and nursery_for_hydropip belong to the current HydroPip grow. raised_bed and finished are not current tower crops. Use packsOnHand for inventory. For a planting, use its saved seedsSown quantity when present; never infer individual seed counts from packs. Never claim a crop is in the system from inventory alone, and do not claim inventory or location changed until the user confirms the on-screen action and the server reports success.",
       "For an active Pip Pro member, when an attached photo primarily shows loose seed packets laid out with labels visible, call extract_seed_pack_inventory even if the user only says to inspect the photo or provides no specific instruction. Do not mistake growing plants, seedling trays, plant tags, or a single unrelated package for a Seed Vault inventory photo. Read only labels that are actually visible. Group identical packets and count the packs. Never guess an obscured crop, variety, or brand. Use null for an unreadable variety or source, report unreadable packets separately, and rely on the editable review card before saving.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action.",
       "Honor the saved project profile experienceMode. guided means lead with one clear next action and only the facts needed to complete it. standard means give the normal concise answer with useful supporting context. detailed means include relevant measurements, tradeoffs, records, costs, or optimization detail while still answering the question directly. Never announce the mode or withhold a direct answer because of it.",
@@ -603,7 +606,9 @@ async function answerPip({ message, image, profile, subscription, history = [], 
       "USDA zones describe average annual extreme minimums rather than complete vegetable calendars. Use the saved location and area details to refine the zone calendar when relevant, but do not withhold a useful planting answer when the zone and month are known.",
       "When a photo is attached, inspect it directly and use visible details in the answer. Use this compact order: one sentence naming the most useful visible evidence; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Clearly separate visible evidence from anything the photo cannot confirm.",
       "For a proposed-site photo, evaluate visible shade and obstructions, apparent slope or drainage concerns, tower and IBC placement options, service access, hose route, water and power proximity, reflected heat, wind exposure, and safe movement. Ask for measured width/depth and sun timing when missing. Remind the user to call 811 before supports are driven. Do not infer compass direction, exact sun hours, property lines, buried utilities, or scale from a single image.",
-      "Default to concise chat answers with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. No essays, no broad tutorials, no long preambles. Only give long detailed answers when the user asks for more detail, a full walkthrough, printable checklist, or full parts list. If a longer answer would help, offer to continue instead of dumping everything.",
+      dailyGuidance({profile:effectiveProfile,hasPhoto:Boolean(imageInput)}),
+      `CURRENT QUESTION INTENT: ${questionIntent}. Answer this intent; do not drift to a different HydroPip topic.`,
+      `AUTHORITATIVE USER AND GROW CONTEXT:\n${formatAnswerContext(answerContext)}`,
       `Retrieved HydroPip knowledge-base context (supporting reference only):\n${retrievedContext}`
       ].join("\n\n"),
       input: responseInput
@@ -741,8 +746,8 @@ async function answerPip({ message, image, profile, subscription, history = [], 
     const answer = destructiveAction
       ? "I prepared that Calendar change. Review it below, then use the confirmation button to apply it."
       : taskCount === 1
-        ? "I prepared that reminder for your grow. Review it below, then tap Add to Calendar."
-        : `I prepared a ${taskCount}-task schedule for your grow. Review it below, then tap Add to Calendar.`;
+        ? "I prepared that reminder for your grow. Choose Review tasks below, then save the reviewed changes."
+        : `I prepared a ${taskCount}-task schedule for your grow. Choose Review tasks below, then save the reviewed changes.`;
     const sources = safeSourceSummaries(retrieval);
     await rememberProjectMessage(projectContext, {
       userId,
@@ -779,7 +784,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
       "If a tool result says a review item was queued, tell the user Pip needs HydroPip team review before giving a confident answer. Ask for any one critical missing detail if useful.",
       "A confirmation_required calendar change is not applied yet. Tell the user to review and press the confirmation button shown below the reply. Never mention a confirmation button unless the response contains an action.",
       "When a confirmation action is shown, keep the reply under 35 words and do not repeat raw ISO timestamps or the full task list; the review card carries those details.",
-      "Keep this final answer concise by default with a hard cap of 90 words: 1 direct sentence plus 2-3 compact bullets. Do not add a TL;DR or summary label. End with one useful next-step prompt. Only go long if the user explicitly asked for detailed instructions.",
+      dailyGuidance({profile:effectiveProfile,hasPhoto:Boolean(imageInput)}),
       "When the original user input includes a photo, use this compact order: one sentence naming the most useful concrete visible observation; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Do not imply that you saw a detail that is not visible."
     ].join("\n"),
     input: [...responseInput, ...(response.output || []), ...toolResults]
@@ -1123,11 +1128,9 @@ export function compactAnswer(answer, message, retrieval, answerContext = {}) {
   const linked = commerceAllowed ? appendNamedProductSearchLinks(commerceAdjusted) : commerceAdjusted;
   const tagged = normalizeAmazonAffiliateLinks(linked);
   const disclosed = ensureAffiliateDisclosure(tagged);
-  if (wantsDetailedInfo(message)) return disclosed;
-  const words = String(disclosed || "").trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 100) return disclosed;
-  if (hasAmazonLink(disclosed)) return trimLinkedAnswer(disclosed, 90);
-  return trimToWordBudget(disclosed, 90);
+  // Length is guided in the prompt. Preserve the full safe answer so cautions,
+  // computed amounts, final steps and requested detail cannot be silently cut.
+  return disclosed;
 }
 
 function shouldIncludeAffiliateProducts(message, answerContext = {}) {
@@ -1227,35 +1230,6 @@ function isVagueFollowUp(message) {
   const normalized = String(message || "").trim().toLowerCase();
   if (!normalized || normalized.length > 140) return false;
   return /\b(it|that|this|they|them|those|one|same|also|instead|what about|what size|which one|how many|will it|does it|is it|can it|where does|how does)\b/.test(normalized);
-}
-
-function trimToWordBudget(answer, maxWords) {
-  const text = String(answer || "").trim();
-  const sentences = text.match(/[^.!?\n]+[.!?]?|\n+/g) || [text];
-  let chosen = "";
-  for (const sentence of sentences) {
-    const next = `${chosen}${sentence}`.trim();
-    if (next.split(/\s+/).filter(Boolean).length > maxWords) break;
-    chosen = `${chosen}${sentence}`;
-  }
-  const compact = chosen.trim() || text.split(/\s+/).slice(0, maxWords).join(" ");
-  return compact.endsWith(".") || compact.endsWith("!") || compact.endsWith("?") ? compact : `${compact}.`;
-}
-
-function trimLinkedAnswer(answer, maxWords) {
-  const disclosure = "As an Amazon Associate I earn from qualifying purchases.";
-  const urls = [...new Set(String(answer || "").match(/https?:\/\/(?:www\.)?amazon\.com\/[^\s)]+/gi) || [])].slice(0, 3);
-  const reservedWords = 10 + urls.length * 4;
-  const textOnly = String(answer || "")
-    .replace(/https?:\/\/(?:www\.)?amazon\.com\/[^\s)]+/gi, "")
-    .replace(/(?:HydroPip may earn from qualifying Amazon purchases|As an Amazon Associate,? (?:I |HydroPip )?(?:may )?earn from qualifying purchases)\.?/gi, "")
-    .replace(/\(\s*[^()]{0,60}:\s*\)/g, "")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-  const summary = trimToWordBudget(textOnly, Math.max(45, maxWords - reservedWords));
-  const links = urls.map((url) => `- ${affiliateLabel(url)}: ${url}`).join("\n");
-  return `${summary}\n\n${links}\n\n${disclosure}`;
 }
 
 function affiliateLabel(url) {
@@ -1486,7 +1460,7 @@ async function resolveRelevantAnswer({ client, model, response, trimmed, respons
           "Use the authoritative saved profile below. Answer the current question first. Do not drift to pumps, parts, build steps, subscriptions, or a generic menu unless the user asked about them.",
           "For a Pip Pro member, remove shopping suggestions and affiliate links unless the current question explicitly asks to buy, find, replace, restock, compare, or choose a specific treatment/product.",
           "For seasonal crop questions, use the supplied zone-and-month planting reference. Do not ask for today's temperature unless the user described unusual weather or a temperature-sensitive emergency.",
-          "Keep the corrected answer under 90 words with one direct sentence and 2-3 useful bullets. Ask one focused follow-up only when truly needed.",
+          dailyGuidance({profile:answerContext.profile,hasPhoto:Boolean(imageInput)}),
           `AUTHORITATIVE CONTEXT:\n${formatAnswerContext(answerContext)}`,
           `RELEVANCE FAILURE: ${relevance.reason}`,
           `SUPPORTING HYDROPIP NOTES:\n${formatContextForPrompt(retrieval)}`
@@ -1607,6 +1581,7 @@ function compactProjectContext(projectContext) {
     reminderCount: projectContext.reminderCount,
     recentReadings: projectContext.recentReadings,
     seedPacks: projectContext.seedPacks,
+    seedRecordCount: projectContext.seedRecordCount,
     retrievedMessages: projectContext.retrievedMessages,
     recentMessages: projectContext.recentMessages.map(({ role, content, createdAt }) => ({ role, content, createdAt }))
   };

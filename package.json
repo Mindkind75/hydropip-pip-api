@@ -15,7 +15,7 @@
     "qa:seo": "node server/seo-qa.js",
     "qa:conversions": "node server/conversion-tracking-test.js",
     "qa:affiliate": "node server/affiliate-link-test.js",
-    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip && npm run qa:launch",
+    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip && npm run qa:launch && npm run qa:daily && npm run qa:daily-sdk",
     "qa:launch": "node server/launch-regression-test.js",
     "qa:launch-ui": "node server/launch-ui-test.js",
     "qa:chat-ui": "node server/pip-chat-ui-test.cjs",
@@ -28,7 +28,11 @@
     "qa:conversation-usage": "node server/conversation-usage-test.js",
     "qa:grow-resources": "node server/grow-resources-test.js",
     "qa:grow-ui": "node server/grow-resources-test.js --ui",
-    "qa:grow-postgres": "node server/grow-resources-test.js --postgres"
+    "qa:grow-postgres": "node server/grow-resources-test.js --postgres",
+    "qa:daily": "node server/daily-guidance-test.js",
+    "qa:daily-ui": "node server/daily-guidance-test.js --ui",
+    "qa:daily-postgres": "node server/daily-guidance-test.js --postgres",
+    "qa:daily-sdk": "node server/daily-guidance-sdk-test.js"
   },
   "overrides": {
     "qs": "6.16.0"

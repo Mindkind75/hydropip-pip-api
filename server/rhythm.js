@@ -1,13 +1,15 @@
 import { rhythmSetupStatus } from "./rhythmSetup.js";
+import { dateInZone, reminderInstant, zonedDate } from '../assets/js/reminder-schedule.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function buildRhythmOverview({ project, reminders = [], seeds = [], readings = [], seedDashboard = null, now = new Date() } = {}) {
-  const today = startOfDay(now);
-  const endOfToday = new Date(today.getTime() + DAY_MS - 1);
+export function buildRhythmOverview({ project, reminders = [], seeds = [], readings = [], seedDashboard = null, now = new Date(), timezone = 'UTC' } = {}) {
+  const today = reminderInstant(dateInZone(now,timezone),timezone);
+  const nextDay = new Date(dateInZone(now,timezone)+'T12:00:00Z');nextDay.setUTCDate(nextDay.getUTCDate()+1);
+  const endOfToday = new Date(reminderInstant(nextDay.toISOString().slice(0,10),timezone).getTime()-1);
   const profile = project?.systemProfile || {};
   const activeReminders = reminders.filter((item) => item?.status === "active");
-  const datedReminders = activeReminders.map((item) => ({ item, date: reminderDate(item) })).filter((entry) => entry.date).sort((a, b) => a.date - b.date);
+  const datedReminders = activeReminders.map((item) => ({ item, date: reminderDate(item,timezone) })).filter((entry) => entry.date).sort((a, b) => a.date - b.date);
   const nowCutoff = new Date(today.getTime() + (3 * DAY_MS));
   const nowTasks = datedReminders.filter((entry) => entry.date <= nowCutoff).slice(0, 5).map(({ item, date }) => ({
     id: item.id,
@@ -33,6 +35,7 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     plantingLocation: seed.plantingLocation,
     locationLabel: plantingLocationLabel(seed.plantingLocation),
     sowDate: seed.sowDate || null,
+    seedsSown: seed.seedsSown || null,
     expectedHarvestDate: seed.expectedHarvestDate || null,
     expectedHarvestEnd: seed.expectedHarvestEnd || null,
     nextSuccessionDate: seed.nextSuccessionDate || null,
@@ -228,8 +231,11 @@ function ownedPackCount(seed) {
   return packsMissing && inVault && !needsReorder ? 1 : 0;
 }
 
-function reminderDate(item) {
-  return dateOrNull(item?.dueAt || (item?.dueDate ? `${item.dueDate}T09:00:00` : null));
+function reminderDate(item,timezone='UTC') {
+  if(item?.dueAt)return dateOrNull(item.dueAt);
+  if(!item?.dueDate)return null;
+  const [year,month,day]=item.dueDate.split('-').map(Number);
+  try{return zonedDate({year,month,day,hour:9},item.timezone||timezone)}catch{return null}
 }
 
 function dateOrNull(value) {
