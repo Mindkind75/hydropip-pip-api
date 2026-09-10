@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import fs from "node:fs";
 import { nextRecurringDate, prepareRepeat, dateInZone } from "../assets/js/reminder-schedule.js";
 import path from "node:path";
@@ -1671,6 +1672,14 @@ export async function listProjects({ userId } = {}) {
     .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
 }
 
+async function recordFirstGrowSave(project) {
+  const p=project.systemProfile;
+  if(!p.onboardingComplete&&!p.crops?.length&&!p.growZone&&!p.location&&!p.notes)return;
+  const key='first_grow_'+createHash('sha256').update(project.userId).digest('hex');
+  try {await recordConversionEvent({eventName:'grow_first_saved',clientEventId:key,visitorId:key,userId:project.userId,page:'/pip.html',metadata:{projectId:project.id,operation:'profile_saved'}})}
+  catch(error){console.warn('First grow measurement could not be recorded: '+error.message)}
+}
+
 export async function createProject({ user, type, title, systemProfile = {}, subscription = {} } = {}) {
   const savedUser = await upsertUser(user);
   const template = getTemplate(type);
@@ -1709,6 +1718,7 @@ export async function createProject({ user, type, title, systemProfile = {}, sub
         project.updatedAt
       ]
     );
+    await recordFirstGrowSave(project);
     return { status: "created", project };
   }
 
@@ -1717,7 +1727,8 @@ export async function createProject({ user, type, title, systemProfile = {}, sub
   state.reminders[id] = [];
   state.readings[id] = [];
   writeState(state);
-  return { status: "created", project };
+  await recordFirstGrowSave(project);
+    return { status: "created", project };
 }
 
 export async function getProject({ userId, projectId } = {}) {
@@ -1739,33 +1750,19 @@ export async function getProject({ userId, projectId } = {}) {
 }
 
 export async function updateProject({ userId, projectId, patch = {} } = {}) {
-  const project = await getProject({ userId, projectId });
-  if (!project) return null;
-
-  const allowed = ["title", "status", "systemProfile"];
-  for (const key of allowed) {
-    if (patch[key] !== undefined) {
-      project[key] = key === "systemProfile" ? normalizeSystemProfile({ ...project.systemProfile, ...patch[key] }, project.type) : patch[key];
-    }
-  }
-  project.updatedAt = nowIso();
-
-  if (usesPostgres()) {
-    const pool = await readyPool();
-    const result = await pool.query(
-      `update pip_projects
-       set title = $1, status = $2, system_profile = $3::jsonb, updated_at = $4
-       where id = $5 and user_id = $6
-       returning id, user_id, type, title, status, access, system_profile, created_at, updated_at`,
-      [project.title, project.status, JSON.stringify(project.systemProfile), project.updatedAt, projectId, userId]
-    );
-    return result.rows[0] ? rowToProject(result.rows[0]) : null;
-  }
-
-  const state = readState();
-  state.projects[projectId] = project;
-  writeState(state);
-  return project;
+  const apply=project=>{for(const key of ['title','status','systemProfile'])if(patch[key]!==undefined)project[key]=key==='systemProfile'?normalizeSystemProfile({...project.systemProfile,...patch[key]},project.type):patch[key];project.updatedAt=nowIso();return project};
+  let saved;
+  if(usesPostgres()){
+    const client=await (await readyPool()).connect();
+    try{await client.query('begin');const locked=await client.query('select * from pip_projects where id=$1 and user_id=$2 for update',[projectId,userId]);
+      if(!locked.rows[0]){await client.query('rollback');return null}
+      const project=apply(rowToProject(locked.rows[0]));
+      const result=await client.query('update pip_projects set title=$1,status=$2,system_profile=$3::jsonb,updated_at=$4 where id=$5 and user_id=$6 returning *',[project.title,project.status,JSON.stringify(project.systemProfile),project.updatedAt,projectId,userId]);
+      await client.query('commit');saved=rowToProject(result.rows[0]);
+    }catch(error){await client.query('rollback');throw error}finally{client.release()}
+  }else{const state=readState(),project=state.projects[projectId];if(!project||project.userId!==userId)return null;saved=apply(project);writeState(state)}
+  if(patch.systemProfile)await recordFirstGrowSave(saved);
+  return saved;
 }
 
 export async function listProjectConversations({ userId, projectId, includeArchived = false } = {}) {
