@@ -25,7 +25,10 @@
     "qa:routing": "node server/conversation-routing-test.js",
     "qa:conversation-memory": "node server/conversation-memory-test.js",
     "qa:conversation-ui": "node server/conversation-ui-test.js",
-    "qa:conversation-usage": "node server/conversation-usage-test.js"
+    "qa:conversation-usage": "node server/conversation-usage-test.js",
+    "qa:grow-resources": "node server/grow-resources-test.js",
+    "qa:grow-ui": "node server/grow-resources-test.js --ui",
+    "qa:grow-postgres": "node server/grow-resources-test.js --postgres"
   },
   "overrides": {
     "qs": "6.16.0"

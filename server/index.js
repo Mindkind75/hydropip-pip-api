@@ -1,4 +1,5 @@
 import { routeConversation, claimChatExchange, finishChatExchange, getChatExchange, messagePage, moveExchange, previewConversationOrganization } from './conversationMemory.js';
+import { getGrowResources, saveGrowBuild, saveNutrientDraft, previewNutrientBatch, saveNutrientBatch, deleteNutrientBatch, growUnderstanding } from './growResources.js';
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -235,7 +236,7 @@ const publicPageRoutes = new Map([
 
 for (const [route, file] of publicPageRoutes) {
   app.get(route, (_req, res) => res.sendFile(path.join(rootDir, file)));
-  app.get(`/${file}`, (_req, res) => res.redirect(301, route));
+  app.get(`/${file}`, (req, res) => res.redirect(301, route + (req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '')));
 }
 
 app.get(["/signup", "/signup.html"], (_req, res) => res.redirect(302, "/join"));
@@ -738,7 +739,8 @@ app.patch("/api/pip/projects/:projectId", async (req, res, next) => {
     const project = await updateProject({
       userId: req.pipUser.id,
       projectId: req.params.projectId,
-      patch: req.body?.patch || req.body || {}
+      patch: req.body?.patch || req.body || {},
+      expectedProfile: req.body?.expectedProfile
     });
     if (!project) {
       res.status(404).json({ error: "project_not_found" });
@@ -749,6 +751,20 @@ app.patch("/api/pip/projects/:projectId", async (req, res, next) => {
     next(error);
   }
 });
+
+// Account authentication runs above these routes. All resources are also
+// owner-checked inside storage; only Pro can create per-grow resource saves.
+function growResourceRoute(handler, {pro=true}={}) { return async(req,res,next)=>{try{
+  if(pro && !req.pipSubscription?.active)return res.status(402).json({error:'subscription_required',message:'Saved grow tools are available in Pip Pro.'});
+  res.json(await handler({...req.body,conversationId:req.query.conversationId,userId:req.pipUser.id,projectId:req.params.projectId,id:req.params.batchId,subscription:req.pipSubscription}));
+}catch(error){next(error)}}; }
+app.get('/api/pip/projects/:projectId/resources',growResourceRoute(async args=>({resources:await getGrowResources(args)}),{pro:false}));
+app.get('/api/pip/projects/:projectId/understanding',growResourceRoute(async args=>({understanding:await growUnderstanding(args)}),{pro:false}));
+app.patch('/api/pip/projects/:projectId/build',growResourceRoute(async args=>({resources:await saveGrowBuild(args)})));
+app.patch('/api/pip/projects/:projectId/nutrient-draft',growResourceRoute(async args=>({resources:await saveNutrientDraft(args)})));
+app.post('/api/pip/projects/:projectId/nutrient-preview',growResourceRoute(async args=>{if(!await getProject(args))throw Object.assign(Error('Grow not found.'),{statusCode:404});return {recipe:previewNutrientBatch(args)};}));
+app.put('/api/pip/projects/:projectId/nutrient-batches/:batchId',growResourceRoute(async args=>({resources:await saveNutrientBatch(args)})));
+app.delete('/api/pip/projects/:projectId/nutrient-batches/:batchId',growResourceRoute(async args=>({resources:await deleteNutrientBatch(args)})));
 
 app.get("/api/pip/projects/:projectId/conversations", async (req, res, next) => {
   try {
@@ -1044,7 +1060,8 @@ app.get("/api/pip/projects/:projectId/rhythm", async (req, res, next) => {
       location: profile.location,
       areaType: profile.areaType
     }) : null;
-    res.json({ rhythm: buildRhythmOverview({ project, reminders, seeds, readings, seedDashboard }) });
+    const understanding = await growUnderstanding({userId:req.pipUser.id,projectId:project.id});
+    res.json({ rhythm: {...buildRhythmOverview({ project, reminders, seeds, readings, seedDashboard }),latestSavedBatch:understanding.latestBatch,batchConflicts:understanding.conflicts} });
   } catch (error) { next(error); }
 });
 

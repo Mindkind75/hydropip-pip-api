@@ -2,6 +2,20 @@
 // promote an assistant's example/default into the grower's setup.
 const cropNames = ['lettuce', 'basil', 'arugula', 'kale', 'bok choy', 'cilantro', 'dill', 'parsley', 'spinach', 'chard', 'tomato', 'pepper', 'cucumber', 'strawberry'];
 
+// Conservative suggestions only. A profile write still requires a separate,
+// reviewed user action, with optimistic checks against the saved field values.
+export function durableProfileSuggestion(text, profile={}) {
+  const value=String(text||'').toLowerCase(),patch={};
+  if(/\b(?:what if|suppose|hypothetic\w*|imagine|if i|if we|for example|not|never|used to|previously)\b|don't/i.test(value))return patch;
+  const facts=statedGrowFacts(value);
+  if(/\b(?:i|we)\s+(?:(?:now|currently)\s+)?(?:have|own|use|am using|are using)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:hydropip\s+)?towers?\b/.test(value)&&facts.towerCount)patch.towerCount=facts.towerCount;
+  if(/\b(?:i|we)\s+(?:grow|am growing|are growing)\b|\b(?:my|our) crops are\b/.test(value)&&facts.crops)patch.crops=facts.crops;
+  if(/\b(?:i am|we are|i'm) (?:now )?in (?:usda )?zone|\b(?:my|our) (?:grow )?zone is\b/.test(value)&&facts.growZone)patch.growZone=facts.growZone;
+  const tank=value.match(/\b(?:my|our) (?:reservoir|tank)(?: capacity)? (?:is(?: now)?|(?:now )?holds) (\d+(?:\.\d+)?)\s*(gallons?|gal\b|liters?|litres?|l\b)/);
+  if(tank){const gallons=Number(tank[1])*(/^l/.test(tank[2])?1/3.78541:1);if(gallons>0&&gallons<=10000)patch.reservoirGallons=Math.round(gallons*100)/100;}
+  return Object.fromEntries(Object.entries(patch).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(profile[key])));
+}
+
 export function parseTowerCount(value) {
   const match = String(value || '').toLowerCase().match(/\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)(?:[-\s]+hydropip)?[-\s]+towers?\b/);
   if (!match) return null;
@@ -24,11 +38,13 @@ export function statedGrowFacts(text) {
   }
   const zone = value.match(/\b(?:usda\s+)?zone\s+(\d{1,2}[ab]?)\b/);
   if (zone && Number.parseInt(zone[1], 10) <= 13) facts.growZone = zone[1];
+  const tank=value.match(/\b(?:my|our) (?:reservoir|tank)(?: capacity)? (?:is(?: now)?|(?:now )?holds) (\d+(?:\.\d+)?)\s*(gallons?|gal\b|liters?|litres?|l\b)/);
+  if(tank){const gallons=Number(tank[1])*(/^l/.test(tank[2])?1/3.78541:1);if(gallons>0&&gallons<=10000)facts.reservoirGallons=Math.round(gallons*100)/100;}
   return facts;
 }
 
 export function conversationGrowFacts(history = []) {
-  return history.filter(item => item.role === 'user').reduce((facts, item) => ({ ...facts, ...statedGrowFacts(item.content) }), {});
+  return history.filter(item => item.role === 'user' && !/\b(?:what if|suppose|hypothetic\w*|imagine|if i|if we|for example)\b/i.test(item.content)).reduce((facts, item) => ({ ...facts, ...statedGrowFacts(item.content) }), {});
 }
 
 export function recallGrowFacts(question, profile, history = []) {

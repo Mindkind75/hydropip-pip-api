@@ -1,10 +1,11 @@
 import { isFollowup } from "./conversationRouting.js";
-import { conversationGrowFacts, statedGrowFacts, recallGrowFacts } from "./growFacts.js";
+import { recallGrowResources } from './growResources.js';
+import { conversationGrowFacts, statedGrowFacts, recallGrowFacts, durableProfileSuggestion } from "./growFacts.js";
 import { buildCatalog, hydropipSystem, systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
 import { assessSiteFit, calculateNutrients, createGrowPlan, createReminder, estimateBuild, fallbackAnswer, getBuildStep, getWizardSchema, highConfidenceAnswer, isCropSelectionQuestion, recommendParts } from "./pipTools.js";
 import { affiliateProductLabel, appendNamedProductSearchLinks, normalizeAmazonAffiliateLinks } from "./pipProductLinks.js";
-import { appendProjectMessage, buildProjectContext, createReviewItem } from "./pipMemory.js";
+import { appendProjectMessage, buildProjectContext, createReviewItem, getProject } from "./pipMemory.js";
 import { formatContextForPrompt, retrieveHydroPipContext } from "./ragStore.js";
 import { combineOpenAiUsage, getPipUsageConfig, pipAiDisabled } from "./pipUsage.js";
 import { formatSeedPackSummary, parseSeedPackInventory } from "./seedInventory.js";
@@ -254,7 +255,16 @@ const tools = [
   }
 ];
 
-export async function askPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, exchangeId, beforeAiCall }) {
+export async function askPip(args) {
+  const result=await answerPip(args);
+  if(args.subscription?.active&&args.user?.id&&args.projectId&&!args.image&&!['off_topic','safety_refusal','subscription_gate'].includes(result.mode)){
+    const project=await getProject({userId:args.user.id,projectId:args.projectId});
+    if(project){const patch=durableProfileSuggestion(args.message,project.systemProfile);if(Object.keys(patch).length)result.actions=[...(result.actions||[]),{type:'profile_change',patch,label:'Review profile update'}];}
+  }
+  return result;
+}
+
+async function answerPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, exchangeId, beforeAiCall }) {
   const usageConfig = getPipUsageConfig();
   const imageInput = normalizeImageInput(image, {
     maxBytes: subscription?.active ? usageConfig.proImageBytes : usageConfig.freeMemberImageBytes
@@ -468,6 +478,12 @@ export async function askPip({ message, image, profile, subscription, history = 
     await rememberProjectMessage(projectContext,{userId,projectId,role:'assistant',content:answer,mode:'history_recall',sources});
     return {answer,mode:'history_recall',sources,projectMemory};
   }
+  const resourceRecall = !imageInput && recallGrowResources(trimmed,projectContext);
+  if(resourceRecall){
+    const sources=[{title:'Saved records for '+projectContext.project.title}];
+    await rememberProjectMessage(projectContext,{userId,projectId,role:'assistant',content:resourceRecall,mode:'saved_grow_recall',sources});
+    return {answer:resourceRecall,mode:'saved_grow_recall',sources,projectMemory};
+  }
   const recalled = !imageInput && recallGrowFacts(trimmed, effectiveProfile, factHistory);
   if (recalled) {
     await rememberProjectMessage(projectContext, { userId, projectId, role: "assistant", content: recalled, mode: "context_recall", sources: [] });
@@ -518,7 +534,7 @@ export async function askPip({ message, image, profile, subscription, history = 
         authoritativeGrowProfile: effectiveProfile,
         subscription: subscription || { active: false, plan: "free" },
         projectContext: compactProjectContext(projectContext),
-        contextRules: "Explicit facts in the current question override defaults and saved settings for this answer only. Otherwise use the selected grow profile. User statements in this conversation can fill missing facts. Assistant examples are never personal facts. No profile change is saved automatically."
+        contextRules: "Explicit facts in the current question override defaults and saved settings for this answer only. Otherwise use the selected grow profile. User statements in this conversation can fill missing facts. Assistant examples are never personal facts. No profile change is saved automatically. growBuild is only the build explicitly attached to this grow; owned and collected parts are ready, but assembly is not tracked. nutrientBatches are reviewed saved recipes, not current tank contents or reservoir capacity. Distinguish prepared batch volume from reservoir capacity. If saved dates, stages, or volumes disagree, identify their sources and ask which applies. Calculator drafts are not saved batches."
       })
     },
     ...(imageInput ? [{ type: "input_image", image_url: imageInput.dataUrl, detail: "auto" }] : [])
@@ -1584,6 +1600,9 @@ function compactProjectContext(projectContext) {
   return {
     project: projectContext.project,
     conversation: projectContext.conversation,
+    growBuild: projectContext.growBuild,
+    savedRecordConflicts: projectContext.savedRecordConflicts,
+    nutrientBatches: projectContext.nutrientBatches,
     activeReminders: projectContext.activeReminders,
     reminderCount: projectContext.reminderCount,
     recentReadings: projectContext.recentReadings,

@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import fs from "node:fs";
 import { retrieveConversationMemory } from "./conversationMemory.js";
+import { getGrowResources, resourceConflicts } from './growResources.js';
 import { nextRecurringDate, prepareRepeat, dateInZone } from "../assets/js/reminder-schedule.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -107,6 +108,7 @@ let stateCache;
 let poolPromise;
 let schemaPromise;
 let conversationMigrationPromise;
+let growResourcesMigrationPromise;
 let seedUsagePricingReconciled = false;
 let forceFileMemory = false;
 
@@ -1673,7 +1675,8 @@ export async function listProjects({ userId } = {}) {
   const state = readState();
   return Object.values(state.projects)
     .filter((project) => project.userId === ownerId)
-    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+    .map(({growResources,...project})=>project);
 }
 
 async function recordFirstGrowSave(project) {
@@ -1750,11 +1753,14 @@ export async function getProject({ userId, projectId } = {}) {
   const state = readState();
   const project = state.projects[projectId];
   if (!project || project.userId !== userId) return null;
-  return project;
+  const {growResources, ...visible} = project;
+  return visible;
 }
 
-export async function updateProject({ userId, projectId, patch = {} } = {}) {
-  const apply=project=>{for(const key of ['title','status','systemProfile'])if(patch[key]!==undefined)project[key]=key==='systemProfile'?normalizeSystemProfile({...project.systemProfile,...patch[key]},project.type):patch[key];project.updatedAt=nowIso();return project};
+export async function updateProject({ userId, projectId, patch = {}, expectedProfile } = {}) {
+  const apply=project=>{
+    if(expectedProfile)for(const [key,value] of Object.entries(expectedProfile))if(JSON.stringify(project.systemProfile[key]??null)!==JSON.stringify(value??null))throw Object.assign(Error('This profile changed on another device. Review its current values before saving.'),{statusCode:409});
+    for(const key of ['title','status','systemProfile'])if(patch[key]!==undefined)project[key]=key==='systemProfile'?normalizeSystemProfile({...project.systemProfile,...patch[key]},project.type):patch[key];project.updatedAt=nowIso();return project};
   let saved;
   if(usesPostgres()){
     const client=await (await readyPool()).connect();
@@ -2528,17 +2534,21 @@ export async function buildProjectContext({ userId, projectId, conversationId, q
   if (!userId || !projectId) return null;
   const project = await getProject({ userId, projectId });
   if (!project) return null;
-  const [conversation, reminders, readings, seeds] = await Promise.all([
+  const [conversation, reminders, readings, seeds, resources] = await Promise.all([
     resolveConversation({ userId, projectId, conversationId }),
     listProjectReminders({ userId, projectId }),
     listProjectReadings({ userId, projectId }),
-    listProjectSeeds({ userId, projectId })
+    listProjectSeeds({ userId, projectId }),
+    getGrowResources({userId,projectId})
   ]);
   if (!conversation) return null;
   const messages = (await listProjectMessages({ userId, projectId, conversationId: conversation.id, limit: 8 })) || [];
   return {
     project,
     conversation,
+    growBuild: resources.buildSummary,
+    savedRecordConflicts: resourceConflicts(project.systemProfile,resources),
+    nutrientBatches: resources.batches.slice(0, 5).map(({signature,...batch})=>batch),
     recentMessages: messages,
     retrievedMessages: question ? await retrieveConversationMemory({userId,projectId,conversationId:conversation.id,question}) : [],
     activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
@@ -2823,7 +2833,9 @@ async function ensureSchema(pool) {
   `);
   await schemaPromise;
   conversationMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/001-conversation-routing.sql',import.meta.url),'utf8')).catch(error=>{conversationMigrationPromise=null;throw error});
-  return conversationMigrationPromise;
+  await conversationMigrationPromise;
+  growResourcesMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/002-grow-resources.sql',import.meta.url),'utf8')).catch(error=>{growResourcesMigrationPromise=null;throw error});
+  return growResourcesMigrationPromise;
 }
 
 async function upsertUserPg(normalized) {
@@ -3012,7 +3024,7 @@ function normalizeCelebratedMilestones(value) {
     : [];
 }
 
-function normalizeBuildEstimate(value) {
+export function normalizeBuildEstimate(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const sourceOptions = value.options && typeof value.options === "object" ? value.options : {};
   const clampInteger = (input, min, max, fallback) => {

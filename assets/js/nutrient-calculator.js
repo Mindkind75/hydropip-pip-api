@@ -1,3 +1,5 @@
+import {calculateRecipe,roundAmount} from "./nutrient-recipe.js";
+import {calculatorInput,initGrowCalculator} from "./nutrient-grow.js";
 (function () {
   "use strict";
 
@@ -15,6 +17,7 @@
   var nutrientSafetyDisclaimer = "HydroPip nutrient calculations are educational estimates for a fresh reservoir batch, not professional agronomic, food-safety, medical, or chemical-handling advice. Verify all amounts against the nutrient product label, your crop, your water source, and local agricultural guidance before mixing. Do not add a full new dose to a partly used reservoir unless the product label and your own measurements support it. Over-fertilization can injure plants, contaminate runoff, and make edible crops unsafe or poor quality. Store nutrients and pH adjusters away from children and pets, wear appropriate protection, mix only in the recommended order, and never premix concentrated MasterBlend and calcium nitrate together.";
   var config = null;
   var hasCalculated = false;
+  var growTools=null;
   var stageLabels = {
     seedling: "Seeds / seedlings",
     early_vegetative: "Early vegetative growth",
@@ -32,12 +35,6 @@
 
   function option(value, label) {
     return '<option value="' + escapeHtml(value) + '">' + escapeHtml(label) + "</option>";
-  }
-
-  function roundAmount(value) {
-    if (value >= 100) return Math.round(value);
-    if (value >= 10) return Math.round(value * 10) / 10;
-    return Math.round(value * 100) / 100;
   }
 
   function gallonsFromForm() {
@@ -82,40 +79,6 @@
     changed.hidden = false;
   }
 
-  function componentsForProgram(program, gallons) {
-    var stage = program.stages[form.stage.value];
-    var scale = program.kind === "scaledPreset" ? gallons / program.standardGallons : gallons;
-    return {
-      stage: stage,
-      components: stage.components.map(function (component) {
-        var unit = component.unit;
-        var totalUnit = unit.indexOf("ml") === 0 ? "ml" : "g";
-        return { name: component.name, amount: roundAmount(component.amount * scale), unit: totalUnit };
-      })
-    };
-  }
-
-  function customComponents(gallons) {
-    var liters = gallons * 3.78541;
-    var components = [];
-    for (var index = 1; index <= 3; index += 1) {
-      var name = document.querySelector("#customName" + index).value.trim();
-      var rateValue = document.querySelector("#customRate" + index).value;
-      var rate = Number(rateValue);
-      var unit = document.querySelector("#customUnit" + index).value;
-      if (!name && !rateValue) continue;
-      if (!name || !Number.isFinite(rate) || rate <= 0) throw new Error("Give every custom product a name and a rate greater than zero.");
-      var perLiter = unit.slice(-2) === "/L";
-      components.push({
-        name: name,
-        amount: roundAmount(rate * (perLiter ? liters : gallons)),
-        unit: unit.indexOf("ml") === 0 ? "ml" : "g"
-      });
-    }
-    if (!components.length) throw new Error("Enter at least one product and its label rate.");
-    return components;
-  }
-
   function amountCards(components) {
     return components.map(function (component) {
       return '<div class="amount"><strong>' + escapeHtml(component.amount + " " + component.unit) + '</strong><span>' + escapeHtml(component.name) + "</span></div>";
@@ -128,7 +91,7 @@
     changed.hidden = true;
     var volume = Number(form.volume.value);
     if (!Number.isFinite(volume) || volume <= 0 || volume > 10000) {
-      error.textContent = "Enter a reservoir volume between 1 and 10,000 gallons or liters.";
+      error.textContent = "Enter a batch volume between 1 and 10,000 gallons or liters.";
       error.hidden = false;
       form.volume.focus();
       return;
@@ -149,27 +112,8 @@
     }
 
     try {
-      var stageData = null;
-      var components = null;
-      var source = "Your product label";
-      var sourceUrl = "";
-      var title = "Custom label rate";
-      var reason = "The calculator scaled the exact rate you entered without changing the manufacturer's formula.";
-      var mixingOrder = ["Add products one at a time to fresh water.", "Mix thoroughly between products.", "Follow the product label for any required order or incompatibilities.", "Check EC, then adjust pH after the complete solution is mixed."];
-
-      if (program) {
-        var calculated = componentsForProgram(program, gallons);
-        stageData = calculated.stage;
-        components = calculated.components;
-        source = program.sourceLabel;
-        sourceUrl = program.sourceUrl;
-        title = program.label;
-        reason = stageData.reason;
-        mixingOrder = program.mixingOrder;
-      } else {
-        components = customComponents(gallons);
-      }
-
+      var recipe=calculateRecipe(config,calculatorInput(form));
+      var stageData={targetEc:recipe.targetEc},components=recipe.components,source=recipe.source,sourceUrl=recipe.sourceUrl,title=recipe.title,reason=recipe.reason,mixingOrder=recipe.mixingOrder;
       var sourceMarkup = sourceUrl ? '<a class="source-link" href="' + escapeHtml(sourceUrl) + '" target="_blank" rel="noopener">' + escapeHtml(source) + "</a>" : escapeHtml(source);
       result.innerHTML = '<div class="result-head"><div><p class="eyebrow">Calculated for ' + escapeHtml(displayVolume()) + '</p><h2>' + escapeHtml(title) + '</h2></div><span class="btn">' + escapeHtml(system.label) + '</span></div>' +
         '<div class="recipe">' + amountCards(components) + '</div>' +
@@ -180,9 +124,10 @@
         '<h3>Operate this system</h3><p class="reason">' + escapeHtml(system.operation) + '</p>' +
         '<p class="fine"><strong>Recipe source:</strong> ' + sourceMarkup + '. ' + escapeHtml(config.disclaimer) + '</p>' +
         '<div class="warning"><strong>Important nutrient safety:</strong><br>' + escapeHtml(nutrientSafetyDisclaimer) + '</div>' +
-        '<div class="result-actions"><button class="btn secondary" type="button" id="printResult">Print this mix</button><a class="btn primary" href="https://www.hydropip.com/pip" target="_top">Ask Pip about this grow</a></div>';
+        '<div class="result-actions"><button class="btn secondary" type="button" id="printResult">Print this mix</button><a class="btn primary" href="' + escapeHtml(growTools?growTools.askLink():"https://www.hydropip.com/pip") + '" target="_top">Ask Pip about this grow</a></div>';
       document.querySelector("#printResult").addEventListener("click", function () { window.print(); });
       hasCalculated = true;
+      if(growTools)growTools.calculated(recipe);
     } catch (caught) {
       error.textContent = caught.message;
       error.hidden = false;
@@ -210,6 +155,8 @@
   }
 
   function showMemberGate(message) {
+    var growId=new URLSearchParams(location.search).get('projectId');
+    if(growId)accessActions.querySelectorAll('a').forEach(function(link){var url=new URL(link.href);url.searchParams.set('projectId',growId);link.href=url.href;});
     document.body.classList.remove("access-pending");
     document.body.classList.add("access-blocked");
     accessTitle.textContent = "Sign in to calculate your mix.";
@@ -247,7 +194,7 @@
     }
     if (!response.ok) throw new Error("Unable to load nutrient programs.");
     return response.json();
-  }).then(function (data) {
+  }).then(async function (data) {
     config = data;
     populateSelect(form.system, config.systems);
     populateSelect(form.crop, config.crops);
@@ -272,6 +219,7 @@
       markDirty();
     });
     form.addEventListener("input", markDirty);
+    growTools=await initGrowCalculator({form,config,token,updateProgramUi,clearResult:function(){hasCalculated=false;changed.hidden=true;result.innerHTML='<div class="result-empty"><div><strong>Calculate to review this mix.</strong>Check the inputs and the selected grow before saving a batch.</div></div>';}});
   }).catch(function (caught) {
     if (caught.message === "member_session_required") {
       showMemberGate("Your member session has expired. Sign in again to use the HydroPip calculator. Pip Pro unlocks other systems and nutrient programs.");

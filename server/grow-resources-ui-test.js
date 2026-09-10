@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict';import path from 'node:path';import {createRequire} from 'node:module';
+export async function runGrowUiChecks({base,user,pro,token,grow,second,ok,check,out}) {
+  const {chromium}=createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE||'playwright');
+  const browser=await chromium.launch(),context=await browser.newContext({viewport:{width:1365,height:960}}),page=await context.newPage(),errors=[];
+  await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());page.on('pageerror',error=>errors.push(error.message));
+  const until=async fn=>{for(let i=0;i<160;i++){if(await fn())return;await new Promise(r=>setTimeout(r,50));}throw Error('Timed out waiting for the expected saved state');};
+  const calculator=async id=>{await page.goto(base+'/nutrient-calculator.html?projectId='+id+'#session='+encodeURIComponent(token));await until(async()=>!(await page.locator('#nutrientGrow').isDisabled())&&await page.locator('#nutrientCapacity').innerText()!=='');};
+  const resource=async (id=grow.id)=>(await ok('/projects/'+id+'/resources')).resources;
+  try {
+    await check('Browser canonical redirect preserves the selected grow and restores its 10 gallon draft',async()=>{await calculator(grow.id);assert.match(page.url(),new RegExp('projectId='+grow.id));assert.equal(await page.locator('#nutrientGrow').inputValue(),grow.id);assert.equal(await page.locator('#volume').inputValue(),'10');});
+    await check('Use grow settings then prepare a smaller batch; review is required and a double click saves once',async()=>{
+      await page.getByRole('button',{name:'Use grow settings',exact:true}).click();assert.equal(await page.locator('#volume').inputValue(),'37');
+      await page.locator('#volume').fill('10');await page.getByRole('button',{name:'Calculate my nutrient mix',exact:true}).click();assert.match(await page.locator('#result').innerText(),/14.5 g/);
+      assert.equal((await resource()).batches.length,0);await page.locator('#reviewNutrientBatch').click();await page.locator('#nutrientBatchDialog').waitFor({state:'visible'});assert.match(await page.locator('#nutrientBatchReview').innerText(),/Reservoir capacity stays 37 gallons/);
+      await page.locator('#confirmNutrientBatch').dblclick();await until(async()=>(await resource()).batches.length===1);assert.equal((await ok('/projects/'+grow.id)).project.systemProfile.reservoirGallons,37);
+      await until(async()=>!await page.locator('#nutrientBatchDialog').isVisible());await page.reload();await until(async()=>await page.locator('[data-correct-batch]').count()===1);assert.equal(await page.locator('#volume').inputValue(),'10');
+    });
+    await check('Switching grows hides prior batches and restores only the selected grow inputs',async()=>{await page.locator('#nutrientGrow').selectOption(second.id);await until(async()=>(await page.locator('#nutrientCapacity').innerText()).includes('80 gallons'));assert.equal(await page.locator('[data-correct-batch]').count(),0);assert.equal(await page.locator('#volume').inputValue(),'275');await page.locator('#nutrientGrow').selectOption(grow.id);await until(async()=>await page.locator('[data-correct-batch]').count()===1);assert.equal(await page.locator('#volume').inputValue(),'10');});
+    await check('Correcting a saved batch replaces it after review; deleting removes it from saved history',async()=>{
+      await page.locator('[data-correct-batch]').click();await page.locator('#volume').fill('12');await page.getByRole('button',{name:'Calculate my nutrient mix',exact:true}).click();await page.locator('#reviewNutrientBatch').click();await page.locator('#nutrientBatchDialog').waitFor({state:'visible'});assert.match(await page.locator('#confirmNutrientBatch').innerText(),/corrected/);await page.locator('#confirmNutrientBatch').click();await until(async()=>(await resource()).batches[0]?.recipe.input.volume===12);assert.equal((await resource()).batches.length,1);
+      page.once('dialog',dialog=>dialog.accept());await page.locator('[data-delete-batch]').click();await until(async()=>(await resource()).batches.length===0);assert.equal((await ok('/projects/'+grow.id+'/rhythm')).rhythm.latestSavedBatch,null);
+    });
+    await check('An offline calculator edit survives reload and syncs when the request is retried',async()=>{
+      await page.route('**/nutrient-draft',route=>route.abort());await page.locator('#volume').fill('13');await until(async()=>await page.locator('#nutrientDraftResolve').isVisible());await page.reload();await until(async()=>await page.locator('#volume').inputValue()==='13');
+      await page.unroute('**/nutrient-draft');await page.locator('#retryNutrientDraft').click();await until(async()=>(await resource()).draft.fields.volume==='13');
+    });
+    await check('Grow build loads its copy, changes stay scoped, and another grow requires explicit attachment',async()=>{
+      await page.goto(base+'/parts-checklist.html?projectId='+grow.id+'#session='+encodeURIComponent(token));await until(async()=>(await page.locator('#estimateStatus').innerText()).includes('up to date'));assert.equal(await page.locator('#buildGrowSelect').inputValue(),grow.id);assert.equal(await page.locator('#systemSize').inputValue(),'3');
+      const boxes=page.locator('.check');const target=await boxes.nth(1).getAttribute('data-id');await boxes.nth(1).setChecked(true);await until(async()=>Boolean((await resource()).build.checked[target]));
+      await page.locator('#buildGrowSelect').selectOption(second.id);await until(async()=>await page.locator('#buildGrowAttach').isVisible());assert.equal((await resource(second.id)).build,undefined);await page.locator('#buildCopyAccount').click();await until(async()=>Boolean((await resource(second.id)).build));assert.equal((await resource(second.id)).build.options.towers,3);
+    });
+    await check('What Pip knows shows sources and profile changes require an explicit reviewed save',async()=>{
+      await page.goto(base+'/batch-three-pro');const frame=page.frameLocator('#pip');await until(async()=>await frame.locator('body').getAttribute('class').then(value=>value.includes('pro-active')));await frame.locator('[data-pro-page="build"]').click();await frame.getByRole('button',{name:'What Pip knows about this grow',exact:true}).click();await frame.getByRole('button',{name:'Review a profile change',exact:true}).waitFor();
+      assert.match(await frame.locator('#growMemoryContent').innerText(),/37/);assert.match(await frame.locator('#growMemoryContent').innerText(),/Saved records to check/);
+      await frame.getByRole('button',{name:'Review a profile change',exact:true}).click();await frame.locator('#growMemoryForm [name="reservoirGallons"]').fill('42');await frame.getByRole('button',{name:'Review changes',exact:true}).click();assert.equal((await ok('/projects/'+grow.id)).project.systemProfile.reservoirGallons,37);
+      await frame.getByRole('button',{name:'Save to profile',exact:true}).click();await until(async()=>(await ok('/projects/'+grow.id)).project.systemProfile.reservoirGallons===42);
+    });
+    await check('Chat offers a concrete profile change and saves it only after the separate review',async()=>{
+      await page.goto(base+'/batch-three-chat');const frame=page.frameLocator('#pip');await until(async()=>await frame.locator('#pipConversationSelect option').count()>=8);await frame.locator('#pipInput').fill('My reservoir is now 55 gallons. How should I plan my next nutrient mix?');await frame.locator('#pipForm button[type="submit"]').click();
+      await until(async()=>await frame.getByRole('button',{name:'Review profile update',exact:true}).count()>0||await frame.locator('.conversation-dialog[open]').count()>0);
+      if(await frame.locator('.conversation-dialog[open]').count()){await frame.getByLabel('Conversation destination').selectOption({label:'Feeding & Nutrients'});await frame.getByRole('button',{name:'Continue',exact:true}).click();}
+      await frame.getByRole('button',{name:'Review profile update',exact:true}).click();await frame.getByRole('button',{name:'Save to profile',exact:true}).waitFor();assert.equal(await frame.locator('#growMemoryForm [name="reservoirGallons"]').inputValue(),'55');assert.equal((await ok('/projects/'+grow.id)).project.systemProfile.reservoirGallons,42);
+      await frame.getByRole('button',{name:'Save to profile',exact:true}).click();await until(async()=>(await ok('/projects/'+grow.id)).project.systemProfile.reservoirGallons===55);
+    });
+    await check('Mobile calculator and memory panel fit a narrow screen',async()=>{
+      await page.setViewportSize({width:390,height:844});await calculator(grow.id);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:path.join(out,'calculator-mobile.png'),fullPage:true});
+      await page.goto(base+'/batch-three-pro');const frame=page.frameLocator('#pip');await frame.locator('[data-pro-page="build"]').click();await frame.getByRole('button',{name:'What Pip knows about this grow',exact:true}).click();await frame.getByRole('button',{name:'Review a profile change',exact:true}).waitFor();const box=await frame.locator('.grow-memory-dialog').boundingBox();assert.ok(box.width<=390);await page.screenshot({path:path.join(out,'memory-mobile.png')});
+      await page.goto(base+'/batch-three-chat');await until(async()=>await frame.locator('#pipConversationSelect option').count()>=8 && await frame.locator('#pipLog .msg.user').count()>0);await frame.locator('#pipInput').waitFor();const trigger=frame.getByRole('button',{name:'What Pip knows',exact:true}),triggerBox=await trigger.boundingBox();assert.ok(triggerBox.x>=0&&triggerBox.x+triggerBox.width<=390);const composer=await frame.locator('#pipInput').boundingBox();assert.ok(composer.y+composer.height<844,'Chat composer must remain inside the mobile viewport');await page.screenshot({path:path.join(out,'chat-mobile.png')});
+    });
+    await check('No browser exceptions in Batch 3 journeys',async()=>assert.deepEqual(errors,[]));
+  }catch(error){console.error('BROWSER_FAILURE '+JSON.stringify({errors,body:(await page.locator('body').innerText()).slice(-2500),frame:await page.frameLocator('#pip').locator('body').innerText({timeout:1000}).then(text=>text.slice(-4000)).catch(()=>null)}));await page.screenshot({path:path.join(out,'failure.png')});throw error;}finally{await browser.close();}
+}

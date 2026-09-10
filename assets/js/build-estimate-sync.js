@@ -17,8 +17,8 @@ function canonical(keys, value) {
 }
 
 export class BuildEstimateSync {
-  constructor({memberId, storage = localStorage, request, onChange, onStatus, onEvent = () => {}, retryMs = 5000}) {
-    this.key = 'hydropipBuildSyncV3:' + encodeURIComponent(memberId);
+  constructor({memberId, projectId = '', storage = localStorage, request, onChange, onStatus, onEvent = () => {}, retryMs = 5000}) {
+    this.key = 'hydropipBuildSyncV3:' + encodeURIComponent(memberId) + (projectId ? ':grow:' + encodeURIComponent(projectId) : '');
     this.storage=storage; this.request=request; this.onChange=onChange; this.onStatus=onStatus; this.onEvent=onEvent;
     this.retryMs=retryMs; this.disposed=false; this.timer=null; this.running=null;
     this.state=this.read();

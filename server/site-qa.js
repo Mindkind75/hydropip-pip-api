@@ -117,7 +117,7 @@ assert.match(partsChecklistHtml, /\/assets\/marketing\/pip-print-checklist\.png/
 assert.match(partsChecklistHtml, /\/print-parts-guide\.html/, "Track My Build should open the dedicated printable parts guide");
 assert.match(partsChecklistHtml, /\/data\/build-items\.json/, "Track My Build should load its prices from the centralized build catalog");
 assert.match(partsChecklistHtml, /class="track-access"/, "Track My Build should hide the checklist behind a branded member gate until Wix verifies the session");
-assert.match(partsChecklistHtml, /if\(!sessionToken\|\|!memberKey\)return/, "Track My Build must require a session token before starting member sync; API authorization validates its signature");
+assert.match(partsChecklistHtml, /if\(!sessionToken\|\|!memberKey\)\{[^}]*return\}/, "Track My Build must require a session token before starting member sync; API authorization validates its signature");
 assert.match(partsChecklistHtml, /pro=signup&amp;return=track/, "Track My Build signup should return the new member to the checklist");
 assert.match(pipHtml, /authReturn==="track"[\s\S]*hydropip\.com\/track-my-build/, "Pip authentication should return build-path members to Track My Build");
 assert.doesNotMatch(trackStartHtml, /nutrient-calculator\.html/, "The pre-build Track page should not duplicate the member nutrient tool");
@@ -135,13 +135,16 @@ assert.match(nutrientCalculatorHtml, /Calculate my nutrient mix/, "The nutrient 
 assert.match(nutrientCalculatorJs, /HydroPip nutrient calculations are educational estimates for a fresh reservoir batch/, "Calculated nutrient results need the exact educational safety disclaimer");
 assert.match(nutrientCalculatorJs, /Another brand - use my label rate/, "The nutrient calculator should support growers using another labeled nutrient");
 assert.doesNotMatch(nutrientCalculatorJs, /addEventListener\(["']change["'],\s*render\)/, "Changing an input must not calculate a recipe before the button is pressed");
-assert.doesNotThrow(() => new Function(nutrientCalculatorJs), "The nutrient calculator JavaScript should parse");
+for(const file of ['nutrient-calculator.js','nutrient-grow.js','nutrient-recipe.js','grow-understanding.js']){
+  const {execFileSync}=await import('node:child_process');const {fileURLToPath}=await import('node:url');
+  assert.doesNotThrow(()=>execFileSync(process.execPath,['--check',fileURLToPath(new URL('../assets/js/'+file,import.meta.url))],{stdio:'pipe'}),file+' should parse as an ES module');
+}
 assert.match(fieldGuideHtml, /pip\?tool=nutrients/, "The Field Guide should hand members into the nutrient calculator before planting");
 assert.match(fieldGuideHtml, /Before adding seeds or transplants/, "The Field Guide should place nutrient calculation before planting");
 const plannerPanelHtml = pipHtml.match(/<section class="workspace-section notebook-page" data-pro-panel="planner"[\s\S]*?<section class="workspace-section notebook-page" data-pro-panel="calendar"/)?.[0] || "";
 const trackBuildPanelHtml = pipHtml.match(/<section class="workspace-section notebook-page" data-pro-panel="build"[\s\S]*?<section class="workspace-section notebook-page" data-pro-panel="account"/)?.[0] || "";
-assert.match(plannerPanelHtml, /nutrient-calculator\.html/, "The nutrient calculator should live in the Pip Pro Planner");
-assert.doesNotMatch(trackBuildPanelHtml, /nutrient-calculator\.html/, "Track My Build should stay focused on parts and construction");
+assert.match(plannerPanelHtml, /nutrient-calculator/, "The nutrient calculator should live in the Pip Pro Planner");
+assert.doesNotMatch(trackBuildPanelHtml, /nutrient-calculator/, "Track My Build should stay focused on parts and construction");
 assert.match(pipHtml, /requestedTool==="nutrients"/, "Pip should securely hand signed members into the Field Guide nutrient tool");
 const nutrientPrograms = JSON.parse(fs.readFileSync(new URL("../data/nutrient-programs.json", import.meta.url), "utf8"));
 for (const programId of ["hydropip_masterblend", "masterblend_label", "jacks_321", "gh_flora_3part"]) {
