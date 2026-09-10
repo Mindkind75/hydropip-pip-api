@@ -12,6 +12,7 @@ export async function runDailyUiChecks({base,user,other,pro,token,grow,second,in
    const reads=[];page.on('request',r=>{if(r.method()==='GET'&&/\/projects\/[^/]+\/(workspace|reminders|readings|seeds|rhythm|seed-plan)(\?|$)/.test(r.url()))reads.push(r.url())});
    await page.goto(base+'/batch-four-pro');await ready();assert.equal(reads.length,1);assert.ok(reads[0].includes('/workspace?timezone=America%2FNew_York'));
    assert.match(await frame.locator('#proRhythmSummary').innerText(),/overdue/);assert.match(await frame.locator('#proRhythmCrops').innerText(),/12 seeds planted/);
+   const planting=(await savedSeeds()).find(s=>s.seedsSown===12);const displayed=await frame.evaluate(value=>new Date(value+'T12:00:00').toLocaleDateString([],{month:'short',day:'numeric',year:new Date(value+'T12:00:00').getFullYear()!==new Date().getFullYear()?'numeric':undefined}),planting.sowDate);assert.ok((await frame.locator('#proRhythmCrops').innerText()).includes('Sown '+displayed),'A date-only planting must retain its saved day in the browser time zone');
    await frame.locator('#proRhythmSuggestion [data-rhythm-source]').click();await frame.locator('#proReminderList .rhythm-source-focus').waitFor();assert.equal(await frame.locator('[data-pro-panel="planner"]').getAttribute('class').then(c=>c.includes('active')),true);
   });
   await check('Focused planting form reviews grow, date and quantity; cancel leaves inventory and plantings untouched',async()=>{
@@ -44,7 +45,7 @@ export async function runDailyUiChecks({base,user,other,pro,token,grow,second,in
    await modal().locator('[name=seedsSown]').fill('4');await modal().getByRole('button',{name:'Review planting',exact:true}).click();await modal().locator('[data-action-confirm]').waitFor();
    const box=await modal().boundingBox();assert.ok(box.x>=0&&box.x+box.width<=390);assert.equal(await modal().evaluate(d=>d.scrollWidth<=d.clientWidth+1),true);
    await page.screenshot({path:path.join(out,'mobile-planting-review.png')});await modal().getByRole('button',{name:'Cancel',exact:true}).click();
-   await frame.locator('button[data-pro-page="rhythm"]').click();await frame.locator('#proRhythmSuggestion').evaluate(el=>el.scrollIntoView({block:'start'}));await page.screenshot({path:path.join(out,'mobile-rhythm.png')});await page.setViewportSize({width:1365,height:960});
+   await frame.locator('button[data-pro-page="rhythm"]').click();await frame.locator('#proRhythmSuggestion').evaluate(el=>el.scrollIntoView({block:'start'}));await page.mouse.move(389,0);await page.screenshot({path:path.join(out,'mobile-rhythm.png')});await page.setViewportSize({width:1365,height:960});
   });
   await check('Chat task suggestions use the review dialog; photo packets remain editable before the canonical review',async()=>{
    await page.goto(base+'/batch-four-chat');await until(async()=>{frame=page.frames().find(f=>f.url().includes('/pip.html'));return frame&&await frame.locator('#pipInput').isEnabled()&&await frame.locator('#pipConversationSelect option').count()>0});
