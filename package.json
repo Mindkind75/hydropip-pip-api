@@ -15,7 +15,7 @@
     "qa:seo": "node server/seo-qa.js",
     "qa:conversions": "node server/conversion-tracking-test.js",
     "qa:affiliate": "node server/affiliate-link-test.js",
-    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip && npm run qa:launch && npm run qa:daily && npm run qa:daily-sdk",
+    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip && npm run qa:launch && npm run qa:daily && npm run qa:daily-sdk && npm run qa:cleanup && npm run qa:cleanup-sdk",
     "qa:launch": "node server/launch-regression-test.js",
     "qa:launch-ui": "node server/launch-ui-test.js",
     "qa:chat-ui": "node server/pip-chat-ui-test.cjs",
@@ -32,7 +32,10 @@
     "qa:daily": "node server/daily-guidance-test.js",
     "qa:daily-ui": "node server/daily-guidance-test.js --ui",
     "qa:daily-postgres": "node server/daily-guidance-test.js --postgres",
-    "qa:daily-sdk": "node server/daily-guidance-sdk-test.js"
+    "qa:daily-sdk": "node server/daily-guidance-sdk-test.js",
+    "qa:cleanup": "node server/pip-cleanup-test.js",
+    "qa:cleanup-sdk": "node server/pip-cleanup-sdk-test.js",
+    "qa:cleanup-ui": "node server/pip-cleanup-test.js --ui"
   },
   "overrides": {
     "qs": "6.16.0"

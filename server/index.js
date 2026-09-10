@@ -8,6 +8,7 @@ import net from "node:net";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { askPip } from "./pipAgent.js";
+import { logPipTiming } from "./pipPerformance.js";
 import { createGrowPlan, createReminder, getBuildStep, getWizardSchema, recommendParts } from "./pipTools.js";
 import { retrieveHydroPipContext } from "./ragStore.js";
 import {
@@ -1148,6 +1149,9 @@ app.post("/api/pip/reminders", requirePipMember, (req, res) => {
 });
 
 app.post("/api/pip/chat", async (req, res, next) => {
+  const requestStarted = performance.now();
+  let preAnswerMs, answerTiming, answerMode;
+  res.on("finish", () => logPipTiming({ status: res.statusCode, serverMs: performance.now() - requestStarted, preAnswerMs, answer: answerTiming, mode: answerMode }));
   let claimedPhotoCheck = false;
   let chatExchange = null;
   let routingResult = null;
@@ -1232,6 +1236,7 @@ app.post("/api/pip/chat", async (req, res, next) => {
       if(routingResult.existing){const existing=routingResult.exchange;if(existing.reply)return res.status(existing.reply.errorStatus||200).json(existing.reply);return res.status(202).json({pending:true,exchange:{id:existing.id,conversationId:existing.conversationId,status:existing.status}})}
       chatExchange=routingResult.exchange;
     }
+    preAnswerMs = performance.now() - requestStarted;
     const result = await askPip({
       ...(req.body || {}),
       user: access.user,
@@ -1272,6 +1277,9 @@ app.post("/api/pip/chat", async (req, res, next) => {
         }
       }
     });
+
+    answerTiming = result.performance;
+    answerMode = result.mode;
 
     if (aiReservation?.allowed) {
       if (result.aiUsage) {
@@ -1317,6 +1325,8 @@ app.post("/api/pip/chat", async (req, res, next) => {
     if(chatExchange){result.routing={...routingResult.route,title:routingResult.destination.title,conversationId:chatExchange.conversationId};await finishChatExchange({userId:access.user.id,projectId:chatExchange.projectId,exchangeId:chatExchange.id,reply:result});}
     res.json(result);
   } catch (error) {
+    answerTiming = error.pipPerformance || answerTiming;
+    answerMode = "error";
     if(chatExchange){try{await finishChatExchange({userId:access.user.id,projectId:chatExchange.projectId,exchangeId:chatExchange.id,status:'failed',reply:{error:error.code||'chat_failed',message:error.message,errorStatus:error.statusCode||500}})}catch(persistError){console.warn('Could not finalize exchange: '+persistError.message)}}
     if (aiReservation?.allowed) {
       try {

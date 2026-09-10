@@ -4,6 +4,7 @@ import { dateInZone, reminderInstant, zonedDate } from '../assets/js/reminder-sc
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function buildRhythmOverview({ project, reminders = [], seeds = [], readings = [], seedDashboard = null, now = new Date(), timezone = 'UTC' } = {}) {
+  const todayKey = dateInZone(now, timezone);
   const today = reminderInstant(dateInZone(now,timezone),timezone);
   const nextDay = new Date(dateInZone(now,timezone)+'T12:00:00Z');nextDay.setUTCDate(nextDay.getUTCDate()+1);
   const endOfToday = new Date(reminderInstant(nextDay.toISOString().slice(0,10),timezone).getTime()-1);
@@ -41,7 +42,10 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     nextSuccessionDate: seed.nextSuccessionDate || null,
     timingEstimated: seed.timingEstimateBasis === "crop_stage_estimate"
   })).sort((a, b) => String(a.locationLabel).localeCompare(String(b.locationLabel)) || String(a.crop).localeCompare(String(b.crop)));
-  const sowNow = (seedDashboard?.groups?.plantNow || []).slice(0, 8).map((recommendation) => {
+  const readyRecommendations = [...(seedDashboard?.groups?.plantNow || []),
+    ...(seedDashboard?.groups?.startNext || []).filter(item => calendarDay(item.bestSowDate) === todayKey)];
+  const readySeedIds = new Set();
+  const sowNow = readyRecommendations.map((recommendation) => {
     const owned = findMatchingSeed(inventory, recommendation.crop);
     return {
       crop: recommendation.crop,
@@ -52,7 +56,10 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
       packsOnHand: Number(owned?.packsOnHand || 0),
       seedId: owned?.id || null
     };
-  }).filter((item) => item.packsOnHand > 0).sort((a, b) => b.packsOnHand - a.packsOnHand || a.crop.localeCompare(b.crop));
+  }).filter(item => {
+    if (item.packsOnHand <= 0 || readySeedIds.has(item.seedId)) return false;
+    readySeedIds.add(item.seedId); return true;
+  }).sort((a, b) => b.packsOnHand - a.packsOnHand || a.crop.localeCompare(b.crop)).slice(0, 8);
 
   const turnoverDue = ["harvest_ready", "harvesting"].includes(String(profile.rhythmStage || "").toLowerCase())
     || activeCrops.some((seed) => ["harvest_ready", "harvesting"].includes(String(seed.status || "").toLowerCase()))
@@ -69,14 +76,15 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     sourceId: item.id
   }));
   for (const seed of activeCrops.filter((item) => item?.succession && item?.sowDate)) {
-    const next = nextSuccessionDate(seed, today);
+    const next = nextSuccessionDate(seed, todayKey);
     if (!next) continue;
-    comingNext.push({ type: "succession", title: `Succession sow ${seed.crop}`, date: next.toISOString(), sourceId: seed.id });
+    comingNext.push({ type: "succession", title: `Succession sow ${seed.crop}`, date: next, sourceId: seed.id });
   }
   for (const item of (seedDashboard?.groups?.startNext || []).slice(0, 6)) {
     const owned = findMatchingSeed(inventory, item.crop);
-    if (!owned) continue;
-    comingNext.push({ type: "season", title: `Start next: ${item.crop}`, date: dateOrNull(item.bestSowDate)?.toISOString() || null, sourceId: owned.id, detail: item.reason });
+    const day = calendarDay(item.bestSowDate);
+    if (!owned || !day || day <= todayKey) continue;
+    comingNext.push({ type: "season", title: `Start next: ${item.crop}`, date: day, sourceId: owned.id, detail: item.reason });
   }
   const uniqueComingNext = [];
   const seenComingNext = new Set();
@@ -194,14 +202,24 @@ function transferCheck(seed, { today, turnoverDue }) {
 }
 
 function nextSuccessionDate(seed, today) {
-  const saved = dateOrNull(seed.nextSuccessionDate);
+  const saved = calendarDay(seed.nextSuccessionDate);
   if (saved && saved >= today) return saved;
-  const base = dateOrNull(seed.sowDate);
+  const base = calendarDay(seed.sowDate);
   if (!base) return null;
-  const interval = Math.max(7, Math.min(90, Number(seed.successionIntervalDays || 21)));
-  const next = new Date(base);
-  do next.setDate(next.getDate() + interval); while (next < today);
-  return next;
+  const rawInterval = Number(seed.successionIntervalDays || 21);
+  const interval = Number.isFinite(rawInterval) ? Math.max(7, Math.min(90, Math.round(rawInterval))) : 21;
+  const next = new Date(base + 'T12:00:00Z');
+  const elapsed = (new Date(today + 'T12:00:00Z') - next) / DAY_MS;
+  next.setUTCDate(next.getUTCDate() + Math.max(1, Math.ceil(elapsed / interval)) * interval);
+  return next.toISOString().slice(0, 10);
+}
+
+// Planting dates are calendar days, not UTC instants. Keep them as date-only
+// strings so both sides of the international date line see the saved day.
+function calendarDay(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+  const date = new Date(value + 'T12:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : null;
 }
 
 function findMatchingSeed(seeds, crop) {

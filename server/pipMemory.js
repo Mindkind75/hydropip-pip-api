@@ -1,3 +1,4 @@
+import { scheduleContext } from './savedSchedule.js';
 import {createHash} from 'node:crypto';
 import fs from "node:fs";
 import { retrieveConversationMemory } from "./conversationMemory.js";
@@ -2544,15 +2545,19 @@ export async function buildProjectContext({ userId, projectId, conversationId, q
     getGrowResources({userId,projectId})
   ]);
   if (!conversation) return null;
-  const messages = (await listProjectMessages({ userId, projectId, conversationId: conversation.id, limit: 8 })) || [];
+  const [messages, retrievedMessages] = await Promise.all([
+    listProjectMessages({ userId, projectId, conversationId: conversation.id, limit: 8 }),
+    question ? retrieveConversationMemory({userId,projectId,conversationId:conversation.id,question}) : []
+  ]);
   return {
     project,
     conversation,
     growBuild: resources.buildSummary,
     savedRecordConflicts: resourceConflicts(project.systemProfile,resources),
     nutrientBatches: resources.batches.slice(0, 5).map(({signature,...batch})=>batch),
-    recentMessages: messages,
-    retrievedMessages: question ? await retrieveConversationMemory({userId,projectId,conversationId:conversation.id,question}) : [],
+    recentMessages: messages || [],
+    retrievedMessages,
+    ...scheduleContext(reminders || []),
     activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
     reminderCount: (reminders || []).length,
     recentReadings: (readings || []).slice(-10),

@@ -1,3 +1,4 @@
+import { dateInZone } from '../assets/js/reminder-schedule.js';
 import {getProject,listProjectReminders,listProjectSeeds,listProjectReadings,listProjectMessages} from './pipMemory.js';
 import {getGrowResources,resourceConflicts} from './growResources.js';
 import {getSeedPlanningDashboard} from './plantingCalendar.js';
@@ -13,7 +14,7 @@ export async function growWorkspace({userId,projectId,now=new Date(),timezone='U
     listProjectMessages({...args,allConversations:true,limit:12})
   ]);
   const p=project.systemProfile;
-  const dashboard=p.growZone?getSeedPlanningDashboard({growZone:p.growZone,location:p.location,areaType:p.areaType,date:now.toISOString().slice(0,10)}):null;
+  const dashboard=p.growZone?getSeedPlanningDashboard({growZone:p.growZone,location:p.location,areaType:p.areaType,date:dateInZone(now,timezone)}):null;
   const rhythm=buildRhythmOverview({project,reminders,seeds,readings,seedDashboard:dashboard,now,timezone});
   const conflicts=resourceConflicts(p,resources);
   rhythm.latestSavedBatch=resources.batches[0]||null;rhythm.batchConflicts=conflicts;

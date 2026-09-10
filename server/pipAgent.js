@@ -1,4 +1,6 @@
 import {dailyGuidance} from './pipGuidance.js';
+import { createPipTiming, timePipStage, timePipStageSync, timePipProvider } from './pipPerformance.js';
+import { answerClock, recallMaintenanceTask } from './savedSchedule.js';
 import { isFollowup } from "./conversationRouting.js";
 import { recallGrowResources } from './growResources.js';
 import { conversationGrowFacts, statedGrowFacts, recallGrowFacts, durableProfileSuggestion } from "./growFacts.js";
@@ -257,15 +259,19 @@ const tools = [
 ];
 
 export async function askPip(args) {
+  const timing = createPipTiming();
+  return timing.run(async () => {
+  try {
   let savedProfile;
-  const started=performance.now();
   const result=await answerPip({...args,onSavedProfile:profile=>{savedProfile=profile;}});
-  result.performance={answerMs:Math.round(performance.now()-started)};
+  result.performance=timing.snapshot();
   if(args.subscription?.active&&args.user?.id&&args.projectId&&!args.image&&!['off_topic','safety_refusal','subscription_gate'].includes(result.mode)){
     if(savedProfile){const patch=durableProfileSuggestion(args.message,savedProfile);if(Object.keys(patch).length)result.actions=[...(result.actions||[]),{type:'profile_change',patch,label:'Review profile update'}];}
   }
   if(args.exchangeId&&Array.isArray(result.actions))result.actions=result.actions.map((action,index)=>({...action,proposalId:args.exchangeId+'_'+index}));
   return result;
+  } catch (error) { error.pipPerformance = timing.snapshot(); throw error; }
+  });
 }
 
 async function answerPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, exchangeId, beforeAiCall, onSavedProfile }) {
@@ -280,11 +286,11 @@ async function answerPip({ message, image, profile, subscription, history = [], 
   }
   let recentHistory = normalizeHistory(history);
   const userId = String(user?.id || user?.email || "").trim();
-  const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId, conversationId, question: trimmed }) : null;
+  const projectContext = userId && projectId ? await timePipStage('memory', () => buildProjectContext({ userId, projectId, conversationId, question: trimmed })) : null;
   if(projectContext){projectContext.exchangeId=exchangeId||null;recentHistory=normalizeHistory(projectContext.recentMessages);}
   onSavedProfile?.(projectContext?.project?.systemProfile);
   const questionIntent = classifyQuestionIntent(trimmed, { image: Boolean(imageInput), history: recentHistory });
-  const rawRetrieval = retrieveHydroPipContext(trimmed, { limit: 10 });
+  const rawRetrieval = timePipStageSync('retrieval', () => retrieveHydroPipContext(trimmed, { limit: 10 }));
   const retrieval = selectIntentContext(rawRetrieval, questionIntent);
   const retrievedContext = formatContextForPrompt(retrieval);
   const factHistory = projectContext ? [...projectContext.retrievedMessages,...projectContext.recentMessages].sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt))) : recentHistory;
@@ -455,6 +461,13 @@ async function answerPip({ message, image, profile, subscription, history = [], 
     };
   }
 
+  const savedMaintenance = !imageInput && recallMaintenanceTask(trimmed, projectContext);
+  if (savedMaintenance) {
+    const sources = [{ title: 'Saved Planner task for ' + projectContext.project.title }];
+    await rememberProjectMessage(projectContext, { userId, projectId, role: 'assistant', content: savedMaintenance, mode: 'saved_schedule_recall', sources });
+    return { answer: savedMaintenance, mode: 'saved_schedule_recall', sources, projectMemory };
+  }
+
   const directCalendar = subscription?.active
     ? buildDirectCalendarConfirmation({ message: trimmed, history: recentHistory, projectContext })
     : null;
@@ -517,14 +530,14 @@ async function answerPip({ message, image, profile, subscription, history = [], 
     };
   }
 
-  const client = await getOpenAiClient();
+  const client = await timePipStage('client', () => getOpenAiClient());
   if (!client) {
     return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext });
   }
 
   const model = process.env.PIP_MODEL || "gpt-5-mini";
   if (typeof beforeAiCall === "function") {
-    await beforeAiCall({ model, hasPhoto: Boolean(imageInput), detailed: wantsDetailedInfo(trimmed) });
+    await timePipStage('quota', () => beforeAiCall({ model, hasPhoto: Boolean(imageInput), detailed: wantsDetailedInfo(trimmed) }));
   }
 
   let response;
@@ -619,7 +632,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
         ? { type: "function", name: "extract_seed_pack_inventory" }
         : "auto";
     }
-    response = await client.responses.create(request);
+    response = await timePipProvider('model', () => client.responses.create(request));
   } catch (error) {
     console.warn(`OpenAI response failed, using HydroPip fallback: ${error.message}`);
     return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext, mode: "ai_error_fallback" });
@@ -627,6 +640,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
 
   const toolResults = [];
   const actions = [];
+  await timePipStage('tools', async () => {
   for (const item of response.output || []) {
     if (item.type !== "function_call") continue;
     const handler = toolMap[item.name];
@@ -700,6 +714,8 @@ async function answerPip({ message, image, profile, subscription, history = [], 
     });
   }
 
+  });
+
   if (!toolResults.length) {
     const resolved = await resolveRelevantAnswer({
       client,
@@ -769,7 +785,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
 
   let final;
   try {
-    final = await client.responses.create({
+    final = await timePipProvider('followup', () => client.responses.create({
     model,
     store: false,
     instructions: [
@@ -788,7 +804,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
       "When the original user input includes a photo, use this compact order: one sentence naming the most useful concrete visible observation; one bullet giving the immediate next action; one bullet naming the most important check or asking one focused question. Never spend the whole reply describing the photo, and never repeat a step that is visibly complete. Do not imply that you saw a detail that is not visible."
     ].join("\n"),
     input: [...responseInput, ...(response.output || []), ...toolResults]
-    });
+    }));
   } catch (error) {
     console.warn(`OpenAI tool follow-up failed, using HydroPip fallback: ${error.message}`);
     return fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext, mode: "ai_tool_error_fallback" });
@@ -1384,10 +1400,10 @@ function resolveEffectiveProfile(profile, projectContext) {
 }
 
 function buildAnswerContext({ profile, projectContext, subscription, questionIntent }) {
-  const currentDate = new Date().toISOString().slice(0, 10);
+  const clock = answerClock(profile, projectContext || {});
+  const currentDate = clock.currentDate;
   return {
-    currentDate,
-    timeZone: profile?.timeZone || "unknown",
+    ...clock,
     questionIntent,
     membership: subscription?.active ? "pip_pro" : "free",
     conversationTitle: projectContext?.conversation?.title || null,
@@ -1407,6 +1423,9 @@ function formatAnswerContext(context = {}) {
   const profile = context.profile || {};
   const values = [
     ["Date", context.currentDate],
+    ["Schedule time zone", context.timeZone],
+    ["Time zone source", context.timeZoneSource],
+    ["Saved task time zones", context.scheduleTimeZones?.join(", ")],
     ["Conversation", context.conversationTitle],
     ["System", profile.systemType],
     ["Grow name", profile.title],
@@ -1446,12 +1465,12 @@ function formatAnswerContext(context = {}) {
 
 async function resolveRelevantAnswer({ client, model, response, trimmed, responseInput, retrieval, answerContext, questionIntent, imageInput }) {
   const initial = String(response?.output_text || "").trim();
-  const relevance = assessAnswerRelevance(trimmed, initial, answerContext, questionIntent);
+  const relevance = timePipStageSync('relevance', () => assessAnswerRelevance(trimmed, initial, answerContext, questionIntent));
   if (relevance.ok) return { answer: initial, retryResponse: null };
 
   if (!imageInput && String(process.env.PIP_AI_RETRY_ON_IRRELEVANT || "true").toLowerCase() !== "false") {
     try {
-      const retryResponse = await client.responses.create({
+      const retryResponse = await timePipProvider('repair', () => client.responses.create({
         model,
         store: false,
         instructions: [
@@ -1475,9 +1494,9 @@ async function resolveRelevantAnswer({ client, model, response, trimmed, respons
             }]
           }
         ]
-      });
+      }));
       const corrected = String(retryResponse.output_text || "").trim();
-      if (assessAnswerRelevance(trimmed, corrected, answerContext, questionIntent).ok) {
+      if (timePipStageSync('relevance', () => assessAnswerRelevance(trimmed, corrected, answerContext, questionIntent)).ok) {
         return { answer: corrected, retryResponse };
       }
     } catch (error) {
@@ -1579,6 +1598,9 @@ function compactProjectContext(projectContext) {
     nutrientBatches: projectContext.nutrientBatches,
     activeReminders: projectContext.activeReminders,
     reminderCount: projectContext.reminderCount,
+    nextMaintenanceReminder: projectContext.nextMaintenanceReminder,
+    maintenanceReminderCount: projectContext.maintenanceReminderCount,
+    scheduleTimeZones: projectContext.scheduleTimeZones,
     recentReadings: projectContext.recentReadings,
     seedPacks: projectContext.seedPacks,
     seedRecordCount: projectContext.seedRecordCount,
@@ -1589,9 +1611,9 @@ function compactProjectContext(projectContext) {
 
 async function rememberProjectMessage(projectContext, message) {
   if (!projectContext) return null;
-  return appendProjectMessage({
+  return timePipStage('save', () => appendProjectMessage({
     ...message,
     exchangeId: projectContext.exchangeId || null,
     conversationId: message.conversationId || projectContext.conversation?.id
-  });
+  }));
 }
