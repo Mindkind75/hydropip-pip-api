@@ -1,3 +1,4 @@
+import { routeConversation, claimChatExchange, finishChatExchange, getChatExchange, messagePage, moveExchange, previewConversationOrganization } from './conversationMemory.js';
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -802,23 +803,16 @@ app.patch("/api/pip/projects/:projectId/conversations/:conversationId", async (r
   }
 });
 
-app.get("/api/pip/projects/:projectId/messages", async (req, res, next) => {
-  try {
-    const messages = await listProjectMessages({
-      userId: req.pipUser.id,
-      projectId: req.params.projectId,
-      conversationId: req.query.conversationId,
-      allConversations: req.query.all === "1",
-      limit: req.query.limit
-    });
-    if (!messages) {
-      res.status(404).json({ error: "project_not_found" });
-      return;
-    }
-    res.json({ messages });
-  } catch (error) {
-    next(error);
-  }
+app.post('/api/pip/projects/:projectId/conversations/route',async(req,res,next)=>{try{res.json(await routeConversation({userId:req.pipUser.id,projectId:req.params.projectId,conversationId:req.body?.conversationId,message:req.body?.message,hasImage:Boolean(req.body?.hasImage),imageIntent:req.body?.imageIntent,subscription:req.pipSubscription}))}catch(error){next(error)}});
+app.get('/api/pip/projects/:projectId/history',async(req,res,next)=>{try{res.json(await messagePage({userId:req.pipUser.id,projectId:req.params.projectId,conversationId:req.query.conversationId,query:req.query.q,before:req.query.before,limit:req.query.limit,includeArchived:req.query.archived==='1'}))}catch(error){next(error)}});
+app.get('/api/pip/projects/:projectId/exchanges/:exchangeId',async(req,res,next)=>{try{res.json(await getChatExchange({userId:req.pipUser.id,projectId:req.params.projectId,exchangeId:req.params.exchangeId}))}catch(error){next(error)}});
+app.post('/api/pip/projects/:projectId/exchanges/:exchangeId/move',async(req,res,next)=>{try{res.json(await moveExchange({...req.body,userId:req.pipUser.id,projectId:req.params.projectId,exchangeId:req.params.exchangeId,subscription:req.pipSubscription}))}catch(error){next(error)}});
+app.get('/api/pip/projects/:projectId/conversations/:conversationId/organize',async(req,res,next)=>{try{res.json(await previewConversationOrganization({userId:req.pipUser.id,projectId:req.params.projectId,conversationId:req.params.conversationId,subscription:req.pipSubscription}))}catch(error){next(error)}});
+
+app.get("/api/pip/projects/:projectId/messages", async (req,res,next)=>{
+  try{if(req.query.all==='1'){const messages=await listProjectMessages({userId:req.pipUser.id,projectId:req.params.projectId,allConversations:true,limit:req.query.limit});if(!messages)return res.status(404).json({error:'project_not_found'});return res.json({messages})}
+    res.json(await messagePage({userId:req.pipUser.id,projectId:req.params.projectId,conversationId:req.query.conversationId,limit:req.query.limit,before:req.query.before}));
+  }catch(error){next(error)}
 });
 
 app.get("/api/pip/projects/:projectId/reminders", async (req, res, next) => {
@@ -1137,6 +1131,8 @@ app.post("/api/pip/reminders", requirePipMember, (req, res) => {
 
 app.post("/api/pip/chat", async (req, res, next) => {
   let claimedPhotoCheck = false;
+  let chatExchange = null;
+  let routingResult = null;
   let aiReservation = null;
   let access;
   try {
@@ -1155,6 +1151,14 @@ app.post("/api/pip/chat", async (req, res, next) => {
       return;
     }
 
+    if(req.body?.exchangeId&&access.subscription?.active&&access.user?.id){
+      let found;try{found=await getChatExchange({userId:access.user.id,projectId:req.body.projectId,exchangeId:req.body.exchangeId})}catch(error){if(error.statusCode!==404)throw error}
+      if(found){const duplicate=await claimChatExchange({userId:access.user.id,projectId:req.body.projectId,conversationId:req.body.conversationId,exchangeId:req.body.exchangeId,content:req.body.message,image:req.body.image,choice:req.body.routeChoice,subscription:access.subscription});const existing=duplicate.exchange;if(existing.reply)return res.status(existing.reply.errorStatus||200).json(existing.reply);return res.status(202).json({pending:true,exchange:{id:existing.id,conversationId:existing.conversationId,status:existing.status}})}
+    }
+    if(req.body?.exchangeId&&access.subscription?.active&&access.user?.id&&!req.body?.routeChoice){
+      const route=await routeConversation({userId:access.user.id,projectId:req.body.projectId,conversationId:req.body.conversationId,message:req.body.message,hasImage:hasPhoto,imageIntent:req.body.image?.intent,subscription:access.subscription});
+      if(route.decision.startsWith('ask'))return res.status(409).json({error:'route_choice_required',route});
+    }
     if (hasPhoto) {
       if (!access.user?.id || !access.subscription?.verified) {
         res.status(401).json({
@@ -1204,10 +1208,18 @@ app.post("/api/pip/chat", async (req, res, next) => {
       claimedPhotoCheck = !access.subscription?.active;
     }
 
+    if(req.body?.exchangeId&&access.subscription?.active&&access.user?.id){
+      routingResult=await claimChatExchange({userId:access.user.id,projectId:req.body.projectId,conversationId:req.body.conversationId,exchangeId:req.body.exchangeId,content:req.body.message,image:req.body.image,choice:req.body.routeChoice,subscription:access.subscription});
+      if(routingResult.needsChoice)return res.status(409).json({error:'route_choice_required',route:routingResult.route});
+      if(routingResult.existing){const existing=routingResult.exchange;if(existing.reply)return res.status(existing.reply.errorStatus||200).json(existing.reply);return res.status(202).json({pending:true,exchange:{id:existing.id,conversationId:existing.conversationId,status:existing.status}})}
+      chatExchange=routingResult.exchange;
+    }
     const result = await askPip({
       ...(req.body || {}),
       user: access.user,
       subscription: access.subscription,
+      exchangeId: chatExchange?.id || null,
+      conversationId: chatExchange?.conversationId || req.body?.conversationId,
       beforeAiCall: async () => {
         if (access.user?.id) await upsertUser(access.user);
         const usageRequest = {
@@ -1225,7 +1237,7 @@ app.post("/api/pip/chat", async (req, res, next) => {
           eventType: aiUsageEventType(usageRequest),
           metadata: {
             projectId: req.body?.projectId || null,
-            conversationId: req.body?.conversationId || null,
+            conversationId: chatExchange?.conversationId || req.body?.conversationId || null,
             hasPhoto,
             photoIntent: aiUsageEventType(usageRequest) === "seed_inventory_photo" ? "seed_inventory" : null
           }
@@ -1284,8 +1296,10 @@ app.post("/api/pip/chat", async (req, res, next) => {
     if (hasPhoto) {
       result.photoAllowance = photoAllowance || await getBuildPhotoAllowance({ userId: access.user.id, subscription: access.subscription });
     }
+    if(chatExchange){result.routing={...routingResult.route,title:routingResult.destination.title,conversationId:chatExchange.conversationId};await finishChatExchange({userId:access.user.id,projectId:chatExchange.projectId,exchangeId:chatExchange.id,reply:result});}
     res.json(result);
   } catch (error) {
+    if(chatExchange){try{await finishChatExchange({userId:access.user.id,projectId:chatExchange.projectId,exchangeId:chatExchange.id,status:'failed',reply:{error:error.code||'chat_failed',message:error.message,errorStatus:error.statusCode||500}})}catch(persistError){console.warn('Could not finalize exchange: '+persistError.message)}}
     if (aiReservation?.allowed) {
       try {
         await cancelAiUsageReservation({ reservationId: aiReservation.reservationId, reason: "OpenAI call failed" });

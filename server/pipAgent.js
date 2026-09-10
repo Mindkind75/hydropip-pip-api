@@ -1,3 +1,4 @@
+import { isFollowup } from "./conversationRouting.js";
 import { conversationGrowFacts, statedGrowFacts, recallGrowFacts } from "./growFacts.js";
 import { buildCatalog, hydropipSystem, systemBrain } from "./pipData.js";
 import { formatZonePlantingGuidance, getZonePlantingGuidance } from "./plantingCalendar.js";
@@ -253,7 +254,7 @@ const tools = [
   }
 ];
 
-export async function askPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, beforeAiCall }) {
+export async function askPip({ message, image, profile, subscription, history = [], user, projectId, conversationId, exchangeId, beforeAiCall }) {
   const usageConfig = getPipUsageConfig();
   const imageInput = normalizeImageInput(image, {
     maxBytes: subscription?.active ? usageConfig.proImageBytes : usageConfig.freeMemberImageBytes
@@ -263,14 +264,15 @@ export async function askPip({ message, image, profile, subscription, history = 
   if (isPromptExfiltrationAttempt(trimmed)) {
     return { answer: EXFILTRATION_REFUSAL, mode: "safety_refusal", sources: [] };
   }
-  const recentHistory = normalizeHistory(history);
+  let recentHistory = normalizeHistory(history);
   const userId = String(user?.id || user?.email || "").trim();
-  const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId, conversationId }) : null;
+  const projectContext = userId && projectId ? await buildProjectContext({ userId, projectId, conversationId, question: trimmed }) : null;
+  if(projectContext){projectContext.exchangeId=exchangeId||null;recentHistory=normalizeHistory(projectContext.recentMessages);}
   const questionIntent = classifyQuestionIntent(trimmed, { image: Boolean(imageInput), history: recentHistory });
   const rawRetrieval = retrieveHydroPipContext(trimmed, { limit: 10 });
   const retrieval = selectIntentContext(rawRetrieval, questionIntent);
   const retrievedContext = formatContextForPrompt(retrieval);
-  const factHistory = projectContext ? projectContext.recentMessages : recentHistory;
+  const factHistory = projectContext ? [...projectContext.retrievedMessages,...projectContext.recentMessages].sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt))) : recentHistory;
   const effectiveProfile = { ...conversationGrowFacts(factHistory), ...resolveEffectiveProfile(profile, projectContext), ...statedGrowFacts(trimmed) };
   const answerContext = buildAnswerContext({
     profile: effectiveProfile,
@@ -459,13 +461,20 @@ export async function askPip({ message, image, profile, subscription, history = 
     };
   }
 
+  if(!imageInput && projectContext?.retrievedMessages?.length && (/\b(?:what|which|when|where|how)\b.*\b(?:did i|i (?:said|told|mentioned|planted))\b.*\b(?:earlier|previously|before|last time|originally)\b/i.test(trimmed)||/\bwhat did i (?:say|tell|mention)\b/i.test(trimmed))){
+    const records=projectContext.retrievedMessages.slice(0,3);
+    const answer='From your saved messages:\n'+records.map(item=>'- '+String(item.createdAt).slice(0,10)+': '+item.content.slice(0,500)).join('\n');
+    const sources=records.map(item=>({title:'Your saved message ('+String(item.createdAt).slice(0,10)+')',messageId:item.id,conversationId:item.conversationId}));
+    await rememberProjectMessage(projectContext,{userId,projectId,role:'assistant',content:answer,mode:'history_recall',sources});
+    return {answer,mode:'history_recall',sources,projectMemory};
+  }
   const recalled = !imageInput && recallGrowFacts(trimmed, effectiveProfile, factHistory);
   if (recalled) {
     await rememberProjectMessage(projectContext, { userId, projectId, role: "assistant", content: recalled, mode: "context_recall", sources: [] });
     return { answer: recalled, mode: "context_recall", sources: [], projectMemory };
   }
 
-  const deterministicQuestion = questionIntent === "hydroponic_guidance" && isVagueFollowUp(trimmed)
+  const deterministicQuestion = questionIntent === "hydroponic_guidance" && isFollowup(trimmed) && !Object.keys(statedGrowFacts(trimmed)).length
     ? withRecentContext(trimmed, recentHistory)
     : trimmed;
   const directAnswer = imageInput || (subscription?.active && ["reminder_action", "crop_plan_action"].includes(questionIntent)) ? null : highConfidenceAnswer(deterministicQuestion, retrieval, effectiveProfile);
@@ -814,7 +823,7 @@ export function normalizeImageInput(image, { maxBytes = getPipUsageConfig().free
 }
 
 async function fallbackResult({ trimmed, recentHistory, retrieval, subscription, projectContext, userId, projectId, projectMemory, answerContext, mode = "rules_fallback" }) {
-  const fallbackQuestion = answerContext?.questionIntent === "hydroponic_guidance" && isVagueFollowUp(trimmed)
+  const fallbackQuestion = answerContext?.questionIntent === "hydroponic_guidance" && isFollowup(trimmed) && !Object.keys(statedGrowFacts(trimmed)).length
     ? withRecentContext(trimmed, recentHistory)
     : trimmed;
   const answer = compactAnswer(contextualFallbackAnswer(fallbackQuestion, retrieval, answerContext), trimmed, retrieval, answerContext);
@@ -1579,6 +1588,7 @@ function compactProjectContext(projectContext) {
     reminderCount: projectContext.reminderCount,
     recentReadings: projectContext.recentReadings,
     seedPacks: projectContext.seedPacks,
+    retrievedMessages: projectContext.retrievedMessages,
     recentMessages: projectContext.recentMessages.map(({ role, content, createdAt }) => ({ role, content, createdAt }))
   };
 }
@@ -1587,6 +1597,7 @@ async function rememberProjectMessage(projectContext, message) {
   if (!projectContext) return null;
   return appendProjectMessage({
     ...message,
+    exchangeId: projectContext.exchangeId || null,
     conversationId: message.conversationId || projectContext.conversation?.id
   });
 }

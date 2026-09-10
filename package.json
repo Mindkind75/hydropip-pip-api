@@ -21,7 +21,11 @@
     "qa:chat-ui": "node server/pip-chat-ui-test.cjs",
     "qa:embed-ui": "node server/embed-viewport-ui-test.cjs",
     "qa:first-visit-ui": "node server/first-visit-ui-test.cjs",
-    "qa:batch-one": "node server/batch-one-test.js"
+    "qa:batch-one": "node server/batch-one-test.js",
+    "qa:routing": "node server/conversation-routing-test.js",
+    "qa:conversation-memory": "node server/conversation-memory-test.js",
+    "qa:conversation-ui": "node server/conversation-ui-test.js",
+    "qa:conversation-usage": "node server/conversation-usage-test.js"
   },
   "overrides": {
     "qs": "6.16.0"

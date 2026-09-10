@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import fs from "node:fs";
+import { retrieveConversationMemory } from "./conversationMemory.js";
 import { nextRecurringDate, prepareRepeat, dateInZone } from "../assets/js/reminder-schedule.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -89,6 +90,7 @@ const defaultState = {
   betaApplications: {},
   projects: {},
   chatThreads: {},
+  chatExchanges: {},
   conversations: {},
   reminders: {},
   readings: {},
@@ -104,6 +106,7 @@ const defaultState = {
 let stateCache;
 let poolPromise;
 let schemaPromise;
+let conversationMigrationPromise;
 let seedUsagePricingReconciled = false;
 let forceFileMemory = false;
 
@@ -1646,6 +1649,7 @@ export async function deleteUserData({ userId } = {}) {
     item.userId = null;
     item.metadata = { ...(item.metadata || {}), accountDeleted: true };
   });
+  Object.entries(state.chatExchanges||{}).filter(([,item])=>item.userId===ownerId).forEach(([key])=>delete state.chatExchanges[key]);
   const deleted = Boolean(state.users[ownerId]);
   delete state.users[ownerId];
   writeState(state);
@@ -1772,7 +1776,7 @@ export async function listProjectConversations({ userId, projectId, includeArchi
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
-      `select id, project_id, user_id, title, status, summary, created_at, updated_at
+      `select id, project_id, user_id, title, status, summary, topic_key, topic_summary, auto_created, created_at, updated_at
        from pip_conversations
        where project_id = $1 and user_id = $2 ${includeArchived ? "" : "and status = 'active'"}
        order by updated_at desc`,
@@ -1808,7 +1812,7 @@ export async function createProjectConversation({ userId, projectId, title, subs
     const result = await pool.query(
       `insert into pip_conversations (id, project_id, user_id, title, status, summary, created_at, updated_at)
        values ($1, $2, $3, $4, $5, $6, $7, $7)
-       returning id, project_id, user_id, title, status, summary, created_at, updated_at`,
+       returning id, project_id, user_id, title, status, summary, topic_key, topic_summary, auto_created, created_at, updated_at`,
       [conversation.id, projectId, userId, conversation.title, conversation.status, conversation.summary, now]
     );
     return { status: "created", conversation: rowToConversation(result.rows[0]) };
@@ -1885,14 +1889,15 @@ export async function updateProjectConversation({ userId, projectId, conversatio
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
-      `update pip_conversations set title=$1, status=$2, updated_at=$3
+      `update pip_conversations set title=$1, status=$2, updated_at=$3, topic_summary='{}'::jsonb
        where id=$4 and project_id=$5 and user_id=$6
-       returning id, project_id, user_id, title, status, summary, created_at, updated_at`,
+       returning id, project_id, user_id, title, status, summary, topic_key, topic_summary, auto_created, created_at, updated_at`,
       [saved.title, saved.status, saved.updatedAt, conversationId, projectId, userId]
     );
     return result.rows[0] ? { status: "updated", conversation: rowToConversation(result.rows[0]) } : null;
   }
   const state = readState();
+  saved.topicSummary={};
   state.chatThreads[conversationId] = saved;
   writeState(state);
   return { status: "updated", conversation: saved };
@@ -1908,7 +1913,7 @@ export async function listProjectMessages({ userId, projectId, conversationId, l
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
-      `select id, role, content, mode, sources, created_at
+      `select id, conversation_id, exchange_id, role, content, mode, sources, created_at
        from pip_messages
        where project_id = $1 and user_id = $2 ${allConversations ? "" : "and conversation_id = $3"}
        order by created_at desc
@@ -1926,7 +1931,7 @@ export async function listProjectMessages({ userId, projectId, conversationId, l
   return (state.conversations[conversation.id] || []).slice(-safeLimit);
 }
 
-export async function appendProjectMessage({ userId, projectId, conversationId, role, content, mode, sources = [] } = {}) {
+export async function appendProjectMessage({ userId, projectId, conversationId, role, content, mode, sources = [], exchangeId = null } = {}) {
   const project = await getProject({ userId, projectId });
   if (!project) return null;
   const conversation = await resolveConversation({ userId, projectId, conversationId });
@@ -1934,6 +1939,8 @@ export async function appendProjectMessage({ userId, projectId, conversationId, 
 
   const message = {
     id: makeId("msg"),
+    conversationId: conversation.id,
+    exchangeId,
     role: role === "assistant" ? "assistant" : "user",
     content: String(content || "").slice(0, 8000),
     mode: mode || null,
@@ -1944,11 +1951,11 @@ export async function appendProjectMessage({ userId, projectId, conversationId, 
   if (usesPostgres()) {
     const pool = await readyPool();
     await pool.query(
-      `insert into pip_messages (id, project_id, user_id, conversation_id, role, content, mode, sources, created_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)`,
-      [message.id, projectId, userId, conversation.id, message.role, message.content, message.mode, JSON.stringify(sources || []), message.createdAt]
+      `insert into pip_messages (id, project_id, user_id, conversation_id, role, content, mode, sources, created_at, exchange_id)
+       values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)`,
+      [message.id, projectId, userId, conversation.id, message.role, message.content, message.mode, JSON.stringify(sources || []), message.createdAt, exchangeId]
     );
-    await pool.query("update pip_conversations set updated_at = $1 where id = $2", [message.createdAt, conversation.id]);
+    await pool.query("update pip_conversations set updated_at = $1, topic_summary='{}'::jsonb where id = $2", [message.createdAt, conversation.id]);
     await pool.query("update pip_projects set updated_at = $1 where id = $2", [message.createdAt, projectId]);
     return message;
   }
@@ -1956,6 +1963,7 @@ export async function appendProjectMessage({ userId, projectId, conversationId, 
   const state = readState();
   state.conversations[conversation.id] = [...(state.conversations[conversation.id] || []), message].slice(-200);
   state.chatThreads[conversation.id].updatedAt = message.createdAt;
+  state.chatThreads[conversation.id].topicSummary = {};
   state.projects[projectId].updatedAt = message.createdAt;
   writeState(state);
   return message;
@@ -2516,7 +2524,7 @@ export async function createProjectReading({ userId, projectId, reading = {}, su
   return { status: "saved", reading: saved };
 }
 
-export async function buildProjectContext({ userId, projectId, conversationId } = {}) {
+export async function buildProjectContext({ userId, projectId, conversationId, question } = {}) {
   if (!userId || !projectId) return null;
   const project = await getProject({ userId, projectId });
   if (!project) return null;
@@ -2532,6 +2540,7 @@ export async function buildProjectContext({ userId, projectId, conversationId } 
     project,
     conversation,
     recentMessages: messages,
+    retrievedMessages: question ? await retrieveConversationMemory({userId,projectId,conversationId:conversation.id,question}) : [],
     activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
     reminderCount: (reminders || []).length,
     recentReadings: (readings || []).slice(-10),
@@ -2551,6 +2560,8 @@ export function resetMemoryForTests() {
   stateCache = cloneDefaultState();
 }
 
+export async function conversationStorage() { return usesPostgres() ? {pool:await readyPool()} : {read:readState,write:writeState}; }
+export async function closeMemoryForTests() { if(process.env.NODE_ENV!=='test')throw Error('Test-only close');if(poolPromise)await (await poolPromise).end(); }
 function usesPostgres() {
   return Boolean(process.env.DATABASE_URL && !forceFileMemory);
 }
@@ -2810,7 +2821,9 @@ async function ensureSchema(pool) {
     );
     create index if not exists pip_admin_passkeys_last_used_idx on pip_admin_passkeys(last_used_at desc);
   `);
-  return schemaPromise;
+  await schemaPromise;
+  conversationMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/001-conversation-routing.sql',import.meta.url),'utf8')).catch(error=>{conversationMigrationPromise=null;throw error});
+  return conversationMigrationPromise;
 }
 
 async function upsertUserPg(normalized) {
@@ -2851,6 +2864,7 @@ function readState() {
   stateCache.seeds ||= {};
   stateCache.pushSubscriptions ||= {};
   stateCache.conversionEvents ||= {};
+  stateCache.chatExchanges ||= {};
   stateCache.usageEvents ||= {};
   stateCache.creditLedger ||= {};
   stateCache.adminPasskeys ||= {};
@@ -3457,6 +3471,9 @@ function rowToProject(row) {
 
 function rowToConversation(row) {
   return {
+    topicKey:row.topic_key||null,
+    topicSummary:row.topic_summary||{},
+    autoCreated:Boolean(row.auto_created),
     id: row.id,
     projectId: row.project_id,
     userId: row.user_id,
@@ -3472,7 +3489,7 @@ async function ensureDefaultConversation({ userId, projectId }) {
   if (usesPostgres()) {
     const pool = await readyPool();
     const existing = await pool.query(
-      `select id, project_id, user_id, title, status, summary, created_at, updated_at
+      `select id, project_id, user_id, title, status, summary, topic_key, topic_summary, auto_created, created_at, updated_at
        from pip_conversations
        where project_id = $1 and user_id = $2 and status = 'active'
        order by updated_at desc
@@ -3486,7 +3503,7 @@ async function ensureDefaultConversation({ userId, projectId }) {
     const created = await pool.query(
       `insert into pip_conversations (id, project_id, user_id, title, status, summary, created_at, updated_at)
        values ($1, $2, $3, $4, 'active', '', $5, $5)
-       returning id, project_id, user_id, title, status, summary, created_at, updated_at`,
+       returning id, project_id, user_id, title, status, summary, topic_key, topic_summary, auto_created, created_at, updated_at`,
       [id, projectId, userId, "HydroPip Build", now]
     );
     await pool.query(
@@ -3525,7 +3542,7 @@ async function getProjectConversation({ userId, projectId, conversationId }) {
   if (usesPostgres()) {
     const pool = await readyPool();
     const result = await pool.query(
-      `select id, project_id, user_id, title, status, summary, created_at, updated_at
+      `select id, project_id, user_id, title, status, summary, topic_key, topic_summary, auto_created, created_at, updated_at
        from pip_conversations where id = $1 and project_id = $2 and user_id = $3`,
       [conversationId, projectId, userId]
     );
@@ -3544,6 +3561,8 @@ async function resolveConversation({ userId, projectId, conversationId }) {
 
 function rowToMessage(row) {
   return {
+    conversationId:row.conversation_id||row.conversationId,
+    exchangeId:row.exchange_id||row.exchangeId||null,
     id: row.id,
     role: row.role,
     content: row.content,
