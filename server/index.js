@@ -1159,6 +1159,11 @@ app.post("/api/pip/chat", async (req, res, next) => {
   let access;
   try {
     access = optionalPipSession(req);
+    // Reject an expired signed-in request before quotas, exchanges or memory writes.
+    // It must never silently become an unsaved visitor conversation.
+    if (req.headers.authorization && !access.user?.id) {
+      return res.status(401).json({error: 'member_session_required'});
+    }
     let photoAllowance = null;
     const hasPhoto = Boolean(req.body?.image?.dataUrl);
     const tier = resolvePipUsageTier({ user: access.user, subscription: access.subscription });

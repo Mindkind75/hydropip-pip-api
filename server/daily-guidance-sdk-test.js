@@ -14,10 +14,15 @@ await m.createProjectSeed({userId:user.id,projectId:project.id,subscription,seed
 const payload={user,subscription,projectId:project.id,message:'What can you see in this plant photo?',image:{mimeType:'image/png',dataUrl:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6B3sAAAAASUVORK5CYII='}};
 const results=[];try{
  let answer=await askPip(payload);assert.equal(requests.length,1);assert.ok(answer.answer.endsWith('Measure pH before choosing a corrective dose.'));
- assert.match(requests[0].instructions,/PHOTO EVIDENCE/);assert.match(requests[0].instructions,/prefers detailed/);assert.match(requests[0].instructions,/at most one missing question/);assert.doesNotMatch(requests[0].instructions,/hard cap of 90/);assert.ok(JSON.stringify(requests[0].input).includes('Synthetic planting note'));assert.ok(JSON.stringify(requests[0].input).includes('seedsSown'));
+ assert.match(requests[0].instructions,/PHOTO EVIDENCE/);assert.match(requests[0].instructions,/prefers detailed/);assert.match(requests[0].instructions,/at most one missing question/);assert.doesNotMatch(requests[0].instructions,/hard cap of 90/);assert.ok(JSON.stringify(requests[0].input).includes('Synthetic planting note'));assert.ok(JSON.stringify(requests[0].input).includes('seeds sown'));
  results.push({name:'Real SDK sends photo evidence, detail preference and saved planting context; complete response survives processing',pass:true});
  useTool=true;requests.length=0;answer=await askPip(payload);assert.equal(requests.length,2);assert.ok(requests[1].input.some(i=>i.type==='function_call_output'));assert.match(requests[1].instructions,/PHOTO EVIDENCE/);assert.match(requests[1].instructions,/prefers detailed/);assert.ok(answer.answer.endsWith('Measure pH before choosing a corrective dose.'));
- results.push({name:'Tool-result follow-up keeps the same guidance and preserves the final instruction',pass:true});
+ for (const request of requests) {
+  assert.match(request.instructions,/Membership: Pip Pro/);
+  assert.match(request.instructions,/Reservoir.*37/);
+  assert.equal(request.reasoning,undefined,'Photo guidance keeps normal reasoning');
+ }
+ results.push({name:'Tool-result follow-up keeps membership, grow capacity, normal photo reasoning and the final instruction',pass:true});
  console.log(results.map(r=>'PASS '+r.name).join('\n'));
 }catch(error){console.error(error.stack);process.exitCode=1;results.push({name:'SDK guidance checks',pass:false,error:error.stack})}finally{provider.closeAllConnections();await new Promise(r=>provider.close(r));await m.closeMemoryForTests();fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({realModelEvaluation:false,provider:'synthetic loopback via real OpenAI SDK',results},null,2))}
 
