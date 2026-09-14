@@ -65,7 +65,7 @@ assert.match(fieldGuideHtml, /href="https:\/\/www\.hydropip\.com\/"[^>]*>Home<\/
 assert.match(joinHtml, /Create free account/, "The branded account page should provide a clear signup action");
 assert.match(joinHtml, /Already a member\? Sign in/, "The branded account page should separate returning-member login from signup");
 assert.match(joinHtml, /No spam email/, "The branded account page should state the no-spam promise");
-assert.match(marketingHomeHtml, /class="navTrack"[^>]*>Track My Build<\/a>/, "The homepage should make Track My Build a primary navigation path");
+assert.ok(/class="navTrack"[^>]*>Plan a Build<\/a>/.test(marketingHomeHtml), "The homepage should make build planning a primary navigation path");
 assert.match(marketingHomeHtml, /class="navPip"[^>]*>Ask Pip<\/a>/, "The homepage should name the Pip destination as Ask Pip");
 assert.match(marketingHomeHtml, /class="navPro"[^>]*><span>Pip<\/span><span class="navProBadge">PRO<\/span>/, "The homepage should give Pip Pro a premium navigation treatment without repeating Pro");
 assert.match(marketingHomeHtml, /class="navLogin"[^>]*pip\?pro=login[^>]*>Pro Login<\/a>/, "Returning Pip Pro members need a direct homepage login path");
@@ -80,7 +80,7 @@ assert.match(pipHtml, /id="pipFeedbackImpact"/, "Member suggestions should recor
 assert.match(pipHtml, /data-feedback-open/, "Signed-in members should have a clear Suggest an improvement action");
 assert.equal((pipHtml.match(/data-member-only data-feedback-open/g) || []).length, 2, "Every Pip Pro account dropdown should contain Suggest an improvement");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "feedback"/, "Pip should support a direct signed feedback route");
-assert.match(pipHtml, /authMode==="login"[\s\S]*pip\?pro=1/, "Pro Login should continue directly to the workspace after Wix verifies the member");
+assert.ok(/authMode==="login"&&isPro\(\)\)[\s\S]*HydroPipNavigation.authReturnUrl\(pipQuery\)/.test(pipHtml), "Pro Login should preserve the intended workspace after Wix verifies the member");
 assert.match(pipHtml, /Pip groups similar suggestions/, "The feedback form should explain AI-assisted grouping without promising automatic changes");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "login" \? "login"/, "The branded account page should distinguish Wix login from signup");
 assert.match(pipHtml, /pipQuery\.get\("pro"\) === "signup" \? "signup"/, "The branded account page should be able to open Wix signup through the Pip bridge");
@@ -369,7 +369,7 @@ assert.match(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!hasLead\(\)\)r
 assert.doesNotMatch(pipHtml, /function showFreeMemberNextSteps\(\)\{if\(!requestedAuthMode/, "The free-member success screen must not depend on a cleared auth request");
 assert.match(homeHtml, /One reservoir\. A simple growing routine\./, "Home should provide a concise How It Works overview");
 assert.match(homeHtml, /class=["']reviewSteps["']/, "Home should use a single visual How It Works presentation");
-assert.match(homeHtml, /class=["']navTrack["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Track My Build<\//, "Home navigation should consolidate parts and build organization under Track My Build");
+assert.ok(/class=["']navTrack["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start\.html["'][^>]*>Plan a Build<\//.test(homeHtml), "Visitor build navigation should open the parts preview");
 assert.doesNotMatch(homeHtml, /href=["']#[^"']*["']/, "The embedded Home page must not use iframe-local hash links that cannot scroll the Wix parent page");
 assert.match(homeHtml, /class=["']navHow["'][^>]*href=["']https:\/\/hydropip-pip-api\.onrender\.com\/how-it-works\.html["'][^>]*>How It Works<\//, "Home How It Works navigation should open the concise overview");
 assert.match(homeHtml, /class=["']navPip["'][^>]*href=["']https:\/\/www\.hydropip\.com\/pip["'][^>]*>Ask Pip<\//, "Home Ask Pip navigation should open the working assistant");

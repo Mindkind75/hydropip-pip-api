@@ -18,6 +18,7 @@
     "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip && npm run qa:launch && npm run qa:daily && npm run qa:daily-sdk && npm run qa:cleanup && npm run qa:cleanup-sdk && npm run qa:reliability && npm run qa:answer-cleanup",
     "qa:launch": "node server/launch-regression-test.js",
     "qa:launch-ui": "node server/launch-ui-test.js",
+    "qa:navigation-ui": "node server/navigation-mobile-test.js",
     "qa:chat-ui": "node server/pip-chat-ui-test.cjs",
     "qa:embed-ui": "node server/embed-viewport-ui-test.cjs",
     "qa:first-visit-ui": "node server/first-visit-ui-test.cjs",

@@ -62,8 +62,9 @@ for (const page of indexablePages) {
 }
 
 const home = read("home.html");
-assert.match(title(home), /DIY Hydroponic Tower/i, "home title must target DIY hydroponic tower intent");
-assert.match(home, /<h1>[^<]*build[^<]*hydroponic tower system[^<]*<\/h1>/i, "home H1 must explain the product immediately");
+assert.match(title(home), /Pip.*Hydroponic Software/i, "home title must lead with the software product");
+assert.ok(/<h1>[^<]*grow[^<]*Pip[^<]*<\/h1>/i.test(home), "home H1 must introduce growing with Pip");
+assert.ok(/Plan a tower build/.test(home), "the tower build must retain a prominent starting path");
 assert.match(read("field-guide.html"), /How to Build a DIY Hydroponic Tower/i, "Field Guide must target build intent");
 assert.match(read("how-it-works.html"), /FAQPage/, "How It Works must include FAQ structured data");
 assert.match(read("hydroponic-tower-placement.html"), /approximately 12 by 8 feet/i, "Placement guide must provide a practical four-tower footprint");

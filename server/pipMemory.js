@@ -1098,8 +1098,17 @@ export async function getUserPreferences({ userId } = {}) {
 
 export async function updateUserPreferences({ userId, patch = {} } = {}) {
   const ownerId = requireUserId(userId);
+  // Only remember an active grow belonging to this account. No schema change:
+  // this is one optional field in the existing preferences record.
+  if (Object.hasOwn(patch || {}, 'lastGrowId') && patch.lastGrowId !== null) {
+    const grow = typeof patch.lastGrowId === 'string' && await getProject({userId: ownerId, projectId: patch.lastGrowId});
+    if (!grow || grow.status === 'archived' || !['hydropip_build', 'existing_system_setup'].includes(grow.type)) {
+      throw Object.assign(new Error('Choose an available grow from your account.'), {statusCode: 400});
+    }
+  }
   function apply(current) {
     const next = { ...current };
+    if (Object.hasOwn(patch || {}, 'lastGrowId')) next.lastGrowId = patch.lastGrowId;
     if (Object.prototype.hasOwnProperty.call(patch || {}, "workspaceTabOrder")) {
       next.workspaceTabOrder = normalizeWorkspaceTabOrder(patch.workspaceTabOrder);
     }
@@ -3023,6 +3032,7 @@ function normalizeWorkspaceTabOrder(value) {
 function normalizeUserPreferences(value) {
   const preferences = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
+    lastGrowId: typeof preferences.lastGrowId === "string" ? preferences.lastGrowId.slice(0, 160) : null,
     workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder),
     accountAvatar: normalizeAccountAvatar(preferences.accountAvatar),
     buildEstimate: normalizeBuildEstimate(preferences.buildEstimate),

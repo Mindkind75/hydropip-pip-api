@@ -34,25 +34,25 @@ try{
  });
  await check('Late previous-grow response cannot replace selected grow records',async()=>{
   await page.locator('#proProjectSelect').selectOption(b.id);await until(async()=>(await page.locator('#proSeedList').innerText()).includes('BETA ONLY'));
-  let held;await page.route('**/api/pip/projects/'+a.id+'/seeds',route=>{held=route});
+  let held;await page.route('**/api/pip/projects/'+a.id+'/workspace?*',route=>{held=route});
   await page.locator('#proProjectSelect').selectOption(a.id);await until(()=>!!held);assert.equal(await page.locator('[data-pro-panel="seeds"]').evaluate(e=>e.inert),true);
   await page.locator('#proProjectSelect').selectOption(b.id);await until(async()=>await page.locator('[data-pro-panel="seeds"]').getAttribute('aria-busy')==='false');
-  await held.continue();await page.unroute('**/api/pip/projects/'+a.id+'/seeds');await delay(150);
+  await held.continue();await page.unroute('**/api/pip/projects/'+a.id+'/workspace?*');await delay(150);
   assert.equal(await page.locator('#proProjectSelect').inputValue(),b.id);assert.match(await page.locator('#proSeedList').innerText(),/BETA ONLY/);assert.doesNotMatch(await page.locator('#proSeedList').innerText(),/ALPHA ONLY/);
   await page.screenshot({path:path.join(out,'fixed-grow-switch.png')});
  });
  await check('Late previous-grow history cannot replace selected history',async()=>{
-  let held;await page.route('**/api/pip/projects/'+a.id+'/messages?limit=8&all=1',route=>{held=route});
+  let held;await page.route('**/api/pip/projects/'+a.id+'/workspace?*',route=>{held=route});
   await page.locator('#proProjectSelect').selectOption(a.id);await until(()=>!!held);
   await page.locator('#proProjectSelect').selectOption(b.id);await until(async()=>await page.locator('[data-pro-panel="history"]').getAttribute('aria-busy')==='false');
-  await held.continue();await page.unroute('**/api/pip/projects/'+a.id+'/messages?limit=8&all=1');await delay(150);
+  await held.continue();await page.unroute('**/api/pip/projects/'+a.id+'/workspace?*');await delay(150);
   assert.match(await page.locator('#proHistory').innerText(),/BETA ONLY/);assert.doesNotMatch(await page.locator('#proHistory').innerText(),/ALPHA ONLY/);
  });
  await check('A failed grow load leaves actions blocked until a successful retry',async()=>{
-  await page.route('**/api/pip/projects/'+a.id+'/seeds',route=>route.fulfill({status:503,contentType:'application/json',body:'{"message":"Test outage"}'}));
+  await page.route('**/api/pip/projects/'+a.id+'/workspace?*',route=>route.fulfill({status:503,contentType:'application/json',body:'{"message":"Test outage"}'}));
   await page.locator('#proProjectSelect').selectOption(a.id);await until(async()=>(await page.locator('#proWorkspaceStatus').innerText()).includes('could not load'));
   assert.equal(await page.locator('[data-pro-panel="seeds"]').evaluate(e=>e.inert),true);
-  await page.unroute('**/api/pip/projects/'+a.id+'/seeds');await page.locator('#proProjectSelect').selectOption(b.id);await until(async()=>await page.locator('[data-pro-panel="seeds"]').getAttribute('aria-busy')==='false');
+  await page.unroute('**/api/pip/projects/'+a.id+'/workspace?*');await page.locator('#proProjectSelect').selectOption(b.id);await until(async()=>await page.locator('[data-pro-panel="seeds"]').getAttribute('aria-busy')==='false');
  });
  await check('An edit form from the previous grow cannot target the next grow',async()=>{
   await page.locator('#proSeedList [data-seed-action="edit"]').first().click();assert.ok(await page.locator('#proSeedForm input[name=id]').inputValue());
