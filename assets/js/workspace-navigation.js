@@ -37,8 +37,12 @@
   var nav = document.createElement('div');
   nav.className = 'workspace-navigation';
   var switcher = workspace.querySelector('.project-switcher');
-  switcher.before(nav);
-  nav.append(switcher, workspace.querySelector('.workspace-tabs'));
+  var notebook = workspace.querySelector('.workspace-notebook');
+  var paper = notebook.querySelector('.notebook-paper');
+  notebook.prepend(nav);
+  nav.append(switcher, workspace.querySelector('.workspace-tools-label'), workspace.querySelector('.workspace-tabs'));
+  // These are the existing controls and live status, kept on the notebook's paper.
+  paper.prepend(workspace.querySelector('.workspace-meta'), workspace.querySelector('.pro-focus'));
   nav.querySelectorAll('button[role="tab"]').forEach(function (tab) {
     var page = tab.dataset.proPage;
     var panel = workspace.querySelector('[data-pro-panel="' + page + '"]');

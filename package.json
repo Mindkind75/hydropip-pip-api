@@ -19,6 +19,7 @@
     "qa:launch": "node server/launch-regression-test.js",
     "qa:launch-ui": "node server/launch-ui-test.js",
     "qa:navigation-ui": "node server/navigation-mobile-test.js",
+    "qa:garden-ui": "node server/garden-studio-ui-test.js",
     "qa:chat-ui": "node server/pip-chat-ui-test.cjs",
     "qa:embed-ui": "node server/embed-viewport-ui-test.cjs",
     "qa:first-visit-ui": "node server/first-visit-ui-test.cjs",

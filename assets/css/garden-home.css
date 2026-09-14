@@ -1,0 +1,94 @@
+/* Software is the first product story; tower guidance stays within easy reach. */
+.garden-home .topbar{position:relative;background:var(--cream);backdrop-filter:none;padding:15px max(24px,calc((100% - 1180px)/2));gap:20px;min-height:80px}
+.garden-home .nav{gap:6px}
+.garden-home .nav a{font-size:12px;font-weight:500;min-height:44px;border-radius:7px;padding:9px 10px;color:var(--deep);background:transparent;border-color:transparent;box-shadow:none}
+.garden-home .nav .navPro{background:var(--leaf);color:#fffdf6;border-color:var(--leaf)}
+.garden-home .nav .navLogin{background:var(--paper);border-color:var(--line)}
+.garden-home .navProBadge{background:#e8efdd;color:var(--deep);font-size:10px;font-weight:600}
+.garden-home .memberTrigger{background:var(--paper);font-size:12px;font-weight:500}
+.garden-home .memberLabel{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.garden-home #top .hero{background:var(--cream);grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,5vw,70px);padding:48px max(28px,calc((100% - 1120px)/2)) 30px;min-height:0}
+.garden-home #top .hero h1{font-size:clamp(2.6rem,4.8vw,4.1rem);line-height:1.08;letter-spacing:-.055em;font-weight:600;margin:20px 0 22px;max-width:580px}
+.garden-home #top .hero h1 em{font-style:normal;color:var(--leaf)}
+.garden-home #top .heroText>p{font-size:16px;color:var(--muted);line-height:1.7;max-width:470px}
+.garden-home #top .heroText>.eyebrow{font-size:11px;letter-spacing:.09em;color:var(--deep)}
+.garden-home #top .heroText>.fine{font-size:12px;max-width:370px;line-height:1.5}
+.garden-home #top .hero .actions{display:flex;gap:15px;margin:25px 0 14px}
+.garden-home #top .hero .actions .btn{display:inline-flex;width:auto;padding:13px 18px;font-size:14px;min-height:46px}
+.garden-home .garden-hero-notebook{min-width:0;width:100%}
+.garden-home .garden-mini-cover{background:var(--garden-cover);padding:19px 16px 21px 21px;border-radius:14px;box-shadow:var(--shadow)}
+.garden-home .garden-mini-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:0 5px 17px;color:var(--garden-cover-ink);font-size:13px}
+.garden-home .garden-mini-heading small{font-size:11px}
+.garden-home .garden-mini-tabs{display:flex;gap:5px;padding:0 9px}
+.garden-home .garden-mini-tabs a{display:flex;align-items:center;min-height:44px;padding:10px 15px;background:var(--garden-tab);color:var(--ink);border-radius:7px 7px 0 0;font-size:12px}
+.garden-home .garden-mini-tabs a:first-child{background:var(--paper)}
+.garden-home .garden-mini-page{padding:26px 25px 16px;background:var(--paper);border-radius:5px;box-shadow:0 4px 0 #dadccd}
+.garden-home #top .garden-mini-page h2{font:400 27px/1.2 Georgia,serif;letter-spacing:-.025em;margin:10px 0 16px}
+.garden-home .garden-sample-tasks{list-style:none;margin:0;padding:0}
+.garden-home .garden-sample-tasks li{padding:16px 0;display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.5;border-bottom:1px solid var(--line);color:var(--ink)}
+.garden-home .garden-sample-tasks li::before{content:'';display:block;flex:0 0 15px;height:15px;border:1px solid #7a8b75;border-radius:50%;margin-top:3px}
+.garden-home .garden-sample-tasks small{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+.garden-home .garden-text-link{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:13px;font-weight:500;color:var(--deep);padding:8px 0}
+.garden-home .garden-mini-page>.garden-text-link{margin-top:8px}
+.garden-home .garden-home-companion{display:grid;grid-template-columns:145px minmax(0,1fr);align-items:center;gap:22px;padding:13px 5px 0}
+.garden-home .garden-home-companion>img{width:145px;height:195px;object-fit:contain}
+.garden-home #top .garden-home-companion h3{font:400 26px/1.2 Georgia,serif;letter-spacing:-.015em;margin:10px 0}
+.garden-home #top .garden-home-companion p:not(.eyebrow){font-size:13px;margin-bottom:0;max-width:250px;color:var(--muted)}
+.garden-home #top .garden-home-companion .eyebrow{font-size:11px;letter-spacing:.055em;margin:0}
+.garden-home #top .garden-towers{order:1;background:var(--soft);width:min(1120px,calc(100% - 56px));margin:0 auto 22px;padding:23px;display:grid;grid-template-columns:190px minmax(0,1fr);gap:32px;align-items:center;border-radius:12px}
+.garden-home .garden-towers img{display:block;width:190px;height:175px;object-fit:cover;border-radius:7px}
+.garden-home #top .garden-towers h2{font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.035em;margin:8px 0 12px}
+.garden-home #top .garden-towers p:not(.eyebrow){font-size:14px;max-width:750px;margin-bottom:8px;color:var(--muted)}
+.garden-home #top .garden-towers .eyebrow{margin:0}
+.garden-home #top .start-paths{order:2}.garden-home #top #pip{order:3}.garden-home #top #story{order:4}.garden-home #top #parts{order:5}.garden-home #top #proof{order:6}.garden-home #top #start{order:7}
+.garden-home #top .band{padding:42px 28px}
+.garden-home #top .inner{width:min(1120px,100%)}
+.garden-home #top h2{font-size:clamp(1.6rem,3vw,2.25rem);font-weight:500;letter-spacing:-.035em;line-height:1.2}
+.garden-home #top .band.white{background:var(--paper)}
+.garden-home #top .band.deep{background:var(--garden-cover)}
+.garden-home #top .band.deep .eyebrow{color:#e0e9ce}
+.garden-home .start-path{padding:24px;border-color:var(--line);border-radius:12px;background:var(--paper)}
+.garden-home .start-path strong{font-weight:600;font-size:18px}
+.garden-home .start-path span{font-size:14px}
+.garden-home .start-path b{font-size:13px;font-weight:500}
+.garden-home .primary-path{background:var(--soft);border-color:#becbad}
+.garden-home .reviewPro{background:#ffffff0c;border-radius:12px;padding:25px}
+.garden-home .reviewPro img{width:110px;height:145px;float:right;margin:0 0 10px 15px;object-fit:contain}
+.garden-home #top .reviewPro h3{font:400 28px/1.2 Georgia,serif}
+.garden-home #top .reviewPro .btn{margin-top:5px}
+.garden-home .reviewSteps .num{background:var(--soft);font-weight:500}
+.garden-home .reviewFaq summary{min-height:44px;padding:9px 0;font-weight:600}
+.garden-home .reviewFaq details{padding:9px 0}
+.garden-home .footer{background:#243e2e;font-size:13px;font-weight:400;line-height:1.6}
+.garden-home .footer a{display:inline-flex;align-items:center;min-height:44px}
+@media(max-width:1050px){
+ .garden-home .topbar{padding:14px 22px;gap:12px;flex-wrap:wrap}
+ .garden-home .headerTools{flex:1}.garden-home .nav{justify-content:flex-end;gap:2px}.garden-home .nav a{padding:8px;font-size:11px}
+ .garden-home .garden-home-companion{grid-template-columns:110px minmax(0,1fr);gap:16px}.garden-home .garden-home-companion>img{width:110px;height:165px}
+ .garden-home #top .garden-home-companion h3{font-size:24px}
+}
+@media(max-width:760px){
+ .garden-home .topbar{padding:13px 17px;flex-wrap:nowrap}.garden-home .headerTools{flex:0 0 auto}.garden-home .nav{display:none}.garden-home .menuBtn{display:grid;place-items:center}
+ .garden-home .nav.open{display:grid;grid-template-columns:1fr 1fr;top:100%;background:var(--paper)}
+ .garden-home .nav a{font-size:14px}.garden-home .memberLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+ .garden-home .memberPopover{right:50px}
+ .garden-home #top .hero{grid-template-columns:1fr;gap:31px;padding:29px 22px 24px}
+ .garden-home #top .hero h1{font-size:clamp(2.5rem,7vw,3.4rem);max-width:540px;line-height:1.1;margin:18px 0}
+ .garden-home #top .hero h1 br{display:none}.garden-home #top .heroText>p{font-size:15px;max-width:540px}.garden-home #top .heroText>.fine{font-size:12px;max-width:430px}
+ .garden-home #top .hero .actions{margin:22px 0 15px;gap:10px}.garden-home #top .hero .actions .btn{font-size:13px;padding:12px 15px}
+ .garden-home .garden-hero-notebook{width:min(500px,100%);justify-self:center}
+ .garden-home .garden-home-companion{grid-template-columns:135px minmax(0,1fr);gap:22px}.garden-home .garden-home-companion>img{width:135px;height:185px}
+ .garden-home #top .garden-towers{width:calc(100% - 44px);padding:20px;grid-template-columns:120px minmax(0,1fr);gap:22px;margin-bottom:10px}
+ .garden-home .garden-towers img{width:120px;height:220px}.garden-home #top .garden-towers h2{font-size:26px}
+ .garden-home #top .band{padding:32px 22px}.garden-home .start-path{padding:20px}.garden-home .start-path-grid{gap:12px}
+}
+@media(max-width:430px){
+ .garden-home .brand{font-size:21px;gap:5px}.garden-home .brand img{width:31px;height:42px}.garden-home .brand small{font-size:10px}
+ .garden-home .headerTools{gap:6px}.garden-home .memberTrigger{min-width:48px;padding:4px}.garden-home .memberPhoto,.garden-home .memberInitial{width:28px;height:28px}
+ .garden-home .garden-mini-cover{padding:15px 11px 19px 14px;border-radius:12px}.garden-home .garden-mini-tabs{padding:0 5px;gap:4px}.garden-home .garden-mini-tabs a{padding:9px 11px;font-size:11px}
+ .garden-home .garden-mini-heading{font-size:12px}.garden-home .garden-mini-page{padding:22px 17px 11px}.garden-home #top .garden-mini-page h2{font-size:24px}
+ .garden-home .garden-home-companion{grid-template-columns:110px minmax(0,1fr);gap:15px}.garden-home .garden-home-companion>img{width:110px;height:170px}
+ .garden-home #top .garden-home-companion h3{font-size:22px}.garden-home #top .garden-home-companion p:not(.eyebrow){font-size:12px}
+ .garden-home #top .garden-towers{grid-template-columns:1fr;padding:18px;gap:17px;width:calc(100% - 30px)}.garden-home .garden-towers img{width:100%;height:180px}
+ .garden-home #top .hero h1{font-size:39px}.garden-home .reviewPro img{width:88px;height:122px}.garden-home #top .reviewPro h3{font-size:25px}
+}

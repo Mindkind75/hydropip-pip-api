@@ -272,8 +272,8 @@ assert.match(pipHtml, /function addUpgradeCta/, "Pip should show an inline Pip P
 assert.match(pipHtml, /className=["']chat-upgrade["']/, "Pip Pro nudges should use a compact chat action instead of replacing the chat controls");
 assert.doesNotMatch(pipHtml, /data\.subscriptionRequired&&!isPro\(\)\)setGate\(true,["']pro["']\)/, "A Pip Pro nudge must not lock free HydroPip build help");
 assert.match(pipHtml, /I can help with your HydroPip parts/, "Pip should open with a clear capability-focused introduction");
-assert.match(pipHtml, /class=["']chat-head["'][^>]*>[\s\S]*?pip-head-transparent\.webp/, "Pip chat header should use the optimized head-only avatar");
-assert.match(pipHtml, /var mascot = ["']\/assets\/branding\/pip-head-transparent\.png["']/, "Pip replies should use the head-only avatar");
+assert.match(pipHtml, /<header class=["']chat-head["']><img src=["']\/assets\/marketing\/pip-pro-workspace-transparent\.webp["']/, "Pip chat header should use the approved optimized ProPip image");
+assert.match(pipHtml, /var mascot = ["']\/assets\/marketing\/pip-pro-workspace-transparent\.webp["']/, "Pip replies should use the approved ProPip character");
 assert.match(pipHtml, /proPipFloat/, "The Pip Pro conversion hero should give Pip restrained motion");
 const welcomeIntro = pipHtml.match(/var pipWelcomeIntro="([^"\n]*)";/)?.[1] || "";
 assert.match(welcomeIntro, /parts, build, or first grow/, "Pip's introduction should explain build guidance");
@@ -341,7 +341,8 @@ assert.match(homeHtml, /See parts &amp; estimated cost/, "The homepage CTA shoul
 assert.match(homeHtml, /href=["']https:\/\/hydropip-pip-api\.onrender\.com\/track-start["'][^>]*data-hp-event=["']primary_build_cta_clicked/, "The public build CTA must use the crawlable Track Start page");
 assert.match(trackStartHtml, /Sign in for checklist/, "Track Start should send checklist access through the account flow instead of a crawler-hostile member page");
 assert.match(homeHtml, /is-wix-embed/, "Home should explicitly disable inner scrolling when embedded in Wix");
-assert.match(homeHtml, /class=["']systemHero["']/, "Home hero should feature the real HydroPip system");
+assert.match(homeHtml, /class=["']garden-hero-notebook["']/, "Home hero should lead with the Pip software notebook");
+assert.match(homeHtml, /class=["']garden-towers["']/, "Real HydroPip towers should remain prominently featured below the software hero");
 assert.match(homeHtml, /assets\/photos\/hydropip-mustard-green-harvest-founder\.jpg/, "Home hero is missing the giant mustard green harvest photo");
 assert.match(homeHtml, /purple mustard green harvested from/i, "Home should identify its real harvest photograph");
 assert.match(homeHtml, /does not sell the parts or add a markup/i, "Home should clearly explain that HydroPip does not sell or mark up the parts");

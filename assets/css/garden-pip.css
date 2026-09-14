@@ -1,0 +1,170 @@
+/* A real tabbed notebook, with the existing forms and saved-work flows intact. */
+.garden-pip .pro-view,.garden-pip.pro-active .pro-view{background:var(--cream)}
+.garden-pip .pip-top,.garden-pip.pro-active .pip-top{background:var(--cream);backdrop-filter:none;padding:13px max(22px,calc((100% - 1180px)/2));min-height:76px;gap:20px}
+.garden-pip.pro-active .pip-top .brand{gap:8px}.garden-pip.pro-active .pip-top .brand span{display:block}
+.garden-pip.pro-active .pip-top .brand img{width:42px;height:50px}
+.garden-pip .top-actions{align-items:center;gap:7px}.garden-pip .top-actions .btn,.garden-pip.pro-active .top-actions .btn{min-height:44px;padding:9px 12px;font-size:12px;font-weight:500}
+.garden-pip .member-trigger{background:var(--paper);font-weight:500;min-height:44px}
+.garden-pip .pro-shell,.garden-pip.pro-active .pro-shell{width:min(1180px,calc(100% - 44px))}
+.garden-pip.pro-active .pro-workspace{padding-top:0;border-top:0}
+.garden-pip .workspace-heading,.garden-pip.pro-active .workspace-heading{display:grid;grid-template-columns:minmax(0,1fr) 180px;align-items:center;gap:30px;padding:24px 22px 20px}
+.garden-pip.pro-active .workspace-heading h1{font-size:38px;line-height:1.15;letter-spacing:-.035em;font-weight:600;margin:12px 0}
+.garden-pip.pro-active .workspace-heading .eyebrow{font-size:11px;letter-spacing:.09em}
+.garden-pip.pro-active .workspace-heading p{display:block;max-width:520px;font-size:15px;line-height:1.65;margin:0;color:var(--muted)}
+.garden-pip .workspace-heading-side{display:grid;justify-items:center;gap:0}
+.garden-pip.pro-active .workspace-pip{width:175px;height:185px;object-fit:contain;filter:none;animation:none}
+.garden-pip.pro-active .saved-badge{font-size:11px;font-weight:500;line-height:1.4}
+.garden-pip .workspace-notebook,.garden-pip.pro-active .workspace-notebook{background:var(--garden-cover);padding:0 18px 22px 26px;margin:0;border-radius:14px;box-shadow:var(--shadow)}
+.garden-pip .workspace-navigation{position:sticky;top:0;z-index:60;background:var(--garden-cover);padding:18px 0 0;border:0;border-radius:0;box-shadow:-12px 0 0 var(--garden-cover),12px 0 0 var(--garden-cover)}
+.garden-pip .workspace-navigation .project-switcher,.garden-pip.pro-active .workspace-navigation .project-switcher{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;margin:0 4px 16px}
+.garden-pip .workspace-navigation .project-switcher label{color:var(--garden-cover-ink);font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;max-width:450px;gap:5px}
+.garden-pip .workspace-navigation .project-switcher select{color:var(--garden-cover-ink);border-color:#edf3df45;background:var(--garden-cover);font-size:18px;font-weight:600;text-transform:none;letter-spacing:0;padding:9px 12px;min-height:44px}
+.garden-pip .workspace-navigation .project-switcher button{min-height:44px;border-color:#edf3df70;background:transparent;color:var(--garden-cover-ink);font-size:13px;font-weight:500;padding:10px 14px}
+.garden-pip .workspace-navigation .workspace-tools-label{font-size:11px;font-weight:500;line-height:1.4;color:#e1eacf;margin:0 5px 12px;text-transform:none;letter-spacing:0}
+.garden-pip .workspace-navigation .workspace-tools-label span{font-weight:400}
+.garden-pip .workspace-navigation .workspace-tools-label span::before{background:#d4e6b7}
+.garden-pip .workspace-tabs,.garden-pip.pro-active .workspace-navigation .workspace-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));align-items:stretch;gap:4px;overflow:visible;padding:0 5px 0 12px;touch-action:pan-y pinch-zoom}
+.garden-pip .workspace-tab,.garden-pip.pro-active .workspace-navigation .workspace-tab{display:flex;align-items:center;justify-content:center;position:relative;min-width:0;min-height:49px;padding:10px 6px;border:0;border-radius:7px 7px 0 0;background:var(--garden-tab);color:#344e34;transform:none;box-shadow:none;font-size:12px;font-weight:500;line-height:1.2;white-space:normal;text-align:center;opacity:1;filter:none;transition:background-color .15s ease}
+.garden-pip .workspace-tab:hover{background:#e8eeda;transform:none}
+.garden-pip .workspace-tab.active,.garden-pip.pro-active .workspace-navigation .workspace-tab.active{background:var(--paper);color:var(--ink);transform:none;box-shadow:inset 0 -3px 0 var(--leaf)}
+.garden-pip .workspace-tab.recommended-tool::after{width:5px;height:5px;right:5px;top:4px;background:var(--leaf)}
+.garden-pip .workspace-tab:is(.guide,.pip-chat,.arrange-tabs){background:#bed0b2}
+.garden-pip .workspace-tab.arrange-tabs{font-size:11px}
+.garden-pip .workspace-navigation :focus-visible{outline-color:#f4d996;outline-offset:-3px}
+.garden-pip .notebook-paper,.garden-pip.pro-active .notebook-paper{background:var(--paper);border:0;border-radius:7px 5px 5px 7px;padding:0 0 0 27px;min-height:0;overflow:visible;box-shadow:0 4px 0 #d6dbcd,0 7px 0 #a6b29d}
+.garden-pip .notebook-paper::before{content:'';position:absolute;left:27px;top:0;bottom:0;width:1px;background:var(--line);pointer-events:none}
+.garden-pip .notebook-paper::after{content:'';position:absolute;left:-6px;top:30px;bottom:30px;width:23px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 11px,var(--garden-brass) 11px,var(--garden-brass) 15px,transparent 15px,transparent 57px);pointer-events:none}
+.garden-pip .notebook-paper>.workspace-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:15px 28px 8px;margin:0}
+.garden-pip .workspace-meta .workspace-status{font-size:12px;line-height:1.5;min-height:18px;flex:1 1 200px}
+.garden-pip .workspace-meta .btn{font-size:12px;font-weight:500;min-height:44px}
+.garden-pip .notebook-paper>.pro-focus{margin:0 28px 0;padding:16px 0 20px;border:0;border-bottom:1px solid var(--line);background:transparent;border-radius:0;display:grid;grid-template-columns:1fr;gap:14px}
+.garden-pip .pro-focus-head{gap:20px;align-items:center}
+.garden-pip .pro-focus-head h2{font-size:19px;font-weight:500;line-height:1.3;margin:5px 0}
+.garden-pip .pro-focus-head p{font-size:13px;line-height:1.55}
+.garden-pip .experience-control{font-size:11px;font-weight:500;min-width:170px;max-width:260px}
+.garden-pip .experience-control select{min-height:44px;font-size:14px;font-weight:500;background:var(--paper)}
+.garden-pip .experience-control small{font-size:11px;font-weight:400;line-height:1.5}
+.garden-pip .pro-focus-tools{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.garden-pip .focus-tool{border-radius:7px;background:var(--soft);padding:12px 15px;font-weight:400}
+.garden-pip .focus-tool strong{font-size:14px;font-weight:600}.garden-pip .focus-tool span{font-size:12px;line-height:1.5}
+.garden-pip .focus-tool.setup-focus{background:var(--deep);color:var(--paper)}
+.garden-pip .notebook-page,.garden-pip.pro-active .notebook-page{padding:28px;background:transparent;border-top:0;min-width:0}
+.garden-pip .page-intro{gap:25px;padding-bottom:21px;border-bottom:1px solid var(--line);margin-bottom:23px}
+.garden-pip.pro-active .page-intro h2,.garden-pip .rhythm-copy h2{font:400 clamp(1.7rem,2.8vw,2.2rem)/1.2 Georgia,serif;letter-spacing:-.025em;margin:10px 0 12px}
+.garden-pip.pro-active .page-intro p{font-size:14px;line-height:1.65}
+.garden-pip .page-label{font-size:11px!important;letter-spacing:.08em;font-weight:500}
+.garden-pip .notebook-help{background:var(--soft);font-weight:400;font-size:12px;line-height:1.6;border-left:3px solid #a9b78d}
+.garden-pip .notebook-guide img{filter:none;animation:none}
+.garden-pip .rhythm-hero{background:transparent;border-bottom:1px solid var(--line);padding:0 0 24px;margin:0 0 24px;gap:20px;grid-template-columns:minmax(0,1fr) 150px}
+.garden-pip .rhythm-pip{width:145px;height:158px;animation:none;filter:none;position:static;opacity:1}
+.garden-pip .rhythm-copy{padding-right:0}.garden-pip .rhythm-copy p{font-size:14px;line-height:1.65}
+.garden-pip .rhythm-summary{margin:16px 0 0;gap:8px}.garden-pip .rhythm-summary span{background:var(--soft);border:0;border-radius:5px;font-weight:500;font-size:12px;padding:8px 11px}
+.garden-pip .rhythm-hero-actions{margin-right:0}.garden-pip .rhythm-hero-actions small{font-size:12px}
+.garden-pip .rhythm-card{padding:19px;background:var(--paper);border-color:var(--line);box-shadow:none;border-radius:8px}
+.garden-pip .rhythm-card.rhythm-now{background:var(--soft);border-top:0;padding:20px;margin-top:4px}
+.garden-pip .rhythm-card.rhythm-current{background:var(--soft)}
+.garden-pip .rhythm-card.rhythm-turnover{background:var(--garden-cover);color:#fffdf6}.garden-pip .rhythm-card.rhythm-turnover .rhythm-kicker{color:#e2eacc}
+.garden-pip .rhythm-item{padding:13px 0}.garden-pip .rhythm-item :is(strong,small){font-size:13px;line-height:1.5}.garden-pip .rhythm-item strong{font-weight:600}
+.garden-pip .rhythm-item .btn{min-height:44px;font-size:12px;font-weight:500}
+.garden-pip .rhythm-kicker,.garden-pip .rhythm-date{font-size:11px;font-weight:500;letter-spacing:.03em}
+.garden-pip .rhythm-section-head{font-weight:500}.garden-pip .rhythm-section-head strong{font-weight:500}
+.garden-pip .profile-form,.garden-pip.pro-active .profile-form{gap:23px;margin-top:20px}
+.garden-pip .profile-grid{gap:20px}
+.garden-pip :is(.field,.choice-group legend){font-size:12px;font-weight:500;line-height:1.5}
+.garden-pip :is(.profile-form,.workspace-form) :is(input,select,textarea){background:#fffffc;border-color:#b8c3ad;min-height:44px;box-shadow:none}
+.garden-pip .workspace-form label{font-weight:500;font-size:12px;line-height:1.5}
+.garden-pip .workspace-notebook :is(button,input,select,textarea){font-weight:500}
+.garden-pip .profile-actions button,.garden-pip .choice{min-height:44px;font-weight:500}.garden-pip .choice{font-size:13px;background:#fffffc}
+.garden-pip .record{background:#fffffc;border-color:var(--line);box-shadow:none;padding:16px;border-radius:6px}
+.garden-pip .record :is(strong,h3){font-weight:600}
+.garden-pip .notebook-page[data-pro-panel=log] .record{background:repeating-linear-gradient(to bottom,#fffdf6 0,#fffdf6 31px,#edf0e4 31px,#edf0e4 32px);border-left:3px solid var(--garden-brass);line-height:1.7}
+.garden-pip .calendar-shell,.garden-pip .calendar-board{background:var(--paper);border-color:var(--line)}
+.garden-pip .account-brand-panel{background:var(--garden-cover);box-shadow:none;border-radius:9px}.garden-pip .account-brand-panel .eyebrow{color:#e2eacc}
+.garden-pip .account-card{box-shadow:none;background:#fffffc;border-color:var(--line)}
+.garden-pip.account-mode .workspace-heading,.garden-pip.account-mode .workspace-meta,.garden-pip.account-mode .pro-focus,.garden-pip.account-mode .workspace-tools-label{display:none}
+.garden-pip.account-mode .workspace-notebook{padding-top:18px}.garden-pip.account-mode .notebook-page[data-pro-panel=account]{box-shadow:none}
+.garden-pip .pro-sales-only h2{font-size:clamp(1.6rem,3vw,2.3rem);font-weight:500;line-height:1.2}
+.garden-pip .pro-hero.pro-sales-only{grid-template-columns:minmax(0,1fr) 240px;padding:40px 12px;gap:35px}
+.garden-pip .pro-hero.pro-sales-only>img{display:block;width:230px;height:275px;object-fit:contain}
+.garden-pip .pro-hero.pro-sales-only h1{font-size:clamp(2.2rem,4.5vw,3.6rem);font-weight:600;line-height:1.1;letter-spacing:-.04em}
+.garden-pip .pro-hero.pro-sales-only p{font-size:16px;line-height:1.65}
+.garden-pip .pro-hero.pro-sales-only p.eyebrow{font-size:11px;letter-spacing:.07em;line-height:1.5}
+.garden-pip .pro-sales-only .workspace-notebook{padding-top:18px}
+.garden-pip .preview-panel{background:transparent;border-top:0;padding:30px}
+.garden-pip .preview-panel h3{font:400 30px/1.2 Georgia,serif}
+.garden-pip .preview-panel .fine-print{font-size:12px}.garden-pip .sample-tasks li{background:var(--soft);border-color:var(--line);font-weight:400}
+.garden-pip .benefit,.garden-pip .how-step{background:var(--paper);box-shadow:none;border-color:var(--line)}
+.garden-pip .pro-plan{background:var(--soft);color:var(--ink);box-shadow:none;border-color:var(--line)}
+.garden-pip .pro-plan p{color:var(--muted)}
+.garden-pip .pro-plan .price{color:var(--ink);font-weight:600}
+.garden-pip .chat-head{background:var(--paper)}.garden-pip .chat-head img{width:47px;height:56px;object-fit:contain}
+.garden-pip .log{background:var(--cream)}.garden-pip .pip .bubble{background:var(--paper);border-color:var(--line);border-radius:11px}
+.garden-pip .user .bubble{border-radius:11px 11px 2px 11px}
+.garden-pip .pip .avatar{width:42px;height:55px;object-fit:contain;background:transparent;border:0;border-radius:0}
+.garden-pip .chat,.garden-pip .panel{box-shadow:none;background:var(--paper);border-color:var(--line)}
+.garden-pip .pip-card{background:var(--soft)}.garden-pip .pip-card img{height:100px}
+.short-viewport .garden-pip .chat-head img{width:30px;height:32px}
+@media(max-width:900px){
+ .garden-pip .workspace-tabs,.garden-pip.pro-active .workspace-navigation .workspace-tabs{grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:0 0 8px}
+ .garden-pip .workspace-tab,.garden-pip.pro-active .workspace-navigation .workspace-tab{border-radius:6px 6px 2px 2px;min-height:44px;font-size:12px;padding:10px 6px}
+ .garden-pip .pip-top .top-actions>a[href*="field-guide"]{display:inline-flex}
+ .garden-pip .workspace-heading,.garden-pip.pro-active .workspace-heading{grid-template-columns:minmax(0,1fr) 150px;padding:21px 12px;gap:20px}
+ .garden-pip.pro-active .workspace-heading h1{font-size:32px}.garden-pip.pro-active .workspace-heading p{font-size:14px}
+ .garden-pip.pro-active .workspace-pip{width:145px;height:165px}
+ .garden-pip .notebook-page,.garden-pip.pro-active .notebook-page{padding:24px}
+ .garden-pip .notebook-paper>.workspace-meta{padding:15px 24px 6px}.garden-pip .notebook-paper>.pro-focus{margin:0 24px}
+ .garden-pip .profile-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+ .garden-pip .pip-top,.garden-pip.pro-active .pip-top{flex-wrap:wrap;padding:11px 15px;gap:8px;min-height:0}
+ .garden-pip.pro-active .pip-top .brand img{width:33px;height:42px}.garden-pip .top-actions{flex:1 0 100%;justify-content:space-between;gap:5px}
+ .garden-pip .top-actions .btn,.garden-pip.pro-active .top-actions .btn{font-size:11px;padding:8px;min-height:44px}
+ .garden-pip .member-trigger{min-width:48px;padding:4px}.garden-pip .member-photo,.garden-pip .member-initial{width:28px;height:28px}
+ .garden-pip .pro-shell,.garden-pip.pro-active .pro-shell{width:calc(100% - 18px)}
+ .garden-pip .workspace-heading,.garden-pip.pro-active .workspace-heading{grid-template-columns:minmax(0,1fr) 112px;gap:7px;padding:20px 9px}
+ .garden-pip.pro-active .workspace-heading h1{font-size:29px;line-height:1.12;margin:11px 0}
+ .garden-pip.pro-active .workspace-heading .eyebrow{font-size:11px;letter-spacing:.035em}
+ .garden-pip.pro-active .workspace-heading p{font-size:12px;line-height:1.6;display:block}
+ .garden-pip.pro-active .workspace-heading>div>p:last-child{display:block}
+ .garden-pip.pro-active .workspace-pip{width:112px;height:147px}.garden-pip.pro-active .saved-badge{font-size:11px;text-align:center}
+ .garden-pip .workspace-notebook,.garden-pip.pro-active .workspace-notebook{padding:0 10px 18px 13px;border-radius:10px}
+ .garden-pip .workspace-navigation{padding-top:15px;border-radius:10px 10px 0 0}
+ .garden-pip .workspace-navigation .project-switcher,.garden-pip.pro-active .workspace-navigation .project-switcher{gap:10px;margin:0 2px 12px}
+ .garden-pip .workspace-navigation .project-switcher select{font-size:16px;padding:9px 7px}.garden-pip .workspace-navigation .project-switcher label{letter-spacing:.045em;font-size:11px}
+ .garden-pip .workspace-navigation .project-switcher button{font-size:12px;padding:9px 10px}
+ .garden-pip .workspace-navigation .workspace-tools-label{font-size:11px;margin:0 2px 10px;gap:3px}.garden-pip .workspace-tools-label span{font-size:11px}
+ .garden-pip .workspace-tabs,.garden-pip.pro-active .workspace-navigation .workspace-tabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:0 0 8px}
+ .garden-pip .workspace-tab,.garden-pip.pro-active .workspace-navigation .workspace-tab{font-size:12px;min-height:44px;padding:9px 6px}
+ .garden-pip .notebook-paper,.garden-pip.pro-active .notebook-paper{padding-left:16px}
+ .garden-pip .notebook-paper::before{left:16px}.garden-pip .notebook-paper::after{left:-5px;width:16px;top:23px}
+ .garden-pip .notebook-page,.garden-pip.pro-active .notebook-page{padding:23px 16px}
+ .garden-pip .notebook-paper>.workspace-meta{padding:15px 16px 5px;gap:4px}
+ .garden-pip .workspace-meta .workspace-status{font-size:12px}.garden-pip .workspace-meta .btn{font-size:11px;padding:9px}
+ .garden-pip .notebook-paper>.pro-focus{margin:0 16px;padding:14px 0 19px;gap:13px}
+ .garden-pip .pro-focus-head{display:grid;gap:13px}.garden-pip .pro-focus-head h2{font-size:18px}.garden-pip .pro-focus-head p{font-size:13px}
+ .garden-pip .experience-control{max-width:none;min-width:0}.garden-pip .experience-control select{font-size:16px}
+ .garden-pip .pro-focus-tools{grid-template-columns:1fr}.garden-pip .focus-tool{padding:12px}
+ .garden-pip .page-intro{flex-wrap:wrap;gap:12px;padding-bottom:19px;margin-bottom:21px}
+ .garden-pip.pro-active .page-intro h2,.garden-pip .rhythm-copy h2{font-size:26px;margin:9px 0 11px}
+ .garden-pip.pro-active .page-intro p{font-size:13px}.garden-pip .notebook-help{font-size:12px}
+ .garden-pip .notebook-guide{max-width:100%}.garden-pip .notebook-guide img{width:65px;height:80px;object-fit:contain}
+ .garden-pip .rhythm-hero{grid-template-columns:minmax(0,1fr) 70px;gap:12px;padding-bottom:20px}
+ .garden-pip .rhythm-pip{width:70px;height:95px;align-self:start;position:static}.garden-pip .rhythm-copy{padding:0}
+ .garden-pip .rhythm-copy p{font-size:13px}.garden-pip .rhythm-summary,.garden-pip .rhythm-hero-actions{margin-right:-82px}
+ .garden-pip .rhythm-hero-actions .btn{font-size:12px}.garden-pip .rhythm-hero-actions small{font-size:11px}
+ .garden-pip .rhythm-hero .rhythm-now{grid-column:1/-1}
+ .garden-pip .rhythm-card,.garden-pip .rhythm-card.rhythm-now{padding:16px}
+ .garden-pip .profile-grid{grid-template-columns:1fr;gap:17px}.garden-pip .choice-grid{grid-template-columns:1fr}
+ .garden-pip .profile-form{gap:22px}.garden-pip .profile-actions{gap:10px}.garden-pip .profile-actions button{padding:10px 12px;font-size:13px}
+ .garden-pip .record{padding:14px}.garden-pip .record :is(p,small){font-size:12px;line-height:1.6}
+ .garden-pip .pro-hero.pro-sales-only{grid-template-columns:minmax(0,1fr) 110px;gap:12px;padding:25px 11px}
+ .garden-pip .pro-hero.pro-sales-only>img{width:110px;height:165px}.garden-pip .pro-hero.pro-sales-only h1{font-size:30px}
+ .garden-pip .pro-hero.pro-sales-only p{font-size:14px}.garden-pip .pro-hero.pro-sales-only .pro-actions{margin-right:-122px}
+ .garden-pip .pro-sales-only .workspace-notebook{padding-top:15px}.garden-pip .preview-panel{padding:23px 16px}
+ .garden-pip .preview-panel h3{font-size:26px}
+ .garden-pip .pip .avatar{width:33px;height:45px}
+}
+@media(max-height:500px) and (min-width:561px){
+ .garden-pip .workspace-navigation{padding-top:8px}.garden-pip .workspace-navigation .project-switcher,.garden-pip.pro-active .workspace-navigation .project-switcher{margin-bottom:8px}
+ .garden-pip .workspace-navigation .workspace-tools-label{margin-bottom:7px}
+}
