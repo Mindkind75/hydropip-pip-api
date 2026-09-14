@@ -1,5 +1,6 @@
 import {dailyGuidance} from './pipGuidance.js';
-import {answerModelOptions, readableAnswer, readableRecords} from './pipAnswerPresentation.js';
+import {answerModelOptions, readableAnswer, readableRecords, readableHistory, savedTimeZones} from './pipAnswerPresentation.js';
+import {explainSavedTask} from './savedTaskExplanation.js';
 import { createPipTiming, timePipStage, timePipStageSync, timePipProvider } from './pipPerformance.js';
 import { answerClock, recallMaintenanceTask } from './savedSchedule.js';
 import { isFollowup } from "./conversationRouting.js";
@@ -462,6 +463,12 @@ async function answerPip({ message, image, profile, subscription, history = [], 
     };
   }
 
+  const explanation = !imageInput && explainSavedTask(trimmed, projectContext);
+  if (explanation) {
+    const sources = [{title: 'Saved Planner records for ' + projectContext.project.title}];
+    await rememberProjectMessage(projectContext, {userId, projectId, role: 'assistant', content: explanation, mode: 'saved_task_explanation', sources});
+    return {answer: explanation, mode: 'saved_task_explanation', sources, projectMemory};
+  }
   const savedMaintenance = !imageInput && recallMaintenanceTask(trimmed, projectContext);
   if (savedMaintenance) {
     const sources = [{ title: 'Saved Planner task for ' + projectContext.project.title }];
@@ -550,7 +557,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
     ...(imageInput ? [{ type: "input_image", image_url: imageInput.dataUrl, detail: "auto" }] : [])
   ];
   const responseInput = [
-    ...recentHistory,
+    ...readableHistory(recentHistory, answerContext),
     { role: "user", content: currentUserContent }
   ];
   const enabledTools = toolsForQuestion(questionIntent, trimmed, { subscriptionActive: Boolean(subscription?.active) });
@@ -1142,7 +1149,7 @@ export function compactAnswer(answer, message, retrieval, answerContext = {}) {
   const disclosed = ensureAffiliateDisclosure(tagged);
   // Length is guided in the prompt. Preserve the full safe answer so cautions,
   // computed amounts, final steps and requested detail cannot be silently cut.
-  return readableAnswer(disclosed);
+  return readableAnswer(disclosed, answerContext);
 }
 
 function shouldIncludeAffiliateProducts(message, answerContext = {}) {
@@ -1400,6 +1407,7 @@ function buildAnswerContext({ profile, projectContext, subscription, questionInt
   const currentDate = clock.currentDate;
   return {
     ...clock,
+    savedTimeZones: savedTimeZones(projectContext),
     questionIntent,
     membership: subscription?.active ? "pip_pro" : "free",
     conversationTitle: projectContext?.conversation?.title || null,

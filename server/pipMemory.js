@@ -2558,6 +2558,7 @@ export async function buildProjectContext({ userId, projectId, conversationId, q
     recentMessages: messages || [],
     retrievedMessages,
     ...scheduleContext(reminders || []),
+    maintenanceReminders: (reminders || []).filter(item => item.category === 'maintenance'),
     activeReminders: (reminders || []).filter((item) => item.status === "active").slice(-10),
     reminderCount: (reminders || []).length,
     recentReadings: (readings || []).slice(-10),
