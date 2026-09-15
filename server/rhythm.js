@@ -1,4 +1,5 @@
 import { rhythmSetupStatus } from "./rhythmSetup.js";
+import { buildPestWatch } from './seasonalPests.js';
 import { dateInZone, reminderInstant, zonedDate } from '../assets/js/reminder-schedule.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -133,6 +134,7 @@ export function buildRhythmOverview({ project, reminders = [], seeds = [], readi
     },
     nowTasks,
     currentCrops,
+    pestWatch: buildPestWatch({profile,currentCrops,now,timezone}),
     sowNow,
     transferChecks,
     comingNext: uniqueComingNext.slice(0, 6),
