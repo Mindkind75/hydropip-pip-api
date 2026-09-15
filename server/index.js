@@ -251,7 +251,7 @@ app.use(express.static(rootDir, {
       res.set("Cache-Control", "public, max-age=31536000, immutable");
       return;
     }
-    if (extension === ".html") {
+    if ([".html", ".css", ".js"].includes(extension)) {
       res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
       return;
     }

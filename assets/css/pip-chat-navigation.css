@@ -1,0 +1,23 @@
+/* Keep these controls together, even when a returning browser has older base CSS. */
+.garden-pip .chat-head{position:relative;z-index:600;gap:10px}
+.garden-pip .chat-head>div:not(.chat-nav-menu){min-width:0}
+.garden-pip .chat-nav-menu{display:block;position:relative;margin-left:auto;flex:0 0 auto}
+.garden-pip .chat-nav-menu .member-trigger{display:flex;align-items:center;justify-content:center;gap:10px;width:auto;min-width:106px;height:44px;min-height:44px;padding:9px 13px;border:1px solid var(--leaf);border-radius:8px;background:var(--leaf);color:var(--paper);font-weight:600;white-space:nowrap}
+.garden-pip .chat-nav-menu .member-chevron{display:inline;color:inherit;font-size:12px}
+.garden-pip .chat-nav-menu .member-popover{display:grid;left:auto;right:0;top:calc(100% + 7px);width:min(270px,calc(100vw - 24px));max-height:calc(var(--embed-visible-bottom,100dvh) - 100px);overflow-y:auto;overscroll-behavior:contain;padding:7px;z-index:1100;background:var(--paper);border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 30px #243e2e24}
+.garden-pip .chat-nav-menu .member-popover[hidden]{display:none}
+.garden-pip .chat-nav-menu .member-popover :is(a,button){min-height:44px;display:flex;align-items:center;padding:9px 10px;text-align:left}
+.garden-pip .chat-nav-menu .chat-pro-destination{background:var(--soft);font-weight:650}
+.garden-pip .chat-nav-menu hr{width:100%;margin:5px 0;border:0;border-top:1px solid var(--line)}
+.garden-pip .chat-nav-menu .chat-nav-account{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:0;border:0}
+.garden-pip .chat-nav-account .member-label{position:static;width:auto;height:auto;clip:auto;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--muted)}
+.garden-pip .chat-nav-account :is(.member-photo,.member-initial){width:28px;height:28px}
+.garden-pip .chat-nav-menu.is-visitor [data-member-only],.garden-pip .chat-nav-menu:not(.is-visitor) [data-visitor-only]{display:none}
+.garden-pip .conversation-bar{display:grid;grid-template-columns:minmax(0,1fr) auto 44px;gap:8px;align-items:end;overflow:visible}
+.garden-pip .conversation-select-wrap{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:4px}
+.garden-pip .conversation-select-wrap>span{display:block;font-size:12px;line-height:1.2;font-weight:500}
+.garden-pip .conversation-select-wrap select{display:block;width:100%;min-width:0;min-height:44px;font-size:16px;font-weight:600}
+.garden-pip .conversation-bar .conversation-icon{width:44px;height:44px;min-height:44px}
+.garden-pip #pipNewConversation{display:flex;align-items:center;justify-content:center;gap:6px;width:auto;padding:8px 10px;font-size:14px;font-weight:600}
+.garden-pip #pipNewConversation>span:first-child{font-size:20px;line-height:1}
+@media(max-width:380px){.garden-pip .chat-head{gap:7px}.garden-pip .chat-head>img{width:34px;height:44px}.garden-pip .chat-head small{font-size:11px}.garden-pip .chat-nav-menu .member-trigger{min-width:98px;padding:9px 11px;font-size:14px}}
