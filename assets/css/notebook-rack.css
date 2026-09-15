@@ -1,0 +1,72 @@
+/* Keep tab identity visible, including the selected tab. */
+.garden-pip .workspace-tab{--tab-color:#e7ddca}
+.garden-pip .workspace-tab.rhythm{--tab-color:#f5d589}
+.garden-pip .workspace-tab.profile{--tab-color:#c9dff3}
+.garden-pip .workspace-tab.schedule{--tab-color:#edc8e1}
+.garden-pip .workspace-tab.calendar{--tab-color:#d6cbf1}
+.garden-pip .workspace-tab.seeds{--tab-color:#d4e8b5}
+.garden-pip .workspace-tab.logbook{--tab-color:#bde5d6}
+.garden-pip .workspace-tab.history{--tab-color:#e5d6c4}
+.garden-pip .workspace-tab.build{--tab-color:#f1c5a1}
+.garden-pip .workspace-tab.account{--tab-color:#d2dce4}
+.garden-pip .workspace-tab.guide{--tab-color:#f0e5ab}
+.garden-pip .workspace-tab.pip-chat{--tab-color:#aee1df}
+.garden-pip.pro-active .workspace-navigation .workspace-tab{background:var(--tab-color);color:#21372c;border:2px solid transparent;font-weight:600;opacity:1}
+.garden-pip.pro-active .workspace-navigation .workspace-tab.active{background:var(--tab-color);border-color:#203d2c;box-shadow:inset 0 -4px #203d2c}
+.garden-pip.pro-active .workspace-navigation .workspace-tab:focus-visible{outline:3px solid white;outline-offset:1px}
+.garden-pip .simple-notebook .notebook-unit{display:block;min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--paper);margin:10px 0;overflow:clip}
+.garden-pip .notebook-unit>summary{position:relative;display:grid;gap:5px;list-style:none;cursor:pointer;padding:15px 42px 15px 16px;min-height:54px;color:var(--ink)}
+.garden-pip .notebook-unit>summary::-webkit-details-marker{display:none}
+.garden-pip .notebook-unit>summary::after{content:'+';position:absolute;right:16px;top:15px;font-size:22px;line-height:1}
+.garden-pip .notebook-unit[open]>summary::after{content:'−'}
+.garden-pip .notebook-unit>summary strong{font-size:16px;font-weight:650;line-height:1.35}
+.garden-pip .notebook-unit>summary .unit-preview{font-size:13px;line-height:1.45;color:var(--muted);overflow-wrap:anywhere}
+.garden-pip .notebook-unit>summary:focus-visible{outline:3px solid var(--leaf);outline-offset:-3px}
+.garden-pip .notebook-unit[open]>summary{border-bottom:1px solid var(--line);background:var(--soft)}
+.garden-pip .notebook-unit .unit-body{padding:14px;min-width:0}
+.garden-pip .notebook-unit .unit-body>:first-child{margin-top:0}
+.garden-pip .notebook-unit .unit-body>:last-child{margin-bottom:0}
+.garden-pip .notebook-unit .rhythm-card,.garden-pip .notebook-unit .account-card{border:0;padding:0;box-shadow:none}
+.garden-pip .notebook-unit .unit-inner-heading{font-size:16px}
+.garden-pip .notebook-unit .workspace-form.mobile-collapsible{display:grid!important}
+.garden-pip .simple-notebook .workspace-grid,.garden-pip .simple-notebook .planner-grid,.garden-pip .simple-notebook .account-grid{grid-template-columns:minmax(0,1fr)}
+.garden-pip .simple-notebook .workspace-grid>.important-pane{order:0}
+.garden-pip .simple-notebook .workspace-grid>.notebook-unit{order:1}
+.garden-pip .simple-notebook .rhythm-grid{grid-template-columns:minmax(0,1fr);gap:0}
+.garden-pip .simple-notebook .rhythm-section-head{display:none}
+.garden-pip .simple-notebook .page-intro{display:block;padding-bottom:10px;margin-bottom:16px}
+.garden-pip .simple-notebook .page-intro h2,.garden-pip .simple-notebook .rhythm-copy h2{font-size:28px;margin:4px 0 12px}
+.garden-pip .simple-notebook .page-intro .notebook-unit{margin-top:12px}
+.garden-pip .simple-notebook .notebook-guide{display:flex;gap:12px;align-items:center}
+.garden-pip .simple-notebook .notebook-guide img{width:55px;height:65px;object-fit:contain}
+.garden-pip .simple-notebook .rhythm-copy>p{display:none}
+.garden-pip .simple-notebook .rhythm-hero{display:block;padding-bottom:12px;margin-bottom:12px;position:relative}
+.garden-pip .simple-notebook .rhythm-pip{position:absolute;right:0;top:0;width:48px;height:60px}
+.garden-pip .simple-notebook .rhythm-copy h2{padding-right:55px}
+.garden-pip .simple-notebook .rhythm-hero-actions{margin:12px 0}
+.garden-pip .simple-notebook .rhythm-now{margin:12px 0 0}
+.garden-pip .simple-notebook .rhythm-summary{margin:0}
+.garden-pip .simple-notebook .account-brand-panel{padding:16px;background:transparent;color:var(--ink)}
+.garden-pip .simple-notebook .account-brand-panel p:not(.eyebrow){display:none}
+.garden-pip .simple-notebook .account-brand-panel img{width:65px;height:80px;object-fit:contain}
+.garden-pip .simple-notebook .calendar-shell{grid-template-columns:minmax(0,1fr)}
+.garden-pip .simple-notebook .profile-form{gap:8px}
+.garden-pip .simple-notebook .record[hidden],.garden-pip .simple-notebook .history-item[hidden],.garden-pip .rack-more[hidden]{display:none!important}
+.garden-pip .simple-notebook .unit-help>summary{min-height:44px;padding:10px 40px 10px 12px}
+.garden-pip .simple-notebook .unit-help>summary strong{font-size:13px}
+.garden-pip .simple-notebook .unit-help>summary .unit-preview{display:none}
+.garden-pip .simple-notebook .unit-help>summary::after{top:10px}
+.garden-pip .simple-notebook .notebook-guidance{margin:8px 16px}
+.garden-pip .simple-notebook .notebook-guidance .pro-focus{margin:0;padding:0;border:0}
+.garden-pip .simple-notebook .seed-vault-control-row{grid-template-columns:minmax(0,1fr)}
+@media(max-width:900px){
+ .garden-pip .workspace-navigation{position:static;top:auto}
+ .garden-pip .simple-notebook .workspace-navigation{padding-top:12px}
+ .garden-pip .workspace-navigation .project-switcher{gap:8px;margin-bottom:10px}
+ .garden-pip .workspace-navigation .project-switcher select{font-size:16px}
+ .garden-pip .workspace-navigation .workspace-tools-label{margin-bottom:8px}
+ .garden-pip.pro-active .workspace-navigation .workspace-tab{min-height:44px;padding:7px 5px}
+ .garden-pip .simple-notebook .notebook-page{padding:18px 12px}
+ .garden-pip .simple-notebook .notebook-unit .unit-body{padding:12px}
+ .garden-pip .simple-notebook .profile-grid{grid-template-columns:minmax(0,1fr)}
+}

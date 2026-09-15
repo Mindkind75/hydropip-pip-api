@@ -50,11 +50,15 @@ try{
   page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await check('Notebook scroll, reachable grow selector, tab keys and dialogs at '+size.width+'×'+size.height,async()=>{
    const f=await open('pro=1&projectId='+a.id,a.id);
-   await f.getByRole('tab',{name:'Profile',exact:true}).click();await until(async()=>await f.locator('[data-pro-panel=profile]').evaluate(e=>e.getBoundingClientRect().top<document.querySelector('.workspace-navigation').getBoundingClientRect().bottom+24));
+   await f.getByRole('tab',{name:'Profile',exact:true}).click();await until(async()=>await f.locator('[data-pro-panel=profile]').evaluate(e=>e.getBoundingClientRect().top<(innerWidth<=900?24:document.querySelector('.workspace-navigation').getBoundingClientRect().bottom+24)));
    await page.screenshot({path:path.join(out,'notebook-'+size.width+'.png')});
    const child=page.frames().find(f=>f.url().startsWith(base));
    const measurements=await child.evaluate(()=>{const view=document.querySelector('#pipProView');view.scrollTop=view.scrollHeight;return{body:document.body.scrollHeight,root:document.documentElement.scrollHeight,height:innerHeight,width:document.documentElement.scrollWidth,view:view.getBoundingClientRect().toJSON(),scroll:view.scrollTop}});
    assert.ok(measurements.body<=size.height+1);assert.ok(measurements.root<=size.height+1);assert.ok(measurements.width<=size.width+1);assert.ok(measurements.scroll>0);
+   if(size.width<=900){
+    const nav=await f.locator('.workspace-navigation').boundingBox();assert.ok(nav.y+nav.height<=0,'Phone tabs scroll away with the content');
+    await f.locator('#pipReturnTop').click();await until(async()=>await f.locator('#proProjectSelect').evaluate(e=>e.getBoundingClientRect().top>=0));
+   }
    const selectBox=await f.locator('#proProjectSelect').boundingBox();assert.ok(selectBox.y>=0&&selectBox.y+selectBox.height<size.height);assert.ok(selectBox.height>=44);
    await f.getByRole('tab',{name:'Profile',exact:true}).press('End');await f.getByRole('tab',{name:'Account',exact:true}).waitFor();
    assert.equal(await f.getByRole('tab',{name:'Account',exact:true}).getAttribute('aria-selected'),'true');

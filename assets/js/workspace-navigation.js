@@ -55,7 +55,7 @@
   });
   // Keep the sticky controls and panels aligned when a form opens or gains focus.
   new ResizeObserver(function () {
-    document.documentElement.style.setProperty('--workspace-nav-height', nav.offsetHeight + 'px');
+    document.documentElement.style.setProperty('--workspace-nav-height', (getComputedStyle(nav).position === 'sticky' ? nav.offsetHeight : 0) + 'px');
   }).observe(nav);
   document.addEventListener('DOMContentLoaded', function () {
     var tools = document.querySelector('.conversation-tools');
