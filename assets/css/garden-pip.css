@@ -98,6 +98,19 @@
 .garden-pip .pro-plan p{color:var(--muted)}
 .garden-pip .pro-plan .price{color:var(--ink);font-weight:600}
 .garden-pip .chat-head{background:var(--paper)}.garden-pip .chat-head img{width:47px;height:56px;object-fit:contain}
+.garden-pip .chat-head{z-index:600;gap:10px}
+.garden-pip .chat-head>div:not(.chat-nav-menu){min-width:0}
+.garden-pip .chat-nav-menu{display:flex;align-items:stretch;flex-shrink:0;margin-left:auto}
+.garden-pip .chat-nav-menu .chat-pro-link{border-radius:8px 0 0 8px;white-space:nowrap;padding:9px 12px}
+.garden-pip .chat-nav-menu .member-trigger{width:44px;min-width:44px;height:44px;min-height:44px;justify-content:center;border-radius:0 8px 8px 0;border-color:var(--leaf);border-left-color:#ffffff55;background:var(--leaf);color:var(--paper)}
+.garden-pip .chat-nav-menu .member-chevron{display:block;color:inherit;font-size:12px}
+.garden-pip .chat-nav-menu .member-popover{left:auto;right:0;max-height:calc(var(--embed-visible-bottom,100dvh) - 88px);overflow-y:auto;overscroll-behavior:contain}
+.garden-pip .chat-nav-menu .chat-nav-account{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.garden-pip .chat-nav-account .member-label{position:static;width:auto;height:auto;clip:auto;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.garden-pip .chat-nav-account .member-photo,.garden-pip .chat-nav-account .member-initial{width:32px;height:32px}
+.garden-pip .chat-nav-menu.is-visitor .chat-nav-account{display:none}
+.garden-pip .conversation-bar{grid-template-columns:minmax(0,1fr) 44px 44px}
+@media(max-width:380px){.garden-pip .chat-head{gap:7px}.garden-pip .chat-head>img{width:34px;height:44px}.garden-pip .chat-head small{font-size:11px}.garden-pip .chat-nav-menu .chat-pro-link{padding-left:9px;padding-right:9px;font-size:14px}}
 .garden-pip .log{background:var(--cream)}.garden-pip .pip .bubble{background:var(--paper);border-color:var(--line);border-radius:11px}
 .garden-pip .user .bubble{border-radius:11px 11px 2px 11px}
 .garden-pip .pip .avatar{width:42px;height:55px;object-fit:contain;background:transparent;border:0;border-radius:0}
