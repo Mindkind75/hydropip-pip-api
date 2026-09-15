@@ -64,7 +64,7 @@ for (const page of indexablePages) {
 const home = read("home.html");
 assert.match(title(home), /Pip.*Hydroponic Software/i, "home title must lead with the software product");
 const homeHeading=(home.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1]||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
-assert.equal(homeHeading, 'A calmer way to keep your grow going.', "home H1 must use the approved Garden Studio headline");
+assert.equal(homeHeading, 'Your grow, all in one place.', "home H1 must use the approved Garden Studio headline");
 assert.ok(/Plan a tower build/.test(home), "the tower build must retain a prominent starting path");
 assert.match(read("field-guide.html"), /How to Build a DIY Hydroponic Tower/i, "Field Guide must target build intent");
 assert.match(read("how-it-works.html"), /FAQPage/, "How It Works must include FAQ structured data");

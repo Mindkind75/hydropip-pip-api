@@ -30,7 +30,7 @@ try{
   await check('Software homepage, real images, trademark and navigation at '+size.width+'x'+size.height,async()=>{
    await page.goto(base+'/home.html');await page.locator('.garden-home-companion img').waitFor();await page.locator('.garden-home-companion img').evaluate(img=>img.decode());
    assert.match(await page.locator('.brand').innerText(),/HydroPip™/);
-   assert.match(await page.locator('h1').innerText(),/A calmer way\s+to keep your\s+grow going/);
+   assert.match(await page.locator('h1').innerText(),/Your grow,\s+all in one place/);
    assert.match(await page.locator('.garden-mini-heading').innerText(),/Example notebook/);
    const dimensions=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,towers:document.querySelector('.garden-towers').getBoundingClientRect().top,hero:document.querySelector('.hero').getBoundingClientRect().bottom}));
    assert.ok(dimensions.scroll<=dimensions.width+1);assert.ok(dimensions.towers>=dimensions.hero-1);
