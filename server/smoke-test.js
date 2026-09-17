@@ -497,7 +497,8 @@ const savedPreferences = await updateUserPreferences({
   patch: { workspaceTabOrder: ["chat", "planner", "planner", "invalid", "profile"], accountAvatar: "/assets/branding/pip-head-transparent.png", experienceMode: "detailed", celebratedMilestones: ["workspace_ready", "grow_running", "workspace_ready", "not_real"] }
 });
 assert.deepEqual(savedPreferences.workspaceTabOrder.slice(0, 3), ["chat", "planner", "profile"]);
-assert.equal(savedPreferences.workspaceTabOrder.includes("calendar"), true);
+assert.equal(savedPreferences.workspaceTabOrder.includes("calendar"), false);
+assert.equal(savedPreferences.workspaceTabOrder.includes("crops"), true);
 assert.equal(savedPreferences.accountAvatar, "/assets/branding/pip-head-transparent.png");
 assert.equal(savedPreferences.experienceMode, "detailed");
 assert.deepEqual(savedPreferences.celebratedMilestones, ["workspace_ready", "grow_running"]);

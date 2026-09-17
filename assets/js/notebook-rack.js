@@ -90,7 +90,7 @@ window.HydroPipRack = {
     unit([one('.planner-side')], 'Planning tools and supplies', 'Calendar, nutrient calculator and system-care supplies', 'planner-tools');
     const seasonal = unit([one('#proSeedDashboard')], 'Seasonal planting guide', () => one('#proSeedSeasonSummary').textContent, 'seasonal');
     one('[data-pro-panel=seeds] > .workspace-grid').after(seasonal);
-    const seedTips = unit([...all('[data-pro-panel=seeds] .seed-shop-note'),one('#proSeedManageGrow')], 'Seed inventory and photo tips', 'How packets, planted crops and scanning work', 'seed-tips');
+    const seedTips = unit([...all('[data-pro-panel=seeds] .seed-shop-note')], 'Seed inventory and photo tips', 'How packets, planted crops and scanning work', 'seed-tips');
     seasonal.after(seedTips);
     const seedFilters = unit([one('#proSeedSort').parentElement,one('.seed-filter-bar')], 'Filter and sort seeds', () => one('#proSeedSort').selectedOptions[0].textContent + ' · ' + (one('.seed-filter.active')?.textContent || 'All'), 'seed-filters');
     one('.seed-vault-control-row').after(seedFilters);

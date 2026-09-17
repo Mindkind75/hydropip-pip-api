@@ -141,7 +141,7 @@ for(const file of ['nutrient-calculator.js','nutrient-grow.js','nutrient-recipe.
 }
 assert.match(fieldGuideHtml, /pip\?tool=nutrients/, "The Field Guide should hand members into the nutrient calculator before planting");
 assert.match(fieldGuideHtml, /Before adding seeds or transplants/, "The Field Guide should place nutrient calculation before planting");
-const plannerPanelHtml = pipHtml.match(/<section class="workspace-section notebook-page" data-pro-panel="planner"[\s\S]*?<section class="workspace-section notebook-page" data-pro-panel="calendar"/)?.[0] || "";
+const plannerPanelHtml = pipHtml.match(/<section class="workspace-section notebook-page" data-pro-panel="planner"[\s\S]*?<section class="workspace-section notebook-page" data-pro-panel="crops"/)?.[0] || "";
 const trackBuildPanelHtml = pipHtml.match(/<section class="workspace-section notebook-page" data-pro-panel="build"[\s\S]*?<section class="workspace-section notebook-page" data-pro-panel="account"/)?.[0] || "";
 assert.match(plannerPanelHtml, /nutrient-calculator/, "The nutrient calculator should live in the Pip Pro Planner");
 assert.doesNotMatch(trackBuildPanelHtml, /nutrient-calculator/, "Track My Build should stay focused on parts and construction");
@@ -186,7 +186,7 @@ assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
-for (const page of ["profile", "planner", "calendar", "log", "history"]) {
+for (const page of ["profile", "planner", "seeds", "crops", "log", "history"]) {
   assert.match(pipHtml, new RegExp(`data-pro-page=["']${page}["']`), `pip.html is missing the ${page} notebook tab`);
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }

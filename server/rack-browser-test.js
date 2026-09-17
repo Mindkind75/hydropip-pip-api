@@ -61,7 +61,7 @@ try{
   await until(async()=>await f.locator('[data-pro-panel=seeds]').getAttribute('aria-busy')==='false');
  });
  await check('Seed inventory shows six first, search finds hidden records, and editing opens its form',async()=>{
-  await tab('Seeds');await until(async()=>await f.locator('#proSeedList .record:not([hidden])').count()===6);
+  await tab('Seed Vault');await until(async()=>await f.locator('#proSeedList .record:not([hidden])').count()===6);
   await page.screenshot({path:path.join(out,'seeds-phone.png')});
   await f.locator('[data-pro-panel=seeds] .rack-more').click();assert.equal(await f.locator('#proSeedList .record:not([hidden])').count(),8);
   await f.locator('#proSeedSearch').fill('Packet 7');await until(async()=>await f.locator('#proSeedList .record').count()===1);
@@ -69,7 +69,7 @@ try{
   await f.locator('#proSeedForm button[type=submit]').click();await until(async()=>(await m.listProjectSeeds({userId:member.id,projectId:a.id})).some(s=>s.variety==='Packet 7'&&s.packsOnHand===3));
  });
  await check('Planner add control expands the form and saves its task',async()=>{
-  await tab('Planner');await f.locator('[data-open-form=proReminderForm]').click();await f.locator('#proReminderForm [name=title]').fill('Rack test task');await f.locator('#proReminderForm button[type=submit]').click();
+  await tab('Planner');await f.locator('.planner-add-task>summary').click();await f.locator('#proReminderForm [name=title]').fill('Rack test task');await f.locator('#proReminderForm button[type=submit]').click();
   await until(async()=>(await m.listProjectReminders({userId:member.id,projectId:a.id})).some(r=>r.title==='Rack test task'));
  });
  await check('Grow Notes add control expands and saves a plant observation',async()=>{
@@ -84,7 +84,7 @@ try{
  await check('All notebook pages fit at phone and desktop widths without script errors',async()=>{
   for(const width of [320,390,1440]){
    await page.setViewportSize({width,height:844});
-   for(const name of ['Rhythm','Profile','Planner','Calendar','Seeds','Grow Notes','History','Track Build','Account']){
+   for(const name of ['Rhythm','Profile','Planner','My Crops','Seed Vault','Grow Notes','History','Track Build','Account']){
     await tab(name);assert.ok(await f.locator('body').evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     await page.screenshot({path:path.join(out,name.replaceAll(' ','-').toLowerCase()+'-'+width+'.png')});
    }

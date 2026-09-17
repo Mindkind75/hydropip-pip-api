@@ -24,9 +24,9 @@ if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
 export const DEFAULT_WORKSPACE_TAB_ORDER = [
   "rhythm",
   "profile",
-  "planner",
-  "calendar",
   "seeds",
+  "crops",
+  "planner",
   "log",
   "history",
   "build",
@@ -3018,10 +3018,15 @@ function normalizeWorkspaceTabOrder(value) {
   const seen = new Set();
   const order = [];
   for (const item of requested) {
-    const key = String(item || "").trim();
+    const raw = String(item || "").trim();
+    const key = ['calendar', 'schedule', 'maintenance'].includes(raw) ? 'planner' : raw;
     if (!DEFAULT_WORKSPACE_TAB_ORDER.includes(key) || seen.has(key)) continue;
     seen.add(key);
     order.push(key);
+  }
+  if (!seen.has('crops') && seen.has('seeds')) {
+    order.splice(order.indexOf('seeds') + 1, 0, 'crops');
+    seen.add('crops');
   }
   for (const key of DEFAULT_WORKSPACE_TAB_ORDER) {
     if (!seen.has(key)) order.push(key);

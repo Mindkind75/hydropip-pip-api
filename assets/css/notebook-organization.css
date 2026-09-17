@@ -1,0 +1,9 @@
+.garden-pip .workspace-tab.crops{--tab:#d6cbf1;--tab-color:#d6cbf1}
+.garden-pip .notebook-page[data-pro-panel="crops"]{border-top:6px solid #a290c7}
+.garden-pip .planner-calendar{min-width:0;margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.garden-pip .planner-calendar .page-intro h2{font-size:1.35rem}.garden-pip .planner-calendar .calendar-shell{min-width:0}
+.garden-pip .planner-add-task>summary{display:flex;align-items:center;gap:12px;min-height:44px}.garden-pip .planner-add-task>summary .unit-preview{font-size:.8rem}
+.garden-pip .planner-task-list .important-pane{border:0;padding:0}.garden-pip .planner-task-list .pane-title h3{font-size:1rem}
+.crop-controls{display:grid;grid-template-columns:1fr 180px;gap:14px;margin:18px 0}.crop-controls label{display:grid;gap:6px;font-weight:600}.crop-controls input,.crop-controls select{min-width:0;width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:7px;font:inherit;background:var(--paper);color:var(--ink)}
+.crop-actions{display:flex;flex-wrap:wrap;gap:10px}.crop-actions .btn{min-height:44px;white-space:normal}.crop-facts{display:grid;grid-template-columns:minmax(110px,.6fr) 1fr;gap:8px 16px;font-size:.9rem}.crop-facts dt{color:var(--muted)}.crop-facts dd{margin:0;overflow-wrap:anywhere}.crop-card .unit-body p{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:540px){.crop-controls{grid-template-columns:1fr}.crop-actions>.btn{flex:1 1 130px}.garden-pip .planner-add-task>summary .unit-preview{display:none}.crop-facts{grid-template-columns:1fr}.crop-facts dd{margin-bottom:8px}}
