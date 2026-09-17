@@ -31,7 +31,7 @@ try{
   const tab=key=>page.locator('.workspace-tabs [data-pro-page="'+key+'"]');
   await open('calendar');
   await check('Old Calendar deep link opens combined Planner with one tab and usable calendar',async()=>{
-   assert.ok(await tab('planner').evaluate(e=>e.classList.contains('active')));assert.equal(await tab('calendar').count(),0);assert.equal(await page.locator('.workspace-tabs button[role="tab"]:not([hidden])').count(),9);
+   assert.ok(await tab('planner').evaluate(e=>e.classList.contains('active')));assert.equal(await tab('calendar').count(),0);assert.equal(await page.locator('.workspace-tabs button[role="tab"]:not([hidden])').count(),8);
    assert.ok(await page.locator('#proCalendarBoard').isVisible());assert.ok(await page.locator('#proCalendarSection').evaluate(e=>!!e.closest('[data-pro-panel="planner"]')));
    assert.ok(await page.locator('#proPlannerTasks').evaluate(e=>!e.open));assert.match(await page.locator('#proPlannerTasks>summary').innerText(),/1 overdue · 1 today/);
    assert.ok(await page.locator('[data-rack-key="proReminderForm"]').evaluate(e=>e.compareDocumentPosition(document.querySelector('#proPlannerTasks'))&Node.DOCUMENT_POSITION_FOLLOWING));

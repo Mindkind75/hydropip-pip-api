@@ -75,9 +75,26 @@ export async function finishChatExchange({userId,projectId,exchangeId,reply,stat
 export function publicExchange(value){return{id:value.id,conversationId:value.conversationId,originConversationId:value.originConversationId,revision:value.revision,canUndo:Boolean(value.lastMoveFrom),status:value.status}}
 export async function getChatExchange({userId,projectId,exchangeId}={}){await owned(userId,projectId);const s=await conversationStorage(),value=await exchangeAt(s.pool?{client:s.pool}:{state:s.read()},userId,safeId(exchangeId));if(!value||value.projectId!==projectId)throw error('Exchange not found.',404);return {exchange:publicExchange(value),reply:value.reply}}
 
-export async function messagePage({userId,projectId,conversationId,query='',before,limit=30,includeArchived=false}={}){
+export async function messagePage({userId,projectId,conversationId,query='',around,before,limit=30,includeArchived=false}={}){
  await owned(userId,projectId);const storage=await conversationStorage(),store=storage.pool?{client:storage.pool}:{state:storage.read()},threads=await threadsAt(store,userId,projectId);
  if(conversationId&&!threads.some(x=>x.id===conversationId&&(includeArchived||x.status==='active')))throw error('Conversation not found.',404);
+ if(around){
+  let anchor,rows;
+  if(storage.pool){
+   anchor=(await storage.pool.query('select * from pip_messages where user_id=$1 and project_id=$2 and id=$3',[userId,projectId,around])).rows[0];
+   const target=anchor&&threads.find(x=>x.id===anchor.conversation_id&&(includeArchived||x.status==='active'));
+   if(!target)throw error('Saved message not found.',404);
+   const args=[userId,projectId,anchor.conversation_id,anchor.created_at,anchor.id];
+   const prior=await storage.pool.query('select * from pip_messages where user_id=$1 and project_id=$2 and conversation_id=$3 and (created_at,id)<=($4,$5) order by created_at desc,id desc limit 11',args);
+   const next=await storage.pool.query('select * from pip_messages where user_id=$1 and project_id=$2 and conversation_id=$3 and (created_at,id)>($4,$5) order by created_at,id limit 10',args);
+   rows=[...prior.rows.reverse(),...next.rows].map(message);anchor=message(anchor);
+  }else{
+   for(const t of threads.filter(x=>includeArchived||x.status==='active')){const all=await messagesAt(store,userId,projectId,t.id);const index=all.findIndex(x=>x.id===around);if(index>=0){anchor=all[index];rows=all.slice(Math.max(0,index-10),index+11);break}}
+   if(!anchor)throw error('Saved message not found.',404);
+  }
+  const conversation=threads.find(x=>x.id===anchor.conversationId);
+  return {messages:rows,anchorId:anchor.id,conversation:{id:conversation.id,title:conversation.title,status:conversation.status},nextCursor:null};
+ }
  const size=Math.max(1,Math.min(100,Number(limit)||30));let cursor;
  if(before){try{cursor=JSON.parse(Buffer.from(before,'base64url').toString());if(!cursor.id||!Number.isFinite(Date.parse(cursor.date)))throw Error()}catch{throw error('Invalid history cursor.')}}
  let rows;

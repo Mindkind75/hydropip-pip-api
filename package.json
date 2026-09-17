@@ -15,7 +15,7 @@
     "qa:seo": "node server/seo-qa.js",
     "qa:conversions": "node server/conversion-tracking-test.js",
     "qa:affiliate": "node server/affiliate-link-test.js",
-    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip && npm run qa:launch && npm run qa:daily && npm run qa:daily-sdk && npm run qa:cleanup && npm run qa:cleanup-sdk && npm run qa:reliability && npm run qa:answer-cleanup && npm run qa:pests && npm run qa:notebook",
+    "qa:all": "npm run smoke && npm run test:security && npm run qa:site && npm run qa:seo && npm run qa:conversions && npm run qa:affiliate && npm run qa:pip && npm run qa:launch && npm run qa:daily && npm run qa:daily-sdk && npm run qa:cleanup && npm run qa:cleanup-sdk && npm run qa:reliability && npm run qa:answer-cleanup && npm run qa:pests && npm run qa:notebook && npm run qa:journal",
     "qa:notebook": "node server/notebook-organization-test.js",
     "qa:notebook-ui": "node server/notebook-organization-test.js --ui",
     "qa:pests": "node server/seasonal-pest-test.js",
@@ -45,7 +45,9 @@
     "qa:reliability": "node server/pip-reliability-test.js",
     "qa:reliability-ui": "node server/pip-reliability-test.js --ui",
     "qa:answer-cleanup": "node server/pip-answer-cleanup-test.js",
-    "qa:answer-cleanup-ui": "node server/pip-answer-cleanup-test.js --ui"
+    "qa:answer-cleanup-ui": "node server/pip-answer-cleanup-test.js --ui",
+    "qa:journal": "node server/grow-journal-test.js",
+    "qa:journal-ui": "node server/grow-journal-test.js --ui"
   },
   "overrides": {
     "qs": "6.16.0"

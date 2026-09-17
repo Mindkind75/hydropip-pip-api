@@ -113,7 +113,7 @@ window.HydroPipRack = {
       const guide = intro.querySelector('.notebook-guide');
       if (text || guide) unit([text, guide], 'About this page', 'Guidance when you need it', 'page-help-' + i).classList.add('unit-help');
     });
-    const lists = ['proGrowLogList','proHistory','proSeedList'].map(id => {
+    const lists = ['proSeedList'].map(id => {
       const list = one('#' + id), button = document.createElement('button');
       button.type = 'button'; button.className = 'btn rack-more'; list.after(button);
       const entry = {list, button, expanded:false, limit:id === 'proSeedList' ? 6 : 3};

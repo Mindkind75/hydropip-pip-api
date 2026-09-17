@@ -28,7 +28,6 @@ export const DEFAULT_WORKSPACE_TAB_ORDER = [
   "crops",
   "planner",
   "log",
-  "history",
   "build",
   "account",
   "beta",
@@ -3019,7 +3018,7 @@ function normalizeWorkspaceTabOrder(value) {
   const order = [];
   for (const item of requested) {
     const raw = String(item || "").trim();
-    const key = ['calendar', 'schedule', 'maintenance'].includes(raw) ? 'planner' : raw;
+    const key = ['calendar', 'schedule', 'maintenance'].includes(raw) ? 'planner' : ['history','journal'].includes(raw) ? 'log' : raw;
     if (!DEFAULT_WORKSPACE_TAB_ORDER.includes(key) || seen.has(key)) continue;
     seen.add(key);
     order.push(key);

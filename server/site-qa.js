@@ -94,7 +94,7 @@ assert.match(pipHtml, /id="pipAvatarUpload"[^>]*accept="image\/jpeg,image\/png,i
 assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Build<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Build link");
 assert.doesNotMatch(marketingHomeHtml, /<nav class="nav"[\s\S]*?<a[^>]*>Parts<\/a>[\s\S]*?<\/nav>/, "The homepage primary navigation should not duplicate Track My Build with a Parts link");
 assert.doesNotMatch(pipHtml, /class=["']history-feature["']/, "The Pro history notebook should prioritize saved activity over a large marketing block");
-assert.match(pipHtml, /class=["']history-layout["']/, "The Pro history notebook should use the compact working layout");
+assert.match(pipHtml, /grow-journal.js/, "The journal should combine notes and conversation history");
 assert.match(pipHtml, /pip-history-wide-concept\.jpg/, "The Pro sales page should explain saved grow memory visually");
 assert.doesNotMatch(pipHtml, /pip-history-poster-concept\.jpg/, "The history poster with outdated branding must not appear on the live Pip page");
 for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", "grow-log.png"]) {
@@ -102,7 +102,6 @@ for (const asset of ["profile.png", "planner.png", "calendar.png", "seeds.png", 
   assert.match(pipHtml, new RegExp(`/assets/marketing/pro-tabs/${asset.replaceAll(".", "\\.")}`), `Pip Pro should use the ${asset} notebook guide`);
 }
 assert.equal(fs.existsSync(new URL("../assets/marketing/pro-tabs/historian.png", import.meta.url)), true, "The History notebook needs its transparent historian Pip");
-assert.match(pipHtml, /\/assets\/marketing\/pro-tabs\/historian\.webp/, "The History notebook should use optimized historian Pip beside saved activity");
 assert.deepEqual(
   fs.readFileSync(new URL("../assets/marketing/pro-tabs/calendar.png", import.meta.url)),
   fs.readFileSync(new URL("../assets/marketing/pro-tabs/planner.png", import.meta.url)),
@@ -179,14 +178,14 @@ for (const requiredId of ["mixing-pump", "mix-return-hose", "mix-hose-adapter", 
 assert.notEqual(buildConfig.items.find((item) => item.id === "mix-return-hose").id, buildConfig.items.find((item) => item.id === "main-feed-hose").id, "Mixing circulation and tower feed hoses must remain distinct");
 const notebookVisualGuideCount = (pipHtml.match(/class=["'][^"']*notebook-guide[^"']*["']/g) || []).length
   + (pipHtml.match(/class=["'][^"']*account-brand-panel[^"']*["']/g) || []).length;
-assert.equal(notebookVisualGuideCount, 8, "Every main Pip Pro notebook section should have a visual guide");
+assert.equal(notebookVisualGuideCount, 7, "Every main Pip Pro notebook section should have a visual guide");
 assert.match(pipHtml, /account-brand-panel[\s\S]*pip-pro-workspace-transparent\.webp/, "The branded account hub should feature optimized Pip artwork");
 assert.match(pipHtml, /id=["']proPhotoJoin["']/, "The photo-guidance story needs a working Pip Pro call to action");
 assert.match(pipHtml, /id=["']proMemoryJoin["']/, "The grow-memory story needs a working Pip Pro call to action");
 for (const id of ["pipProView", "proJoinButton", "proCompare", "proPlanButton", "proWorkspace", "proReminderForm", "proReminderList", "proCalendarBoard", "proCalendarDetails", "proCalendarTitle", "proReadingForm", "proChatLink", "pipConversationSelect", "pipNewConversation", "pipConversationMenu", "pipConversationDialog", "pipPhoto", "pipPhotoButton", "pipPhotoAllowance", "pipPhotoPreview", "pipPhotoRemove"]) {
   assert.match(pipHtml, new RegExp(`id=["']${id}["']`), `pip.html is missing Pip Pro control ${id}`);
 }
-for (const page of ["profile", "planner", "seeds", "crops", "log", "history"]) {
+for (const page of ["profile", "planner", "seeds", "crops", "log"]) {
   assert.match(pipHtml, new RegExp(`data-pro-page=["']${page}["']`), `pip.html is missing the ${page} notebook tab`);
   assert.match(pipHtml, new RegExp(`data-pro-panel=["']${page}["']`), `pip.html is missing the ${page} notebook page`);
 }

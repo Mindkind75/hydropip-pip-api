@@ -73,7 +73,7 @@ try{
   await until(async()=>(await m.listProjectReminders({userId:member.id,projectId:a.id})).some(r=>r.title==='Rack test task'));
  });
  await check('Grow Notes add control expands and saves a plant observation',async()=>{
-  await tab('Grow Notes');await f.locator('[data-open-form=proReadingForm]').click();await f.locator('#proReadingForm [name=plantResponse]').fill('Fictional healthy leaves');await f.locator('#proReadingForm button[type=submit]').click();
+  await tab('Grow Journal');await f.locator('[data-rack-key=proReadingForm]>summary').click();await f.locator('#proReadingForm [name=plantResponse]').fill('Fictional healthy leaves');await f.locator('#proReadingForm button[type=submit]').click();
   await until(async()=>(await m.listProjectReadings({userId:member.id,projectId:a.id})).some(r=>r.plantResponse==='Fictional healthy leaves'));
  });
  await check('Section preferences survive reload and remain separate across grows',async()=>{
@@ -84,7 +84,7 @@ try{
  await check('All notebook pages fit at phone and desktop widths without script errors',async()=>{
   for(const width of [320,390,1440]){
    await page.setViewportSize({width,height:844});
-   for(const name of ['Rhythm','Profile','Planner','My Crops','Seed Vault','Grow Notes','History','Track Build','Account']){
+   for(const name of ['Rhythm','Profile','Planner','My Crops','Seed Vault','Grow Journal','Track Build','Account']){
     await tab(name);assert.ok(await f.locator('body').evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     await page.screenshot({path:path.join(out,name.replaceAll(' ','-').toLowerCase()+'-'+width+'.png')});
    }
