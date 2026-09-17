@@ -395,7 +395,7 @@ assert.match(fieldGuideHtml, /class=["']brand["'][^>]*href=["']https:\/\/www\.hy
 assert.equal((fieldGuideHtml.match(/href=["']https:\/\/www\.hydropip\.com\/pip\?pro=1["']/g) || []).length >= 2, true, "Field Guide should keep Pip Pro available without trapping users there");
 const printBuildHtml = fs.readFileSync(new URL("../print-build-guide.html", import.meta.url), "utf8");
 const printPartsHtml = fs.readFileSync(new URL("../print-parts-guide.html", import.meta.url), "utf8");
-assert.match(printBuildHtml, /Page 4 of 4/, "The print build guide should contain four designed pages");
+assert.match(printBuildHtml, /Page 7 of 7/, "The print build guide should contain seven shared-content reference pages");
 assert.match(printBuildHtml, /window\.print/, "The print build guide needs a print control");
 assert.equal((printPartsHtml.match(/data-part=/g) || []).length, 28, "The printable parts guide should cover all 28 initial build items");
 assert.match(printPartsHtml, /hydropipMemberPartsChecklist/, "The printable parts guide should carry over saved checklist progress");

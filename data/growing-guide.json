@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "updated": "2026-09-17",
+  "groups": [
+    {
+      "id": "build",
+      "title": "How the system works & assembly",
+      "section": "quick-start"
+    },
+    {
+      "id": "starting",
+      "title": "Seeds & transplants",
+      "section": "starting"
+    },
+    {
+      "id": "water",
+      "title": "Water & nutrients",
+      "section": "water-nutrients"
+    },
+    {
+      "id": "care",
+      "title": "Routine care",
+      "section": "care"
+    },
+    {
+      "id": "trouble",
+      "title": "Troubleshooting",
+      "section": "red-flags"
+    },
+    {
+      "id": "harvest",
+      "title": "Harvest & reset",
+      "section": "turnover"
+    }
+  ],
+  "articles": [
+    {
+      "id": "water-path",
+      "group": "build",
+      "title": "How HydroPip moves water",
+      "summary": "One tank. One nutrient batch. Timed tower feeds. Tower runoff does not return to the IBC.",
+      "steps": [
+        "The standard four-tower build uses a 275-gallon IBC; use your actual filled water volume when calculating nutrients.",
+        "A low mixing pump circulates the batch through its own secured hose discharging down through the top opening.",
+        "A separate feed pump supplies the main hose and the small tubes at the top of each tower.",
+        "Water moves through the reusable media. Light runoff leaves the towers without returning to the reservoir."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "image": "/assets/website/field-guide/hydropip-system-map-v2.webp",
+      "imageAlt": "HydroPip IBC, separate mixing and feed pumps, tower feed lines, and non-returning runoff"
+    },
+    {
+      "id": "site-supports",
+      "group": "build",
+      "title": "Prepare the site and supports",
+      "summary": "Check sun, drainage, working space, and utility locations before installing supports.",
+      "steps": [
+        "Call 811 and wait for utility marking before driving supports. Locate private irrigation, septic, electric, and water lines too.",
+        "Leave room to reach the reservoir, harvest, service hoses, and lift tower sections. Confirm safe power access.",
+        "For the standard tower, use an 8–10 ft, 1/2-inch galvanized center support with roughly 5 ft above grade. Ground and wind conditions determine anchoring needs.",
+        "Set a level cinder-block base and verify that the support and base are stable before stacking."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Check tower site and supports",
+      "category": "maintenance"
+    },
+    {
+      "id": "stack-towers",
+      "group": "build",
+      "title": "Fill and stack the towers",
+      "summary": "Fill sections before stacking, and keep the top guide removable.",
+      "steps": [
+        "Moisten the 50/50 perlite–vermiculite media lightly. Fill the four-pocket sections evenly without packing hard.",
+        "Lower ten sections over each center support, rotating pockets for access and keeping the stack straight.",
+        "Place a loose 3/4-inch PVC tee at the top to guide the hose. It must lift off for turnover.",
+        "Check stability and access before connecting water."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Fill and stack tower sections",
+      "category": "maintenance"
+    },
+    {
+      "id": "plumb-test",
+      "group": "build",
+      "title": "Connect the pumps and test delivery",
+      "summary": "Test with clean water before planting or mixing nutrients.",
+      "steps": [
+        "Use a food-contact-appropriate tote with documented suitable prior contents. Do not use an IBC with unknown or hazardous contents.",
+        "Use outdoor-rated equipment and GFCI-protected power. Keep connections dry and elevated, with drip loops. Disconnect power before handling pumps, water, or cords.",
+        "Secure the mixing pump low in the IBC and its separate discharge hose at the top opening, aimed down for visible circulation without splashing.",
+        "Connect the feed pump to the main hose. Route through the removable top guides and branch a rigid 1/4-inch tube into each tower, with a diffuser.",
+        "Fit the hose-end flush valve. Flush debris, close the valve, and check every tower for delivery, leaks, and excessive runoff."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Test flow at every tower",
+      "category": "maintenance"
+    },
+    {
+      "id": "start-seeds",
+      "group": "starting",
+      "title": "Start seeds with the packet instructions",
+      "summary": "Use the variety’s sowing depth and timing; label the crop and date.",
+      "steps": [
+        "Choose suitable seeds for the season. Use the packet instructions for depth and germination requirements.",
+        "For indoor starts, use clean containers with drainage and a suitable seed-starting medium. Moisten the medium before sowing.",
+        "Provide suitable light and temperature for the crop. Check moisture without leaving the containers waterlogged.",
+        "Record the variety and sowing date in My Crops. Keep unused packets in Seed Vault."
+      ],
+      "scope": "General growing",
+      "task": "Check seedling moisture and growth",
+      "category": "grow",
+      "source": {
+        "title": "University of Minnesota Extension: Starting seeds indoors",
+        "url": "https://extension.umn.edu/planting-and-growing-guides/starting-seeds-indoors"
+      }
+    },
+    {
+      "id": "transplant",
+      "group": "starting",
+      "title": "Prepare seedlings for transplant",
+      "summary": "Gradually acclimate indoor-grown seedlings before moving them outdoors.",
+      "steps": [
+        "Introduce outdoor light and wind gradually over about one to two weeks; protect tender seedlings from unsuitable temperatures.",
+        "Choose planting time for the crop and local conditions, rather than a fixed date for every grow.",
+        "Handle the root ball carefully and minimize root disturbance. For HydroPip, confirm moist media, prepared nutrient water, and delivery before planting.",
+        "Record the transplant date and location in My Crops. Check the plants after the move and record any wilting or damage."
+      ],
+      "scope": "General growing",
+      "task": "Check newly transplanted seedlings",
+      "category": "grow",
+      "source": {
+        "title": "University of Maryland Extension: Planting vegetable transplants",
+        "url": "https://extension.umd.edu/resource/planting-vegetable-transplants"
+      }
+    },
+    {
+      "id": "fresh-batch",
+      "group": "water",
+      "title": "Prepare a fresh nutrient batch",
+      "summary": "Before adding seeds or transplants, calculate for the actual water volume and plant stage.",
+      "steps": [
+        "Open the nutrient calculator with this grow selected. Check the water volume, nutrient program, crop, and stage before using the result.",
+        "For the HydroPip MasterBlend program, fill with clean water and start mixing circulation. Dissolve magnesium sulfate, MasterBlend, and calcium nitrate separately in that order; do not combine dry concentrates.",
+        "Allow the batch to mix evenly and verify delivery to every tower. Record the recipe and any measurements.",
+        "This timed-feed method lets the reservoir level fall and prepares a fresh batch near empty. Do not apply that refill approach automatically to a recirculating system."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Prepare the next fresh nutrient batch",
+      "category": "nutrients",
+      "calculator": true
+    },
+    {
+      "id": "feed-timing",
+      "group": "water",
+      "title": "Tune feed timing from observations",
+      "summary": "Start with short daytime feeds; check the media and runoff before adjusting.",
+      "steps": [
+        "Observe a complete feed at a representative tower, then confirm the other towers receive water too.",
+        "If one tower is dry while others are wet, check its branch and outlet before increasing the whole system schedule.",
+        "If delivery is working but media dries too much between feeds, review duration and frequency using plant response and conditions.",
+        "If runoff is heavy or media stays soaked, reduce excess feeding and recheck. Change one setting at a time and record what happened."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Observe a feed cycle and media moisture",
+      "category": "maintenance"
+    },
+    {
+      "id": "routine-check",
+      "group": "care",
+      "title": "Check plants and the system",
+      "summary": "Look for changes in plants, delivery, and reservoir conditions.",
+      "steps": [
+        "Check leaves, growing tips, roots where accessible, and the underside of leaves for damage or pests.",
+        "Confirm tower delivery, timer operation, reservoir level, and secured mixing circulation. Check for leaks and dry pockets.",
+        "Keep light out of nutrient water. Review pH if measured and EC/TDS when investigating nutrient strength.",
+        "Log what changed and when in Grow Journal. Use Planner for the next inspection rather than guessing what you last did."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Inspect plants, tower flow, and reservoir",
+      "category": "maintenance"
+    },
+    {
+      "id": "dry-tower",
+      "group": "trouble",
+      "title": "One tower is dry",
+      "summary": "Check delivery before changing the feed schedule for every tower.",
+      "steps": [
+        "Observe which towers receive water during a scheduled feed.",
+        "If none receive water, check power, timer, reservoir level, and the feed pump.",
+        "If only one is dry, inspect its branch tube and outlet for blockage or disconnection. Disconnect power before handling equipment.",
+        "After correcting delivery, recheck that tower and its media. Record the affected plants and the change."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Recheck water delivery at the affected tower",
+      "category": "maintenance"
+    },
+    {
+      "id": "yellow-leaves",
+      "group": "trouble",
+      "title": "Yellow or pale leaves",
+      "summary": "A color change alone does not tell you which nutrient to add.",
+      "steps": [
+        "Record the crop, whether new or older leaves are affected, and whether one plant or the whole system changed.",
+        "Check water delivery, media condition, roots, and recent changes first.",
+        "After circulation, check pH and EC/TDS if available; review the recipe and crop stage before assuming more fertilizer is needed.",
+        "Ask Pip with those observations and a clear photo. Record the next check before making several changes at once."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Recheck pale leaves and record changes",
+      "category": "grow"
+    },
+    {
+      "id": "roots-algae",
+      "group": "trouble",
+      "title": "Unusual roots or algae",
+      "summary": "Check reservoir conditions and light exposure promptly.",
+      "steps": [
+        "Brown, slimy, or foul-smelling roots need investigation; record the appearance and smell without assuming a diagnosis.",
+        "Check reservoir temperature, circulation, debris, and light leaks. Disconnect power before handling equipment.",
+        "For green film, locate light reaching nutrient water, cover it, clean affected equipment appropriately, and recheck.",
+        "If problems persist, gather photos and conditions for Pip or your local extension service before treating."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Recheck roots and reservoir conditions",
+      "category": "maintenance"
+    },
+    {
+      "id": "harvest-record",
+      "group": "harvest",
+      "title": "Harvest and record the result",
+      "summary": "Keep yield and plant observations with the crop so the next grow can build on them.",
+      "steps": [
+        "Use crop-specific maturity guidance to decide what is ready; a calendar estimate is not a guarantee.",
+        "Record the harvest date, quantity, and useful observations in Grow Journal.",
+        "Update the crop stage in My Crops and plan the next inspection or harvest.",
+        "If a treatment was used, follow its label’s harvest interval and food-use directions."
+      ],
+      "scope": "General growing",
+      "task": "Check harvest readiness",
+      "category": "harvest"
+    },
+    {
+      "id": "tower-reset",
+      "group": "harvest",
+      "title": "Reset towers for the next crop",
+      "summary": "Prepare replacement starts and inspect the system before replanting.",
+      "steps": [
+        "Harvest and assess healthy plants that may continue producing elsewhere; check crop suitability before moving them to raised beds.",
+        "Lift off the removable top guide and remove sections from the center support.",
+        "Recover suitable media over a screened tub, remove roots, and inspect pots and feed lines. Do not automatically reuse media from diseased plants.",
+        "Clean and flush as needed, refill sections, and restack. Confirm flow and a suitable nutrient batch before transplanting.",
+        "Record the new crop date and schedule the first follow-up check."
+      ],
+      "scope": "HydroPip timed-feed towers",
+      "task": "Prepare and record tower turnover",
+      "category": "maintenance"
+    }
+  ]
+}

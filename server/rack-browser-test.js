@@ -84,7 +84,7 @@ try{
  await check('All notebook pages fit at phone and desktop widths without script errors',async()=>{
   for(const width of [320,390,1440]){
    await page.setViewportSize({width,height:844});
-   for(const name of ['Rhythm','Profile','Planner','My Crops','Seed Vault','Grow Journal','Track Build','Account']){
+   for(const name of ['Rhythm','Profile','Planner','My Crops','Seed Vault','Grow Journal','Growing Guide','Track Build','Account']){
     await tab(name);assert.ok(await f.locator('body').evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     await page.screenshot({path:path.join(out,name.replaceAll(' ','-').toLowerCase()+'-'+width+'.png')});
    }
