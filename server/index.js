@@ -1,4 +1,4 @@
-import {getTowerPlan,previewTowerPlan,saveTowerPlan,mapExistingCrop,confirmTowerPlanting,finishTowerCrop} from './towerPlanner.js';
+import {getTowerPlan,previewTowerPlan,saveTowerPlan,mapExistingCrop,confirmTowerPlanting,finishTowerCrop,saveTowerLevel,updateTowerPositions,undoTowerAction} from './towerPlanner.js';
 import { routeConversation, claimChatExchange, finishChatExchange, getChatExchange, messagePage, moveExchange, previewConversationOrganization } from './conversationMemory.js';
 import { getGrowResources, saveGrowBuild, saveNutrientDraft, previewNutrientBatch, saveNutrientBatch, deleteNutrientBatch, growUnderstanding } from './growResources.js';
 import "dotenv/config";
@@ -767,6 +767,9 @@ app.put('/api/pip/projects/:projectId/tower-plan',growResourceRoute(saveTowerPla
 app.post('/api/pip/projects/:projectId/tower-plan/map-existing',growResourceRoute(mapExistingCrop));
 app.post('/api/pip/projects/:projectId/tower-plan/plant',growResourceRoute(confirmTowerPlanting));
 app.post('/api/pip/projects/:projectId/tower-plan/finish',growResourceRoute(finishTowerCrop));
+app.post('/api/pip/projects/:projectId/tower-plan/level',growResourceRoute(saveTowerLevel));
+app.post('/api/pip/projects/:projectId/tower-plan/crop-update',growResourceRoute(updateTowerPositions));
+app.post('/api/pip/projects/:projectId/tower-plan/undo',growResourceRoute(undoTowerAction));
 app.get('/api/pip/projects/:projectId/resources',growResourceRoute(async args=>({resources:await getGrowResources(args)}),{pro:false}));
 app.get('/api/pip/projects/:projectId/understanding',growResourceRoute(async args=>({understanding:await growUnderstanding(args)}),{pro:false}));
 app.patch('/api/pip/projects/:projectId/build',growResourceRoute(async args=>({resources:await saveGrowBuild(args)})));

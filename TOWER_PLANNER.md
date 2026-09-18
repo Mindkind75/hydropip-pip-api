@@ -1,4 +1,8 @@
-# Tower planning — first release
+# Tower planning — visual level map
+
+The default map shows one crop/variety per level, with all towers on desktop (up to four) and a tower selector on phones. Tap a level for suggestions, planting quantity and crop updates; individual pot selection is under “Manage pots separately.” Existing mixed plantings remain intact. Seed selection and setup details are collapsed below/above the map rather than a long inventory preceding it.
+
+Level suggestions save separately from planting. Partial stage changes and removal split crop records while preserving the other positions and avoiding duplicate seed counts. The latest saved plan/crop action can be undone across devices, guarded by revision and source fingerprints. Undo corrects records only. Prior planting receipts remain retained to prevent old requests being reapplied. No new schema migration is required for this update.
 
 This feature lives in **My Crops → Plan my towers**. Profile is the source of system dimensions, arrangement, spacing, pot volume, lighting, supports, reservoir connections, feeding schedule, and food preferences. Seed Vault is the source of owned varieties and their reviewed planting facts. A saved plan is separate from confirmed plantings.
 
