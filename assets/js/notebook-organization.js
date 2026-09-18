@@ -15,12 +15,12 @@
     visible.sort((a,b)=>String(a.crop).localeCompare(String(b.crop))||String(b.sowDate||'').localeCompare(String(a.sowDate||'')));
     for(const item of visible){
       const box=el('details',null,'notebook-unit crop-card');box.dataset.cropId=item.id;
-      const summary=el('summary');summary.append(el('strong',item.crop+(item.variety?' · '+item.variety:'')),el('span',(stageLabel[item.status]||item.status||'Stage not recorded')+' · '+(locationLabel[item.plantingLocation]||item.plantingLocation),'unit-preview'));box.append(summary);
+      const summary=el('summary');summary.append(el('strong',item.crop+(item.variety?' · '+item.variety:'')),el('span',(item.plantsPlanted?item.plantsPlanted+' plants · ':'')+(stageLabel[item.status]||item.status||'Stage not recorded')+' · '+(locationLabel[item.plantingLocation]||item.plantingLocation),'unit-preview'));box.append(summary);
       const body=el('div',null,'unit-body'),facts=el('dl',null,'crop-facts');
-      for(const [label,value] of [['Planted',item.sowDate||'Date not recorded'],['Seeds planted',item.seedsSown||'Quantity not recorded'],['Harvest window',item.expectedHarvestDate?item.expectedHarvestDate+(item.expectedHarvestEnd?' to '+item.expectedHarvestEnd:'')+' (estimate)':'Not estimated'],['Next succession',item.nextSuccessionDate||'Not scheduled']]){facts.append(el('dt',label),el('dd',String(value)))}
-      body.append(facts);if(item.notes)body.append(el('p',item.notes));
+      for(const [label,value] of [['Planted',item.plantedAt||item.sowDate||'Date not recorded'],[item.plantsPlanted?'Plants / occupied positions':'Seeds planted',item.plantsPlanted||item.seedsSown||'Quantity not recorded'],['Harvest window',item.expectedHarvestDate?item.expectedHarvestDate+(item.expectedHarvestEnd?' to '+item.expectedHarvestEnd:'')+' (estimate)':'Not estimated'],['Next succession',item.nextSuccessionDate||'Not scheduled']]){facts.append(el('dt',label),el('dd',String(value)))}
+      body.append(facts);if(item.towerPositions?.length)body.append(el('p','Mapped in Plan my towers. Use that plan to record turnover.'));if(item.notes)body.append(el('p',item.notes));
       const actions=el('div',null,'crop-actions');
-      if(['hydropip_tower','nursery_for_hydropip'].includes(item.plantingLocation)){const edit=el('button','Update crop','btn');edit.type='button';edit.addEventListener('click',()=>callbacks.onEdit(item));actions.append(edit)}
+      if(!item.towerPositions?.length&&['hydropip_tower','nursery_for_hydropip'].includes(item.plantingLocation)){const edit=el('button','Update crop','btn');edit.type='button';edit.addEventListener('click',()=>callbacks.onEdit(item));actions.append(edit)}
       const inventory=el('button','Find seed packets','btn');inventory.type='button';inventory.addEventListener('click',()=>callbacks.onVault(item.crop));actions.append(inventory);body.append(actions);box.append(body);list.append(box);
     }
   }

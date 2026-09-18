@@ -612,7 +612,7 @@ async function answerPip({ message, image, profile, subscription, history = [], 
       "Saving reminders, storing grow logs, persistent tracking, personalized calculators, and sensor-based schedule tuning require Pip Pro or future Pro features. Do not present future Pro features as already live unless tool data confirms they are active.",
       "When create_reminder, create_grow_plan, or manage_calendar returns confirmation_required, say the change is ready to review and use the on-screen confirmation button. Never say it is saved, deleted, updated, queued for staff, or completed until the user confirms it and the server reports success.",
       "If projectContext is provided, use it as the user's saved project memory and continue that project instead of treating the question as a fresh visitor chat. The selected conversation title is an organizational hint, not a restriction on answering a clear question.",
-      "When projectContext.seedPacks is present, distinguish inventory from planted crops. plantingLocation=seed_vault means the user owns the pack but the crop is not currently growing. Only hydropip_tower and nursery_for_hydropip belong to the current HydroPip grow. raised_bed and finished are not current tower crops. Use packsOnHand for inventory. For a planting, use its saved seedsSown quantity when present; never infer individual seed counts from packs. Never claim a crop is in the system from inventory alone, and do not claim inventory or location changed until the user confirms the on-screen action and the server reports success.",
+      "When projectContext.seedPacks is present, distinguish inventory from planted crops. plantingLocation=seed_vault means the user owns the pack but the crop is not currently growing. Only hydropip_tower and nursery_for_hydropip belong to the current HydroPip grow. raised_bed and finished are not current tower crops. Use packsOnHand for inventory. For a planting, plantsPlanted is the confirmed number of occupied positions; seedsSown is only a seed-sowing count. Tower plan plant_now and plant_later positions are proposals, not growing crops. If a plan is stale or positionsTruncated is true, do not claim a complete current layout; direct the user to Plan my towers. Never claim to save or rearrange a tower plan through chat; use the notebook review flow. For seed sowing, use its saved seedsSown quantity when present; never infer individual seed counts from packs. Never claim a crop is in the system from inventory alone, and do not claim inventory or location changed until the user confirms the on-screen action and the server reports success.",
       "For an active Pip Pro member, when an attached photo primarily shows loose seed packets laid out with labels visible, call extract_seed_pack_inventory even if the user only says to inspect the photo or provides no specific instruction. Do not mistake growing plants, seedling trays, plant tags, or a single unrelated package for a Seed Vault inventory photo. Read only labels that are actually visible. Group identical packets and count the packs. Never guess an obscured crop, variety, or brand. Use null for an unreadable variety or source, report unreadable packets separately, and rely on the editable review card before saving.",
       "When the saved project profile includes growZone, location, areaType, exposure, plantingDate, crops, or systemStage, use those details to tailor crop timing, heat/frost cautions, sun guidance, and the next practical action.",
       "Honor the saved project profile experienceMode. guided means lead with one clear next action and only the facts needed to complete it. standard means give the normal concise answer with useful supporting context. detailed means include relevant measurements, tradeoffs, records, costs, or optimization detail while still answering the question directly. Never announce the mode or withhold a direct answer because of it.",
@@ -958,6 +958,7 @@ export function buildDirectCalendarConfirmation({ message, history = [], project
     }
     const reminders = starterCalendarReminders({
       profile: projectContext.project?.systemProfile || {},
+      towerPlan: projectContext.towerPlan || null,
       slots,
       currentDate: new Date().toISOString().slice(0, 10)
     });
@@ -1607,6 +1608,7 @@ function compactProjectContext(projectContext) {
     maintenanceReminderCount: projectContext.maintenanceReminderCount,
     scheduleTimeZones: projectContext.scheduleTimeZones,
     recentReadings: projectContext.recentReadings,
+    towerPlan: projectContext.towerPlan,
     seedPacks: projectContext.seedPacks,
     seedRecordCount: projectContext.seedRecordCount,
     earlierUserNotes: (projectContext.retrievedMessages || []).filter(item => item.role === 'user' && !(projectContext.recentMessages || []).some(recent => recent.id === item.id)).map(({content, createdAt}) => ({content, createdAt}))

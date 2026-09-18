@@ -1,3 +1,4 @@
+import {getTowerPlan,previewTowerPlan,saveTowerPlan,mapExistingCrop,confirmTowerPlanting,finishTowerCrop} from './towerPlanner.js';
 import { routeConversation, claimChatExchange, finishChatExchange, getChatExchange, messagePage, moveExchange, previewConversationOrganization } from './conversationMemory.js';
 import { getGrowResources, saveGrowBuild, saveNutrientDraft, previewNutrientBatch, saveNutrientBatch, deleteNutrientBatch, growUnderstanding } from './growResources.js';
 import "dotenv/config";
@@ -760,6 +761,12 @@ function growResourceRoute(handler, {pro=true}={}) { return async(req,res,next)=
   if(pro && !req.pipSubscription?.active)return res.status(402).json({error:'subscription_required',message:'Saved grow tools are available in Pip Pro.'});
   res.json(await handler({...req.body,conversationId:req.query.conversationId,userId:req.pipUser.id,projectId:req.params.projectId,id:req.params.batchId,subscription:req.pipSubscription}));
 }catch(error){next(error)}}; }
+app.get('/api/pip/projects/:projectId/tower-plan',growResourceRoute(getTowerPlan));
+app.post('/api/pip/projects/:projectId/tower-plan/preview',growResourceRoute(previewTowerPlan));
+app.put('/api/pip/projects/:projectId/tower-plan',growResourceRoute(saveTowerPlan));
+app.post('/api/pip/projects/:projectId/tower-plan/map-existing',growResourceRoute(mapExistingCrop));
+app.post('/api/pip/projects/:projectId/tower-plan/plant',growResourceRoute(confirmTowerPlanting));
+app.post('/api/pip/projects/:projectId/tower-plan/finish',growResourceRoute(finishTowerCrop));
 app.get('/api/pip/projects/:projectId/resources',growResourceRoute(async args=>({resources:await getGrowResources(args)}),{pro:false}));
 app.get('/api/pip/projects/:projectId/understanding',growResourceRoute(async args=>({understanding:await growUnderstanding(args)}),{pro:false}));
 app.patch('/api/pip/projects/:projectId/build',growResourceRoute(async args=>({resources:await saveGrowBuild(args)})));

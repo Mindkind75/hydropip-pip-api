@@ -107,6 +107,7 @@ const defaultState = {
 let stateCache;
 let poolPromise;
 let schemaPromise;
+let towerPlansMigrationPromise;
 let actionReviewsMigrationPromise;
 let conversationMigrationPromise;
 let growResourcesMigrationPromise;
@@ -1647,6 +1648,7 @@ export async function deleteUserData({ userId } = {}) {
     delete state.reminders[projectId];
     delete state.readings[projectId];
     delete state.seeds[projectId];
+    if(state.towerPlans)delete state.towerPlans[projectId];
   });
   conversationIds.forEach((conversationId) => {
     delete state.chatThreads[conversationId];
@@ -2567,6 +2569,7 @@ export async function buildProjectContext({ userId, projectId, conversationId, q
     conversation,
     growBuild: resources.buildSummary,
     savedRecordConflicts: resourceConflicts(project.systemProfile,resources),
+    towerPlan: await (await import("./towerPlanner.js")).towerPlanContext({userId,projectId}),
     nutrientBatches: resources.batches.slice(0, 5).map(({signature,...batch})=>batch),
     recentMessages: messages || [],
     retrievedMessages,
@@ -2584,6 +2587,9 @@ export async function buildProjectContext({ userId, projectId, conversationId, q
       status: item.status,
       plantingLocation: item.plantingLocation,
       sowDate: item.sowDate,
+      plantsPlanted: item.plantsPlanted,
+      plantedAt: item.plantedAt,
+      towerPositions: item.towerPositions,
       seedsSown: item.seedsSown,
       seedsSprouted: item.seedsSprouted,
       notes: item.notes,
@@ -2866,7 +2872,9 @@ async function ensureSchema(pool) {
   growResourcesMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/002-grow-resources.sql',import.meta.url),'utf8')).catch(error=>{growResourcesMigrationPromise=null;throw error});
   await growResourcesMigrationPromise;
   actionReviewsMigrationPromise ||= pool.query(fs.readFileSync(new URL('./migrations/003-action-reviews.sql',import.meta.url),'utf8')).catch(error=>{actionReviewsMigrationPromise=null;throw error});
-  return actionReviewsMigrationPromise;
+  await actionReviewsMigrationPromise;
+  towerPlansMigrationPromise ||= pool.query(fs.readFileSync(new URL("./migrations/004-tower-plans.sql",import.meta.url),"utf8")).catch(error=>{towerPlansMigrationPromise=null;throw error});
+  return towerPlansMigrationPromise;
 }
 
 async function upsertUserPg(normalized) {
@@ -3173,8 +3181,19 @@ function normalizeSystemProfile(profile = {}, type) {
     rhythmStage: cleanOptionalText(profile.rhythmStage, 40),
     plantingDate: cleanOptionalText(profile.plantingDate, 20),
     reservoirGallons: normalizeOptionalNumber(profile.reservoirGallons),
-    plantSites: normalizeOptionalNumber(profile.plantSites),
+    plantSites: [profile.towerCount,profile.levelsPerTower,profile.potsPerLevel].every(v=>Number.isInteger(Number(v))&&Number(v)>0) ? Number(profile.towerCount)*Number(profile.levelsPerTower)*Number(profile.potsPerLevel) : normalizeOptionalNumber(profile.plantSites),
     towerCount: normalizeOptionalNumber(profile.towerCount),
+    levelsPerTower: normalizeOptionalNumber(profile.levelsPerTower),
+    potsPerLevel: normalizeOptionalNumber(profile.potsPerLevel),
+    levelSpacingInches: normalizeOptionalNumber(profile.levelSpacingInches),
+    potSpacingInches: normalizeOptionalNumber(profile.potSpacingInches),
+    towerSpacingInches: normalizeOptionalNumber(profile.towerSpacingInches),
+    potVolumeLiters: normalizeOptionalNumber(profile.potVolumeLiters),
+    towerArrangement: cleanOptionalText(profile.towerArrangement, 300),
+    lightDirection: cleanOptionalText(profile.lightDirection, 300),
+    plantSupports: cleanOptionalText(profile.plantSupports, 300),
+    reservoirConnections: cleanOptionalText(profile.reservoirConnections, 300),
+    plantingPriorities: cleanOptionalText(profile.plantingPriorities, 300),
     crops: Array.isArray(profile.crops) ? [...new Set(profile.crops.map(value => String(value).trim()).filter(Boolean))].slice(0, 20) : [],
     goals: Array.isArray(profile.goals) ? profile.goals.map(String).slice(0, 12) : [],
     medium: profile.medium || null,
@@ -3713,6 +3732,14 @@ export function normalizeSeed(seed = {}) {
     method: cleanOptionalText(seed.method, 40) || "direct_sow",
     seedsSown,
     seedsSprouted,
+    towerPositions: Array.isArray(seed.towerPositions)?[...new Set(seed.towerPositions.filter(v=>Number.isInteger(v)&&v>=0&&v<1600))]:[],
+    plantsPlanted: normalizeOptionalNumber(seed.plantsPlanted),
+    plantedAt: cleanOptionalText(seed.plantedAt,20),
+    sourceSeedId: cleanOptionalText(seed.sourceSeedId,160),
+    plantSpacingInches: normalizeOptionalNumber(seed.plantSpacingInches),
+    towerFitReviewed: seed.towerFitReviewed===true,
+    packetWindowStart: cleanOptionalText(seed.packetWindowStart,20),
+    packetWindowEnd: cleanOptionalText(seed.packetWindowEnd,20),
     germinationRate: seedsSown > 0 && seedsSprouted !== null ? Math.min(100, Number(((seedsSprouted / seedsSown) * 100).toFixed(1))) : null,
     succession: Boolean(seed.succession),
     successionIntervalDays: normalizeOptionalNumber(seed.successionIntervalDays),
