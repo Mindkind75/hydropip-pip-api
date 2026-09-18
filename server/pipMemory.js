@@ -64,7 +64,7 @@ export const projectTemplates = [
     id: "grow_log",
     title: "Grow Log",
     access: "pip_pro",
-    description: "Paid project for saving readings, observations, photos, issues, and Pip's prior guidance."
+    description: "Paid project for saving readings, observations, issues, and Pip's prior guidance, including photo analysis. Original photos are not kept in grow history."
   },
   {
     id: "sensor_schedule",
