@@ -2484,7 +2484,7 @@ export async function listProjectReadings({ userId, projectId } = {}) {
   return state.readings[projectId] || [];
 }
 
-export async function createProjectReading({ userId, projectId, reading = {}, subscription = {} } = {}) {
+export async function createProjectReading({ userId, projectId, reading = {}, subscription = {}, idempotencyKey } = {}) {
   const project = await getProject({ userId, projectId });
   if (!project) return null;
   if (!subscription?.active) {
@@ -2496,7 +2496,9 @@ export async function createProjectReading({ userId, projectId, reading = {}, su
   }
 
   const saved = {
-    id: makeId("read"),
+    id: typeof idempotencyKey === "string" && idempotencyKey.length > 0 && idempotencyKey.length <= 200
+      ? "read_" + createHash("sha256").update(JSON.stringify([userId, projectId, idempotencyKey, reading])).digest("hex")
+      : makeId("read"),
     batchStartDate: cleanOptionalText(reading.batchStartDate, 20),
     startingReservoirVolume: normalizeOptionalNumber(reading.startingReservoirVolume),
     nutrientStage: cleanOptionalText(reading.nutrientStage, 30),
@@ -2527,14 +2529,17 @@ export async function createProjectReading({ userId, projectId, reading = {}, su
     const pool = await readyPool();
     await pool.query(
       `insert into pip_readings (id, project_id, user_id, reading, taken_at, created_at)
-       values ($1, $2, $3, $4::jsonb, $5, $6)`,
+       values ($1, $2, $3, $4::jsonb, $5, $6) on conflict (id) do nothing`,
       [saved.id, projectId, userId, JSON.stringify(saved), saved.takenAt, saved.createdAt]
     );
     await pool.query("update pip_projects set updated_at = $1 where id = $2", [saved.createdAt, projectId]);
-    return { status: "saved", reading: saved };
+    const result = await pool.query("select * from pip_readings where id = $1 and user_id = $2 and project_id = $3", [saved.id, userId, projectId]);
+    return { status: "saved", reading: rowToReading(result.rows[0]) };
   }
 
   const state = readState();
+  const existing = (state.readings[projectId] || []).find(item => item.id === saved.id);
+  if (existing) return { status: "saved", reading: existing };
   state.readings[projectId] = [...(state.readings[projectId] || []), saved];
   state.projects[projectId].updatedAt = saved.createdAt;
   writeState(state);

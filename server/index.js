@@ -991,6 +991,7 @@ app.post("/api/pip/projects/:projectId/readings", async (req, res, next) => {
       userId: req.pipUser.id,
       projectId: req.params.projectId,
       reading: req.body?.reading,
+      idempotencyKey: req.body?.idempotencyKey,
       subscription: req.pipSubscription
     });
     if (!result) {

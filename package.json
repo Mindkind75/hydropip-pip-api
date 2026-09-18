@@ -50,7 +50,8 @@
     "qa:journal-ui": "node server/grow-journal-test.js --ui",
     "build:guide": "node server/build-growing-guide.js",
     "qa:guide": "node server/growing-guide-test.js",
-    "qa:guide-ui": "node server/growing-guide-test.js --ui"
+    "qa:guide-ui": "node server/growing-guide-test.js --ui",
+    "qa:note-reliability-ui": "node server/note-reliability-ui-test.js"
   },
   "overrides": {
     "qs": "6.16.0"
