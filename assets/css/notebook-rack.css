@@ -88,3 +88,5 @@
 .garden-pip.notebook-mode-guided #proFocusPanel{display:grid!important;margin:10px 16px;padding:12px}
 .garden-pip #proFocusPanel .experience-control{display:none}
 .garden-pip.account-mode #notebookGuidance{display:none}
+
+.garden-pip #notebookCustomTools > summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:600}
