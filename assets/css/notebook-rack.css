@@ -70,3 +70,21 @@
  .garden-pip .simple-notebook .notebook-unit .unit-body{padding:12px}
  .garden-pip .simple-notebook .profile-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* One colored strip on every screen; the whole navigation scrolls with mobile content. */
+.garden-pip #notebookTabRow{display:flex;align-items:stretch;gap:6px;min-width:0}
+.garden-pip.pro-active #notebookTabRow .workspace-tabs{display:flex;flex:1 1 0;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:5px;padding:0 0 5px;touch-action:pan-x pan-y pinch-zoom;scrollbar-width:thin}
+.garden-pip.pro-active #notebookTabRow .workspace-tab{flex:0 0 auto;width:auto;min-width:80px;white-space:nowrap;padding:9px 12px}
+.garden-pip #notebookAllTools{flex:0 0 auto;align-self:flex-start;min-height:44px;white-space:nowrap}
+.garden-pip #notebookAllTools[hidden],.garden-pip #notebookCustomTools[hidden]{display:none!important}
+.garden-pip .notebook-guidance-control{margin:10px 16px;padding:12px;border:1px solid var(--line);border-radius:7px;background:var(--paper,#fffdf5)}
+.garden-pip .notebook-guidance-control>label{display:block;font-weight:800;margin-bottom:6px}
+.garden-pip .notebook-guidance-control select{width:min(100%,300px);min-height:44px;padding:8px;font:inherit;font-size:16px}
+.garden-pip .notebook-guidance-control p{font-size:.85rem;margin:8px 0}
+.garden-pip #notebookHiddenChoices{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;margin:10px 0}
+.garden-pip #notebookHiddenChoices label{display:flex;align-items:center;gap:8px;min-height:44px}
+.garden-pip #notebookHiddenChoices input{width:20px;height:20px;accent-color:var(--deep)}
+.garden-pip #proFocusPanel{display:none!important}
+.garden-pip.notebook-mode-guided #proFocusPanel{display:grid!important;margin:10px 16px;padding:12px}
+.garden-pip #proFocusPanel .experience-control{display:none}
+.garden-pip.account-mode #notebookGuidance{display:none}

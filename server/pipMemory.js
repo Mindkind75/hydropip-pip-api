@@ -1109,6 +1109,7 @@ export async function updateUserPreferences({ userId, patch = {} } = {}) {
   }
   function apply(current) {
     const next = { ...current };
+    if (Object.hasOwn(patch, "notebookMode")) next.notebookMode = normalizeNotebookMode(patch.notebookMode, current.workspaceTools);
     if (Object.hasOwn(patch, "workspaceTools")) next.workspaceTools = normalizeWorkspaceTools(patch.workspaceTools);
     if (Object.hasOwn(patch, "workspaceStartTab")) next.workspaceStartTab = normalizeWorkspaceStartTab(patch.workspaceStartTab);
     if (Object.hasOwn(patch || {}, 'lastGrowId')) next.lastGrowId = patch.lastGrowId;
@@ -3048,6 +3049,7 @@ function normalizeWorkspaceTabOrder(value) {
 }
 
 const NOTEBOOK_TOOLS = ['rhythm','profile','seeds','crops','planner','log','build','account','guide','chat'];
+function normalizeNotebookMode(value,tools) { return ['guided','full','custom'].includes(value) ? value : Array.isArray(tools)?'custom':'full'; }
 function normalizeWorkspaceTools(value) { return Array.isArray(value) ? [...new Set(value.filter(key=>NOTEBOOK_TOOLS.includes(key)))] : null; }
 function normalizeWorkspaceStartTab(value) { return NOTEBOOK_TOOLS.includes(value) && value !== 'chat' ? value : 'rhythm'; }
 function normalizeUserPreferences(value) {
@@ -3056,6 +3058,7 @@ function normalizeUserPreferences(value) {
     lastGrowId: typeof preferences.lastGrowId === "string" ? preferences.lastGrowId.slice(0, 160) : null,
     workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder),
     workspaceTools: normalizeWorkspaceTools(preferences.workspaceTools),
+    notebookMode: normalizeNotebookMode(preferences.notebookMode,preferences.workspaceTools),
     workspaceStartTab: normalizeWorkspaceStartTab(preferences.workspaceStartTab),
     accountAvatar: normalizeAccountAvatar(preferences.accountAvatar),
     buildEstimate: normalizeBuildEstimate(preferences.buildEstimate),

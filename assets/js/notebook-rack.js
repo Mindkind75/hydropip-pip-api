@@ -31,7 +31,7 @@ window.HydroPipRack = {
     }
     const one = selector => root.querySelector(selector);
     const all = selector => [...root.querySelectorAll(selector)];
-    unit([one('#proFocusPanel')], 'Notebook guidance', 'Suggested tools and how Pip guides you', 'notebook-guidance').classList.add('unit-help','notebook-guidance');
+    one('#proFocusPanel').before(one('#notebookGuidance'));
 
     // Keep today's tasks and their completion controls visible. Other sections retain a live preview.
     const rhythmHints = {

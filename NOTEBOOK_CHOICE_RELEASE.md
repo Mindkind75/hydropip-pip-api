@@ -1,5 +1,7 @@
 # Notebook choice release — September 19, 2026
 
+Follow-up: Notebook guidance is now a visible three-option selector: Guide me, Full notebook, Custom. Custom uses checked-to-hide tab choices and saves them to the account. Arrange retains tab order/opening-tab settings. All tools appears only when tools are hidden and toggles to Hide tools; both it and the colored tabs share one horizontal row. On phones the row scrolls sideways and the navigation scrolls away with the page. The blank desktop guidance wrapper was removed. Verified with the notebook-choice API/mobile/desktop suite, rack browser suite, smoke and site checks. Existing custom tool selections migrate to Custom without losing their saved values.
+
 Batch 1: seed-first planting, optional setup, user-selected tools and reliable shared records.
 
 - Tower planting defaults to direct sowing. Transplants are available under More planting options.
