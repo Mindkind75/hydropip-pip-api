@@ -98,3 +98,7 @@
 
 .garden-pip.notebook-chat-active .return-top-handle{display:none!important}
 .garden-pip .notebook-chat-back{margin-left:auto;flex-shrink:0}
+
+/* Keep setup and guidance controls out of the conversation workspace. */
+.garden-pip.notebook-chat-active #notebookGuidance,
+.garden-pip.notebook-chat-active #proFocusPanel{display:none!important}
