@@ -1120,7 +1120,7 @@ app.post("/api/pip/projects/:projectId/seeds/batch", async (req, res, next) => {
 
 app.patch("/api/pip/projects/:projectId/seeds/:seedId", async (req, res, next) => {
   try {
-    const result = await updateProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seedId: req.params.seedId, patch: req.body?.patch || req.body || {}, subscription: req.pipSubscription });
+    const result = await updateProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seedId: req.params.seedId, patch: req.body?.patch || req.body || {}, expectedUpdatedAt: req.body?.expectedUpdatedAt, subscription: req.pipSubscription });
     if (!result) return res.status(404).json({ error: "project_not_found" });
     res.status(result.status === "not_found" ? 404 : result.status === "subscription_required" ? 402 : 200).json(result);
   } catch (error) { next(error); }

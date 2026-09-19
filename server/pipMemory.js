@@ -1109,6 +1109,8 @@ export async function updateUserPreferences({ userId, patch = {} } = {}) {
   }
   function apply(current) {
     const next = { ...current };
+    if (Object.hasOwn(patch, "workspaceTools")) next.workspaceTools = normalizeWorkspaceTools(patch.workspaceTools);
+    if (Object.hasOwn(patch, "workspaceStartTab")) next.workspaceStartTab = normalizeWorkspaceStartTab(patch.workspaceStartTab);
     if (Object.hasOwn(patch || {}, 'lastGrowId')) next.lastGrowId = patch.lastGrowId;
     if (Object.prototype.hasOwnProperty.call(patch || {}, "workspaceTabOrder")) {
       next.workspaceTabOrder = normalizeWorkspaceTabOrder(patch.workspaceTabOrder);
@@ -2215,27 +2217,15 @@ export async function applyProjectReminderAction({
   return { status: "invalid_operation" };
 }
 
+// Kept for older clients: opening a notebook must never create or replace tasks.
 export async function seedProjectDefaults({ userId, projectId, subscription = {} } = {}) {
   const project = await getProject({ userId, projectId });
   if (!project) return null;
-  const current = await listProjectReminders({ userId, projectId });
   if (!subscription?.active) return subscriptionRequired("Saved maintenance schedules require Pip Pro.");
-  const legacy = current.filter((item) => item.note === "hydropip_default");
-  for (const item of legacy) {
-    await deleteProjectReminder({ userId, projectId, reminderId: item.id, subscription });
-  }
-  const retained = current.filter((item) => item.note !== "hydropip_default");
-  const defaults = standardReminderDefaults(project.systemProfile);
-  const existingTitles = new Set(retained.map((item) => String(item.title || "").trim().toLowerCase()));
-  const existingStarterMarkers = new Set(retained.map((item) => item.note).filter((note) => /^hydropip_(weekly|monthly)_v2$/.test(note || "")));
-  const missing = defaults.filter((item) => !existingTitles.has(item.title.trim().toLowerCase()) && !existingStarterMarkers.has(item.note));
-  if (!missing.length) return { status: "already_ready", reminders: retained, addedCount: 0, removedCount: legacy.length };
-  const saved = [];
-  for (const reminder of missing) {
-    const result = await createProjectReminder({ userId, projectId, reminder, subscription });
-    if (result?.reminder) saved.push(result.reminder);
-  }
-  return { status: "created", reminders: saved, addedCount: saved.length, removedCount: legacy.length };
+  const current = await listProjectReminders({ userId, projectId });
+  const suggestions = project.systemProfile?.systemType === 'hydropip_tower'
+    ? standardReminderDefaults({...project.systemProfile, plantingDate:null}).filter(r=>!current.some(c=>c.title===r.title)).map(r=>({...r,notify:false})) : [];
+  return {status:'review_required', reminders:current, suggestions, addedCount:0, removedCount:0};
 }
 
 export async function listProjectSeeds({ userId, projectId } = {}) {
@@ -2318,23 +2308,30 @@ export async function addProjectSeedPacks({ userId, projectId, items = [], subsc
   return { status: "saved", seeds: saved, addedCount, updatedCount };
 }
 
-export async function updateProjectSeed({ userId, projectId, seedId, patch = {}, subscription = {} } = {}) {
-  const seeds = await listProjectSeeds({ userId, projectId });
-  if (!seeds) return null;
+export async function updateProjectSeed({ userId, projectId, seedId, patch = {}, expectedUpdatedAt, subscription = {} } = {}) {
+  if (!await getProject({userId,projectId})) return null;
   if (!subscription?.active) return subscriptionRequired("Editing seed records requires Pip Pro.");
-  const existing = seeds.find((item) => item.id === seedId);
-  if (!existing) return { status: "not_found" };
-  const saved = normalizeSeed({ ...existing, ...patch, id: seedId, createdAt: existing.createdAt, updatedAt: nowIso() });
-  if (usesPostgres()) {
-    const pool = await readyPool();
-    await pool.query(`update pip_seeds set seed=$1::jsonb, updated_at=$2 where id=$3 and project_id=$4 and user_id=$5`, [JSON.stringify(saved), saved.updatedAt, seedId, projectId, userId]);
-  } else {
-    const state = readState();
-    state.seeds ||= {};
-    state.seeds[projectId] = (state.seeds[projectId] || []).map((item) => item.id === seedId ? saved : item);
-    writeState(state);
+  function merge(existing) {
+    if (expectedUpdatedAt !== undefined && expectedUpdatedAt !== existing.updatedAt)
+      throw Object.assign(new Error('This seed changed on another device. Your edits are still in the form. Reopen the latest seed before saving.'),{statusCode:409});
+    const updatedAt=new Date(Math.max(Date.now(),Date.parse(existing.updatedAt||0)+1||0)).toISOString();
+    return normalizeSeed({...existing,...patch,id:seedId,createdAt:existing.createdAt,updatedAt});
   }
-  return { status: "updated", seed: saved };
+  if (usesPostgres()) {
+    const client=await (await readyPool()).connect();
+    try {
+      await client.query('begin');
+      const row=(await client.query('select seed,created_at,updated_at from pip_seeds where id=$1 and project_id=$2 and user_id=$3 for update',[seedId,projectId,userId])).rows[0];
+      if(!row){await client.query('rollback');return {status:'not_found'};}
+      const saved=merge({...row.seed,id:seedId,createdAt:toIso(row.created_at),updatedAt:toIso(row.updated_at)});
+      await client.query('update pip_seeds set seed=$1::jsonb,updated_at=$2 where id=$3 and project_id=$4 and user_id=$5',[JSON.stringify(saved),saved.updatedAt,seedId,projectId,userId]);
+      await client.query('commit');return {status:'updated',seed:saved};
+    } catch(error){await client.query('rollback');throw error;} finally{client.release();}
+  }
+  const state=readState(),existing=state.seeds?.[projectId]?.find(s=>s.id===seedId);
+  if(!existing)return {status:'not_found'};
+  const saved=merge(existing);state.seeds[projectId]=state.seeds[projectId].map(s=>s.id===seedId?saved:s);writeState(state);
+  return {status:'updated',seed:saved};
 }
 
 export async function saveProjectRhythmSetup({ userId, projectId, input = {}, subscription = {} } = {}) {
@@ -2591,6 +2588,8 @@ export async function buildProjectContext({ userId, projectId, conversationId, q
       sowDate: item.sowDate,
       plantsPlanted: item.plantsPlanted,
       plantedAt: item.plantedAt,
+      method: item.method,
+      sourceSeedId: item.sourceSeedId,
       towerPositions: item.towerPositions,
       seedsSown: item.seedsSown,
       seedsSprouted: item.seedsSprouted,
@@ -3048,11 +3047,16 @@ function normalizeWorkspaceTabOrder(value) {
   return order;
 }
 
+const NOTEBOOK_TOOLS = ['rhythm','profile','seeds','crops','planner','log','build','account','guide','chat'];
+function normalizeWorkspaceTools(value) { return Array.isArray(value) ? [...new Set(value.filter(key=>NOTEBOOK_TOOLS.includes(key)))] : null; }
+function normalizeWorkspaceStartTab(value) { return NOTEBOOK_TOOLS.includes(value) && value !== 'chat' ? value : 'rhythm'; }
 function normalizeUserPreferences(value) {
   const preferences = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
     lastGrowId: typeof preferences.lastGrowId === "string" ? preferences.lastGrowId.slice(0, 160) : null,
     workspaceTabOrder: normalizeWorkspaceTabOrder(preferences.workspaceTabOrder),
+    workspaceTools: normalizeWorkspaceTools(preferences.workspaceTools),
+    workspaceStartTab: normalizeWorkspaceStartTab(preferences.workspaceStartTab),
     accountAvatar: normalizeAccountAvatar(preferences.accountAvatar),
     buildEstimate: normalizeBuildEstimate(preferences.buildEstimate),
     experienceMode: normalizeExperienceMode(preferences.experienceMode),

@@ -770,7 +770,7 @@ assert.equal(paidBlocked.status, "subscription_required");
 const paidProject = await createProject({
   user: { id: "test-user" },
   type: "crop_schedule",
-  systemProfile: { plantingDate: "2026-08-10", crops: ["leafy_greens"] },
+  systemProfile: { systemType: "hydropip_tower", plantingDate: "2026-08-10", crops: ["leafy_greens"] },
   subscription: { active: true, plan: "pip_pro" }
 });
 assert.equal(paidProject.status, "created");
@@ -916,19 +916,20 @@ const defaultSchedule = await seedProjectDefaults({
   projectId: paidProject.project.id,
   subscription: { active: true }
 });
-assert.equal(defaultSchedule.reminders.length, 6);
-assert.equal(defaultSchedule.removedCount, 1);
-assert.equal(defaultSchedule.reminders.some((item) => item.title.includes("Plant or transplant leafy greens")), true);
-assert.equal(defaultSchedule.reminders.some((item) => item.title === "Weekly tank, mixing circulation, and flow check"), true);
-assert.equal(defaultSchedule.reminders.some((item) => item.title === "Review plant stage, refill window, pumps, and hoses"), true);
-const savedSchedule = await listProjectReminders({ userId: "test-user", projectId: paidProject.project.id });
-assert.equal(savedSchedule.some((item) => item.note === "hydropip_default"), false);
+assert.equal(defaultSchedule.status, 'review_required');
+assert.equal(defaultSchedule.addedCount, 0);
+assert.equal(defaultSchedule.removedCount, 0);
+assert.equal(defaultSchedule.suggestions.length, 2);
+assert.equal(defaultSchedule.reminders.some(item=>item.note==='hydropip_default'),true);
+// Explicitly selected tasks, rather than an implicit notebook-open mutation.
+for(const reminder of defaultSchedule.suggestions)await createProjectReminder({userId:'test-user',projectId:paidProject.project.id,reminder,subscription:{active:true}});
+const savedSchedule = await listProjectReminders({userId:'test-user',projectId:paidProject.project.id});
 const readySchedule = await seedProjectDefaults({
   userId: "test-user",
   projectId: paidProject.project.id,
   subscription: { active: true }
 });
-assert.equal(readySchedule.status, "already_ready");
+assert.equal(readySchedule.status, "review_required");
 assert.equal(readySchedule.addedCount, 0);
 const completedStarter = savedSchedule.find((item) => item.note === "hydropip_weekly_v2");
 await updateProjectReminder({
@@ -969,7 +970,7 @@ const restoredSchedule = await seedProjectDefaults({
   projectId: paidProject.project.id,
   subscription: { active: true }
 });
-assert.equal(restoredSchedule.status, "already_ready");
+assert.equal(restoredSchedule.status, "review_required");
 assert.equal(restoredSchedule.addedCount, 0);
 const updatedReminder = await updateProjectReminder({
   userId: "test-user",
