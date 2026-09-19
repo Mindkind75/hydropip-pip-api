@@ -1,5 +1,11 @@
 # Tower planning — visual level map
 
+## Simple manual placement
+
+The everyday setup is Tower count and Levels per tower, shared by Profile and My Crops. Standard levels default to four pots, while existing custom counts are retained. Selecting a level lists all saved Seed Vault entries regardless of advice readiness or packet count. Saving a choice is a plan; recording planting remains explicit. Manual placement does not claim planting timing or mature-spacing suitability. The detailed eligibility requirements below apply only to optional automatic suggestions, not manual placement or locating existing crops.
+
+Layout edits remap current plant addresses by tower/level/pot in the same transaction as the Profile update. Removing an occupied or assigned level is rejected; other levels do not silently shift. Layout changes invalidate Undo snapshots and old automatic advice. Existing crop records can be placed from My Crops without duplication or required spacing fields.
+
 The default map shows one crop/variety per level, with all towers on desktop (up to four) and a tower selector on phones. Tap a level for suggestions, planting quantity and crop updates; individual pot selection is under “Manage pots separately.” Existing mixed plantings remain intact. Seed selection and setup details are collapsed below/above the map rather than a long inventory preceding it.
 
 Level suggestions save separately from planting. Partial stage changes and removal split crop records while preserving the other positions and avoiding duplicate seed counts. The latest saved plan/crop action can be undone across devices, guarded by revision and source fingerprints. Undo corrects records only. Prior planting receipts remain retained to prevent old requests being reapplied. No new schema migration is required for this update.

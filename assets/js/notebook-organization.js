@@ -21,6 +21,7 @@
       body.append(facts);if(item.towerPositions?.length)body.append(el('p','Mapped in Plan my towers. Use that plan to record turnover.'));if(item.notes)body.append(el('p',item.notes));
       const actions=el('div',null,'crop-actions');
       if(!item.towerPositions?.length&&['hydropip_tower','nursery_for_hydropip'].includes(item.plantingLocation)){const edit=el('button','Update crop','btn');edit.type='button';edit.addEventListener('click',()=>callbacks.onEdit(item));actions.append(edit)}
+      if(item.plantingLocation==='hydropip_tower'&&!isPast(item)){const locate=el('button','Choose tower & level','btn');locate.type='button';locate.onclick=()=>window.HydroPipTowerPlanner.locate(item.id);actions.append(locate);}
       const inventory=el('button','Find seed packets','btn');inventory.type='button';inventory.addEventListener('click',()=>callbacks.onVault(item.crop));actions.append(inventory);body.append(actions);box.append(body);list.append(box);
     }
   }

@@ -1,3 +1,4 @@
+import {remapTowerLayout} from './towerLayout.js';
 import { scheduleContext } from './savedSchedule.js';
 import {createHash} from 'node:crypto';
 import fs from "node:fs";
@@ -1779,11 +1780,12 @@ export async function updateProject({ userId, projectId, patch = {}, expectedPro
     const client=await (await readyPool()).connect();
     try{await client.query('begin');const locked=await client.query('select * from pip_projects where id=$1 and user_id=$2 for update',[projectId,userId]);
       if(!locked.rows[0]){await client.query('rollback');return null}
-      const project=apply(rowToProject(locked.rows[0]));
+      const original=rowToProject(locked.rows[0]),before=structuredClone(original.systemProfile),project=apply(original);
+      if(patch.systemProfile){const seedRows=(await client.query('select * from pip_seeds where project_id=$1 and user_id=$2 for update',[projectId,userId])).rows;const plan=(await client.query('select plan from pip_tower_plans where project_id=$1 and user_id=$2',[projectId,userId])).rows[0]?.plan;const remapped=remapTowerLayout(before,project.systemProfile,seedRows.map(r=>({...r.seed,id:r.id,createdAt:r.created_at.toISOString(),updatedAt:r.updated_at.toISOString()})),plan);if(remapped){for(const seed of remapped.seeds)await client.query('update pip_seeds set seed=$1::jsonb,updated_at=$2 where id=$3 and project_id=$4 and user_id=$5',[JSON.stringify(seed),seed.updatedAt,seed.id,projectId,userId]);if(remapped.plan)await client.query('update pip_tower_plans set plan=$1::jsonb where project_id=$2 and user_id=$3',[JSON.stringify(remapped.plan),projectId,userId]);}}
       const result=await client.query('update pip_projects set title=$1,status=$2,system_profile=$3::jsonb,updated_at=$4 where id=$5 and user_id=$6 returning *',[project.title,project.status,JSON.stringify(project.systemProfile),project.updatedAt,projectId,userId]);
       await client.query('commit');saved=rowToProject(result.rows[0]);
     }catch(error){await client.query('rollback');throw error}finally{client.release()}
-  }else{const state=readState(),project=state.projects[projectId];if(!project||project.userId!==userId)return null;saved=apply(project);writeState(state)}
+  }else{const state=structuredClone(readState()),project=state.projects[projectId];if(!project||project.userId!==userId)return null;const before=structuredClone(project.systemProfile);saved=apply(project);if(patch.systemProfile){const remapped=remapTowerLayout(before,saved.systemProfile,state.seeds?.[projectId]||[],state.towerPlans?.[projectId]);if(remapped){const changes=new Map(remapped.seeds.map(s=>[s.id,s]));state.seeds[projectId]=(state.seeds[projectId]||[]).map(s=>changes.get(s.id)||s);if(remapped.plan)state.towerPlans[projectId]=remapped.plan;}}writeState(state)}
   if(patch.systemProfile)await recordFirstGrowSave(saved);
   return saved;
 }
@@ -3181,10 +3183,10 @@ function normalizeSystemProfile(profile = {}, type) {
     rhythmStage: cleanOptionalText(profile.rhythmStage, 40),
     plantingDate: cleanOptionalText(profile.plantingDate, 20),
     reservoirGallons: normalizeOptionalNumber(profile.reservoirGallons),
-    plantSites: [profile.towerCount,profile.levelsPerTower,profile.potsPerLevel].every(v=>Number.isInteger(Number(v))&&Number(v)>0) ? Number(profile.towerCount)*Number(profile.levelsPerTower)*Number(profile.potsPerLevel) : normalizeOptionalNumber(profile.plantSites),
+    plantSites: [profile.towerCount,profile.levelsPerTower,profile.potsPerLevel||4].every(v=>Number.isInteger(Number(v))&&Number(v)>0) ? Number(profile.towerCount)*Number(profile.levelsPerTower)*Number(profile.potsPerLevel||4) : normalizeOptionalNumber(profile.plantSites),
     towerCount: normalizeOptionalNumber(profile.towerCount),
     levelsPerTower: normalizeOptionalNumber(profile.levelsPerTower),
-    potsPerLevel: normalizeOptionalNumber(profile.potsPerLevel),
+    potsPerLevel: normalizeOptionalNumber(profile.potsPerLevel)||(profile.towerCount&&profile.levelsPerTower?4:null),
     levelSpacingInches: normalizeOptionalNumber(profile.levelSpacingInches),
     potSpacingInches: normalizeOptionalNumber(profile.potSpacingInches),
     towerSpacingInches: normalizeOptionalNumber(profile.towerSpacingInches),
