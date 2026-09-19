@@ -90,3 +90,11 @@
 .garden-pip.account-mode #notebookGuidance{display:none}
 
 .garden-pip #notebookCustomTools > summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:600}
+
+.garden-pip .notebook-chat .chat{height:clamp(540px,75dvh,900px);width:100%;min-width:0;box-shadow:none}
+.garden-pip .notebook-chat .chat-nav-menu{display:none}
+.garden-pip .notebook-chat .log{min-height:160px}
+@media(max-width:600px){.garden-pip.pro-active .notebook-chat{padding:8px}.garden-pip .notebook-chat .chat{height:75dvh;min-height:540px}}
+
+.garden-pip.notebook-chat-active .return-top-handle{display:none!important}
+.garden-pip .notebook-chat-back{margin-left:auto;flex-shrink:0}

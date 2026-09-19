@@ -21,7 +21,7 @@ async function openMessage(id){
  dialog.replaceChildren(el('h2',data.conversation.title,{id:'journalConversationTitle'}),el('p',data.conversation.status==='archived'?'Archived conversation · saved context':'Saved conversation · surrounding messages'));
  dialog.append(button('Close',()=>dialog.close()));const list=el('div',null,{class:'journal-conversation'});let target;
  for(const item of data.messages){const row=el('article',null,{class:'history-item',tabindex:'-1'});row.append(el('strong',item.role==='assistant'?'Pip':'You'),el('small',date(item.createdAt)),el('p',item.content));if(item.id===data.anchorId){row.classList.add('journal-highlight');row.setAttribute('aria-label','Selected message');target=row}list.append(row)}dialog.append(list);
- if(data.conversation.status==='active'){const link=el('a','Continue in Ask Pip',{class:'btn',href:a.chatUrl(data.conversation.id),target:'_top'});link.addEventListener('click',()=>a.onContinue(data.conversation.id));dialog.append(link)}
+ if(data.conversation.status==='active'){const link=el('a','Continue in Ask Pip',{class:'btn',href:a.chatUrl(data.conversation.id),target:'_top'});link.addEventListener('click',event=>{if(a.onContinue(data.conversation.id)===false){event.preventDefault();dialog.close()}});dialog.append(link)}
  dialog.showModal();requestAnimationFrame(()=>{target?.scrollIntoView({block:'center'});target?.focus({preventScroll:true})});
 }
 async function findHistory(append=false){
