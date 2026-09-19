@@ -112,9 +112,12 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    await f.context.close();
   }
   for(const [name,query,pro,expected] of [
-   ['Calculator signup returns to the calculator','pro=signup&tool=nutrients',false,'/nutrient-calculator.html#session='],
-   ['Calculator login returns to the calculator','pro=login&tool=nutrients',false,'/nutrient-calculator.html#session='],
-   ['Pro calculator login preserves the requested tool','pro=login&tool=nutrients',true,'/nutrient-calculator.html#session='],
+   ['Calculator signup returns to the calculator','pro=signup&tool=nutrients',false,'/nutrient-calculator'],
+   ['Calculator login returns to the calculator','pro=login&tool=nutrients',false,'/nutrient-calculator'],
+   ['Pro calculator login preserves the requested tool','pro=login&tool=nutrients',true,'/nutrient-calculator'],
+   ['Calculator signup preserves the selected grow','pro=signup&tool=nutrients&projectId=p1',false,'/nutrient-calculator'],
+   ['Calculator login preserves the selected grow','pro=login&tool=nutrients&projectId=p1',false,'/nutrient-calculator'],
+   ['Pro calculator login preserves the selected grow','pro=login&tool=nutrients&projectId=p1',true,'/nutrient-calculator'],
    ['Checklist login returns to the checklist','pro=login&return=track',false,'https://www.hydropip.com/track-my-build'],
    ['Checklist signup returns to the checklist','pro=signup&return=track',false,'https://www.hydropip.com/track-my-build'],
    ['Returning Pro members open their workspace','pro=login',true,'https://www.hydropip.com/pip?pro=1'],
@@ -123,7 +126,9 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    const f=await fixture({path:'/pip.html?'+query,session:{...session,subscription:{active:pro,plan:pro?'pro':'free_member'}}});
    await f.start();await delay(250);
    const nav=await f.page.evaluate(()=>window.fixtureNavigations);
-   results.push({name,pass:expected?nav.some(n=>n.url.startsWith(expected)):nav.length===0&&await f.page.locator('#pipAuthTitle').isVisible()});
+   const calculator=expected==='/nutrient-calculator';
+   const pass=calculator?nav.length===1&&nav.every(n=>{const url=new URL(n.url,origin),hash=new URLSearchParams(url.hash.slice(1));return url.origin===origin&&url.pathname===expected&&n.target==='_top'&&url.searchParams.get('projectId')===new URLSearchParams(query).get('projectId')&&hash.get('session')===session.sessionToken&&!url.searchParams.has('session')}):expected?nav.some(n=>n.url.startsWith(expected)):nav.length===0&&await f.page.locator('#pipAuthTitle').isVisible();
+   results.push({name,pass});
    await f.context.close();
   }
   console.log(JSON.stringify(results,null,2));
