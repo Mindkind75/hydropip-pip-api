@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var contract = fetch('/assets/js/event-contract.json').then(function(response){if(!response.ok)throw Error('Event contract unavailable');return response.json()}).catch(function(){return null});
+  var contract = fetch('/assets/js/event-contract.json?v=20261003').then(function(response){if(!response.ok)throw Error('Event contract unavailable');return response.json()}).catch(function(){return null});
   var visitorKey = "hydropipConversionVisitorV1";
   var attributionKey = "hydropipAttributionV1";
   var sessionToken = null;
@@ -13,7 +13,7 @@
     if(event.source!==window.parent||!['https://www.hydropip.com','https://hydropip.com'].includes(event.origin)||!event.data||event.data.type!=='HYDROPIP_ATTRIBUTION')return;
     var incoming={},fields=event.data.fields||{};
     Object.keys(campaignFields).forEach(function(key){if(typeof fields[key]==='string'&&fields[key].trim())incoming[campaignFields[key]]=fields[key].trim().slice(0,160)});
-    if(Object.keys(incoming).length)safeStorageSet(attributionKey,JSON.stringify(incoming));
+    if(Object.keys(incoming).length){incoming.capturedAt=Date.now();safeStorageSet(attributionKey,JSON.stringify(incoming));}
     releaseAttribution();
   });
   if(!parentReady){
@@ -50,6 +50,7 @@
   function readAttribution() {
     var stored = {};
     try { stored = JSON.parse(safeStorageGet(attributionKey) || "{}") || {}; } catch (_error) {}
+    if (!stored.capturedAt || Date.now()-stored.capturedAt > 30*86400000 || stored.capturedAt > Date.now()) stored = {};
     var params = new URLSearchParams(location.search);
     var incoming = {
       utmSource: params.get("utm_source"),
@@ -60,6 +61,7 @@
     };
     if (incoming.utmSource || incoming.utmMedium || incoming.utmCampaign) {
       stored = incoming;
+      stored.capturedAt = Date.now();
       safeStorageSet(attributionKey, JSON.stringify(stored));
     }
     return stored;
@@ -135,6 +137,11 @@
     }
     if (host === "amazon.com" || host.endsWith(".amazon.com") || host === "a.co") {
       return { name: "affiliate_link_clicked", metadata: { destinationHost: host, productId: amazonProductId(url), linkLabel: label } };
+    }
+    if (host === "facebook.com" || host.endsWith(".facebook.com")) return { name: "facebook_follow_clicked", metadata: { destinationHost: host, linkLabel: label, surface: location.pathname } };
+    if (['hydropip.com','hydropip-pip-api.onrender.com'].includes(host)) {
+      if (/\/pip(?:\.html)?\/?$/.test(url.pathname) && url.searchParams.get('pro') === '1') return {name:'pip_pro_cta_clicked',metadata:{linkLabel:label,surface:location.pathname}};
+      if (/\/pip(?:\.html)?\/?$/.test(url.pathname) && !url.searchParams.get('pro')) return {name:'pip_cta_clicked',metadata:{linkLabel:label,surface:location.pathname}};
     }
     if (/pro=signup/.test(url.search)) return { name: "signup_started", metadata: { linkLabel: label, surface: location.pathname } };
     return null;

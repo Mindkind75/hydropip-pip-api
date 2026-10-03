@@ -46,6 +46,7 @@ import {
   getBetaExperience,
   getAdminCommandCenter,
   getConversionSummary,
+  getMonthlyGrowthReport,
   getProject,
   getProjectTemplates,
   getUserPreferences,
@@ -540,6 +541,10 @@ app.get("/api/pip/admin/review-items", requirePipAdmin, async (req, res, next) =
   } catch (error) {
     next(error);
   }
+});
+
+app.get("/api/pip/admin/growth-report", requirePipAdmin, async (req, res, next) => {
+  try { res.json(await getMonthlyGrowthReport({month:req.query.month})); } catch(error) {next(error);}
 });
 
 app.get("/api/pip/admin/command-center", requirePipAdmin, async (req, res, next) => {

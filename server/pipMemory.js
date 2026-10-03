@@ -1,3 +1,4 @@
+import {monthWindow, summarizeGrowth} from './growthReport.js';
 import {remapTowerLayout} from './towerLayout.js';
 import { scheduleContext } from './savedSchedule.js';
 import {createHash} from 'node:crypto';
@@ -253,6 +254,20 @@ export async function recordConversionEvent(event = {}) {
   state.conversionEvents[normalized.id] = normalized;
   writeState(state);
   return normalized;
+}
+
+export async function getMonthlyGrowthReport({month} = {}) {
+  const window = monthWindow(month);
+  let events;
+  if (usesPostgres()) {
+    const pool=await readyPool();
+    const result=await pool.query('select * from pip_conversion_events where created_at >= $1 and created_at < $2 order by created_at desc limit 100001',[window.start,window.end]);
+    events=result.rows.map(rowToConversionEvent);
+  } else events=Object.values(readState().conversionEvents).filter(e=>e.createdAt>=window.start && e.createdAt<window.end).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,100001);
+  const truncated=events.length>100000;
+  return summarizeGrowth(events.slice(0,100000),{window,truncated,
+    excludedUserIds:(process.env.PIP_ANALYTICS_EXCLUDED_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean),
+    excludedVisitorIds:(process.env.PIP_ANALYTICS_EXCLUDED_VISITOR_IDS||'').split(',').map(x=>x.trim()).filter(Boolean)});
 }
 
 export async function getConversionSummary({ days = 30 } = {}) {

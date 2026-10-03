@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const code=fs.readFileSync(new URL('../assets/js/conversion-tracking.js',import.meta.url),'utf8');
+const schema=JSON.parse(fs.readFileSync(new URL('../assets/js/event-contract.json',import.meta.url),'utf8'));
+async function browser({search='',stored}={}) {
+  const listeners={},posted=[],storage=new Map();
+  if(stored)storage.set('hydropipAttributionV1',JSON.stringify(stored));
+  const location=new URL('https://hydropip-pip-api.onrender.com/home.html'+search);
+  const window={addEventListener(){}};window.parent=window;
+  const document={referrer:'https://www.facebook.com/',addEventListener:(key,fn)=>listeners[key]=fn};
+  const context={window,document,location,URL,URLSearchParams,Uint32Array,Date,Math,Promise,setTimeout,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},fetch:async(url,opts)=>{if(opts)posted.push(JSON.parse(opts.body).event);return {ok:true,status:200,json:async()=>schema}}};
+  vm.runInNewContext(code,context);
+  const click=async(href,declared='')=>{const link={href,textContent:'Example',getAttribute:k=>k==='data-hp-event'?declared:null};listeners.click({target:{closest:()=>link}});await new Promise(resolve=>setImmediate(resolve));return link.href;};
+  return {click,posted};
+}
+const b=await browser({search:'?utm_source=facebook&utm_medium=social&utm_campaign=tower&utm_content=post1'});
+const next=await b.click('https://www.hydropip.com/pip?pro=1');
+assert.equal(b.posted[0].eventName,'pip_pro_cta_clicked');
+assert.equal(b.posted[0].utmContent,'post1');
+assert.equal(new URL(next).searchParams.get('utm_campaign'),'tower');
+await b.click('https://www.hydropip.com/pip?pro=login','member_login_started');
+assert.equal(b.posted.at(-1).eventName,'member_login_started');
+await b.click('https://www.hydropip.com/pip?pro=signup');
+assert.equal(b.posted.at(-1).eventName,'signup_started');
+await b.click('https://www.facebook.com/HydroPip/');
+assert.equal(b.posted.at(-1).eventName,'facebook_follow_clicked');
+const expired=await browser({stored:{utmSource:'old_campaign',capturedAt:Date.now()-31*86400000}});
+await expired.click('https://www.hydropip.com/pip');
+assert.equal(expired.posted[0].utmSource,null);
+const recent=await browser({stored:{utmSource:'facebook',capturedAt:Date.now()-86400000}});
+await recent.click('https://www.hydropip.com/pip');
+assert.equal(recent.posted[0].utmSource,'facebook');
+console.log('Campaign handoff, click classification and attribution expiry passed.');
