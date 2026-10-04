@@ -17,7 +17,9 @@ import {
   adminKeyRequestAllowed,
   adminRequestAllowed,
   bridgeRequestAllowed,
+  growthReportRequestAllowed,
   issueAdminSession,
+  issueGrowthReportToken,
   issuePipSession,
   sessionFromRequest,
   signedSessionsConfigured,
@@ -545,6 +547,27 @@ app.get("/api/pip/admin/review-items", requirePipAdmin, async (req, res, next) =
 
 app.get("/api/pip/admin/growth-report", requirePipAdmin, async (req, res, next) => {
   try { res.json(await getMonthlyGrowthReport({month:req.query.month})); } catch(error) {next(error);}
+});
+
+app.post("/api/pip/admin/growth-report-token", requirePipAdmin, (req, res, next) => {
+  try {
+    const token = issueGrowthReportToken();
+    if (!token) throw Object.assign(new Error("PIP_ADMIN_KEY is not configured"), { statusCode: 503, code: "growth_report_token_unavailable" });
+    const payload = JSON.parse(Buffer.from(token.split(".")[0], "base64url").toString("utf8"));
+    res.json({ token, scope: payload.scope, expiresAt: new Date(payload.exp * 1000).toISOString() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/pip/reports/monthly-growth", requireGrowthReporter, async (req, res, next) => {
+  try {
+    res.set("Cache-Control", "private, no-store, max-age=0");
+    res.set("Pragma", "no-cache");
+    res.json(await getMonthlyGrowthReport({ month: req.query.month }));
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/pip/admin/command-center", requirePipAdmin, async (req, res, next) => {
@@ -1485,6 +1508,14 @@ function requirePipAdmin(req, res, next) {
     return;
   }
   res.set("Cache-Control", "no-store");
+  next();
+}
+
+function requireGrowthReporter(req, res, next) {
+  if (!growthReportRequestAllowed(req)) {
+    res.status(401).json({ error: "growth_report_token_required" });
+    return;
+  }
   next();
 }
 

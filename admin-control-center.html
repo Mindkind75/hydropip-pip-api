@@ -44,18 +44,21 @@
 
       <section class="section"><div class="section-head"><h2>Action Center</h2><small>What needs attention first</small></div><div class="action-list" id="actionCenter"></div></section>
 
-      <section class="section"><div class="section-head"><h2>Pip Control V2</h2><small id="controlUpdatedAt">Waiting for stats</small></div><div class="metrics" aria-label="Pip Control metrics">
-        <article class="metric"><strong id="visitorCount">-</strong><span>People seen (30d)</span></article>
-        <article class="metric"><strong id="freeMemberCount">-</strong><span>Known free members</span></article>
-        <article class="metric"><strong id="proSubscriberCount">-</strong><span>Paid Pro seen</span></article>
+      <section class="section"><div class="section-head"><h2>Growth and customer health</h2><small id="controlUpdatedAt">Waiting for stats</small></div><div class="metrics" aria-label="Growth and customer health metrics">
+        <article class="metric"><strong id="visitorCount">-</strong><span>Observed visitors (30d)</span></article>
+        <article class="metric"><strong id="freeMemberCount">-</strong><span>Known members without verified Pro</span></article>
+        <article class="metric"><strong id="proSubscriberCount">-</strong><span>Verified active Pro seen</span></article>
         <article class="metric"><strong id="pipCostValue">-</strong><span>AI cost estimate (30d)</span></article>
       </div><div class="control-grid">
-        <article class="control-card"><h3>Traffic and funnel</h3><div class="bar-list" id="controlFunnel"></div></article>
+        <article class="control-card"><h3>Acquisition and activation</h3><p class="source-note">These are observed product events. Signup clicks, member sessions and checkout starts are not completed registrations or sales.</p><div class="bar-list" id="controlFunnel"></div></article>
         <article class="control-card"><h3>Pip usage</h3><div class="bar-list" id="controlUsage"></div></article>
-        <article class="control-card"><h3>Revenue signals</h3><p class="source-note">Paid subscriptions, cancellations, and MRR remain authoritative in <a href="https://manage.wix.com/" target="_blank" rel="noopener">Wix</a>. Counts here include members whose access Pip has recently verified.</p><div class="bar-list" id="controlRevenue"></div></article>
+        <article class="control-card"><h3>Customer outcomes</h3><p class="source-note">Active plans shown here were verified when members connected to Pip. New registrations, first payments, renewals, cancellations, refunds and MRR remain authoritative in <a href="https://manage.wix.com/" target="_blank" rel="noopener">Wix</a>.</p><div class="bar-list" id="controlRevenue"></div></article>
         <article class="control-card"><h3>Review signals</h3><div class="bar-list" id="controlReviews"></div></article>
         <article class="control-card"><h3>Operations health</h3><div class="ops-list" id="controlOps"></div></article>
+        <article class="control-card"><h3>Data coverage</h3><div class="ops-list" id="controlCoverage"></div></article>
       </div></section>
+
+      <section class="section"><div class="section-head"><h2>HQ coordination</h2><small>Owner-only operational source</small></div><div class="control-card"><p class="source-note">Agent runs, content jobs, funding research, blockers and verified backups remain in Hartshorn HQ. The Control Center shows HydroPip product health and links to the current operational record without copying private notes into this app.</p><a class="btn primary" href="https://www.hartshornstudios.net/dashboard" target="_blank" rel="noopener">Open Hartshorn HQ</a> <a class="btn" href="/growth-report.html">Open monthly growth report</a></div></section>
 
       <section class="section"><div class="section-head"><h2>Member lookup</h2><small>Redacted by default</small></div><div class="control-card"><div class="member-search"><input id="memberSearch" type="search" placeholder="Search email, name, or ID"><button class="btn primary" id="memberSearchButton" type="button">Search</button></div><div class="member-list" id="memberResults"></div></div></section>
 
@@ -134,14 +137,15 @@
     }
 
     function renderCommandCenter(data){
-      data=data||{};var overview=data.overview||{},funnel=data.funnel||{},usage=data.pipUsage||{},revenue=data.revenue||{},review=data.review||{},ops=data.operations||{};
+      data=data||{};var overview=data.overview||{},funnel=data.funnel||{},usage=data.pipUsage||{},revenue=data.revenue||{},review=data.review||{},ops=data.operations||{},coverage=data.coverage||{};
       document.querySelector("#visitorCount").textContent=overview.knownVisitors||0;document.querySelector("#freeMemberCount").textContent=overview.freeMembers||0;document.querySelector("#proSubscriberCount").textContent=overview.verifiedPaidSubscribers||0;document.querySelector("#pipCostValue").textContent="$"+Number(usage.estimatedCostUsd||0).toFixed(2);document.querySelector("#controlUpdatedAt").textContent="Last 30 days - "+new Date(data.generatedAt||Date.now()).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
       renderActions(data.actionCenter||[]);
-      renderBars("#controlFunnel",[["Page views",funnel.pageViews||0],["Pip opens",funnel.pipOpens||0],["Chat starts",funnel.chatStarts||0],["Signup clicks",funnel.signupClicks||0],["Pro views",funnel.proViews||0],["Pro checkout",funnel.proCheckoutStarts||0],["Amazon clicks",funnel.affiliateClicks||0]]);
+      renderBars("#controlFunnel",[["Observed visitors",funnel.uniqueVisitors||0],["Page views",funnel.pageViews||0],["Build intent",funnel.buildIntentClicks||0],["Saved estimates",funnel.buildSaves||0],["Pip opens",funnel.pipOpens||0],["Chat starts",funnel.chatStarts||0],["Signup clicks",funnel.signupClicks||0],["Member sessions",funnel.memberSessions||0],["Pro views",funnel.proViews||0],["Checkout starts",funnel.proCheckoutStarts||0],["Amazon clicks",funnel.affiliateClicks||0]]);
       renderBars("#controlUsage",[["AI events",usage.events||0],["Credits used",usage.creditsUsed||0],["Pro usage",usage.subscriberEvents||0],["Free usage",usage.freeMemberEvents||0],["Visitor usage",usage.visitorEvents||0]].concat((usage.byType||[]).map(function(item){return[item.label,item.count]})));
       renderBars("#controlRevenue",[["Paid Pro seen",revenue.verifiedPaidSubscribers||0],["Beta access seen",revenue.betaAccessUsers||0],["Unclassified Pro",revenue.unclassifiedProUsers||0],["Checkout starts",revenue.proCheckoutStarts||0],["Affiliate clicks",revenue.affiliateClicks||0]]);
       renderBars("#controlReviews",[["Open reviews",overview.openReviews||0],["High priority",review.highPriorityOpen||0],["Open feedback",overview.openFeedback||0],["New applicants",overview.newApplications||0]].concat((review.byReason||[]).slice(0,4).map(function(item){return[item.label,item.count]})));
       renderOps(ops,usage);
+      renderCoverage(coverage);
       renderMembers(data.members||[]);
     }
 
@@ -155,6 +159,10 @@
 
     function renderOps(ops,usage){
       usage=usage||{};var globalLimit=Number(usage.globalMonthlyLimit||0),creditLabel=globalLimit?Number(usage.globalMonthlyPercent||0).toFixed(2)+"% of "+globalLimit:"not set",creditRisk=Number(usage.globalMonthlyPercent||0)>=80?"high":"";var rows=[["Database",ops.storageMode||"unknown",ops.storageMode==="postgres"?"":"high"],["OpenAI",ops.aiConfigured?"configured":"fallback",ops.aiConfigured?"":"high"],["AI safety",creditLabel,creditRisk],["Usage events",ops.usageEvents||0,""],["Conversion events",ops.conversionEvents||0,""],["Last Pip use",ops.lastUsageAt?new Date(ops.lastUsageAt).toLocaleString():"none",""],["Last traffic",ops.lastConversionAt?new Date(ops.lastConversionAt).toLocaleString():"none",""]];document.querySelector("#controlOps").innerHTML=rows.map(function(row){return'<div class="ops-row"><strong>'+escapeHtml(row[0])+'</strong><span class="pill '+escapeHtml(row[2])+'">'+escapeHtml(row[1])+'</span></div>'}).join("");
+    }
+
+    function renderCoverage(coverage){
+      var rows=[["HydroPip activity",coverage.productActivity==="connected"?"connected":"check",""],["Completed registrations",coverage.completedRegistrations==null?"Wix source needed":coverage.completedRegistrations,"high"],["Subscription lifecycle",coverage.paidSubscriptionLifecycle==null?"Wix source needed":coverage.paidSubscriptionLifecycle,"high"],["HQ agent operations",coverage.hqOperations?"available in HQ":"check",""]];document.querySelector("#controlCoverage").innerHTML=rows.map(function(row){return'<div class="ops-row"><strong>'+escapeHtml(row[0])+'</strong><span class="pill '+escapeHtml(row[2])+'">'+escapeHtml(row[1])+'</span></div>'}).join("");
     }
 
     function renderMembers(members){

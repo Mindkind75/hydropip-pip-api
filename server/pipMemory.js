@@ -493,10 +493,14 @@ export function summarizeCommandCenter({ users, projects, reviews, conversions, 
       sources: adminTopCounts(conversions.map((event) => event.utmSource || event.referrerHost || "direct"), 8)
     },
     funnel: {
+      uniqueVisitors: new Set(pageViews.map((event) => event.userId || event.visitorId).filter(Boolean)).size,
       pageViews: pageViews.length,
+      buildIntentClicks: eventCount(conversions, "primary_build_cta_clicked"),
       pipOpens: eventCount(conversions, "pip_opened"),
       chatStarts: eventCount(conversions, "pip_question_asked"),
       signupClicks: eventCount(conversions, "signup_started"),
+      memberSessions: eventCount(conversions, "member_session_connected"),
+      buildSaves: eventCount(conversions, "build_estimate_saved"),
       proViews: eventCount(conversions, "pip_pro_viewed"),
       proCheckoutStarts: eventCount(conversions, "pro_checkout_started"),
       affiliateClicks: eventCount(conversions, "affiliate_link_clicked")
@@ -524,6 +528,13 @@ export function summarizeCommandCenter({ users, projects, reviews, conversions, 
       coverage: "members_who_connected_to_pip",
       affiliateClicks: eventCount(conversions, "affiliate_link_clicked"),
       proCheckoutStarts: eventCount(conversions, "pro_checkout_started")
+    },
+    coverage: {
+      productActivity: "connected",
+      completedRegistrations: null,
+      paidSubscriptionLifecycle: null,
+      hqOperations: "hartshorn_private_hq",
+      note: "Completed registrations, first paid subscriptions, renewals, cancellations and refunds remain authoritative in Wix. App events are intent signals, not completed outcomes."
     },
     actionCenter: buildAdminActions({
       openReviews,

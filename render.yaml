@@ -25,6 +25,8 @@ services:
         sync: false
       - key: PIP_ADMIN_KEY
         sync: false
+      - key: PIP_GROWTH_REPORT_TOKEN_VERSION
+        value: 1
       - key: PIP_ADMIN_ALLOWED_IPS
         sync: false
       - key: PIP_ADMIN_IP_MODE

@@ -6,6 +6,9 @@ const DEFAULT_SESSION_TTL_SECONDS = 60 * 60;
 const ADMIN_SESSION_ISSUER = "hydropip-admin";
 const ADMIN_SESSION_AUDIENCE = "hydropip-control-center";
 const DEFAULT_ADMIN_SESSION_TTL_SECONDS = 8 * 60 * 60;
+const GROWTH_REPORT_ISSUER = "hydropip-admin";
+const GROWTH_REPORT_AUDIENCE = "hydropip-growth-report";
+const DEFAULT_GROWTH_REPORT_TTL_SECONDS = 365 * 24 * 60 * 60;
 export const ADMIN_SESSION_COOKIE = "hydropip_admin_session";
 
 export function issuePipSession({ member, subscription } = {}) {
@@ -80,6 +83,58 @@ export function bridgeRequestAllowed(req) {
 
 export function adminRequestAllowed(req) {
   return adminKeyRequestAllowed(req) || Boolean(adminSessionFromRequest(req));
+}
+
+export function growthReportRequestAllowed(req) {
+  const authorization = String(req.headers.authorization || "");
+  const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+  return Boolean(verifyGrowthReportToken(supplied));
+}
+
+export function issueGrowthReportToken() {
+  const secret = growthReportSecret();
+  if (!secret) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    scope: "monthly_growth:read",
+    version: growthReportTokenVersion(),
+    iat: now,
+    exp: now + DEFAULT_GROWTH_REPORT_TTL_SECONDS,
+    iss: GROWTH_REPORT_ISSUER,
+    aud: GROWTH_REPORT_AUDIENCE,
+    jti: crypto.randomUUID()
+  };
+  const encoded = encodeJson(payload);
+  return `${encoded}.${sign(encoded, secret)}`;
+}
+
+export function verifyGrowthReportToken(token) {
+  const secret = growthReportSecret();
+  const [encoded, signature, extra] = String(token || "").split(".");
+  if (!secret || !encoded || !signature || extra) return null;
+  const expected = sign(encoded, secret);
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(actualBuffer, expectedBuffer)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
+    const now = Math.floor(Date.now() / 1000);
+    if (
+      payload.scope !== "monthly_growth:read"
+      || payload.version !== growthReportTokenVersion()
+      || payload.iss !== GROWTH_REPORT_ISSUER
+      || payload.aud !== GROWTH_REPORT_AUDIENCE
+      || !payload.jti
+      || !payload.iat
+      || !payload.exp
+      || payload.exp <= now
+      || payload.iat > now + 60
+      || payload.exp - payload.iat > DEFAULT_GROWTH_REPORT_TTL_SECONDS + 60
+    ) return null;
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 export function adminKeyRequestAllowed(req) {
@@ -161,6 +216,16 @@ function adminSessionSecret() {
   const adminKey = String(process.env.PIP_ADMIN_KEY || "").trim();
   if (!adminKey) return "";
   return crypto.createHmac("sha256", adminKey).update("hydropip-admin-session-v1").digest("base64url");
+}
+
+function growthReportSecret() {
+  const adminKey = String(process.env.PIP_ADMIN_KEY || "").trim();
+  if (!adminKey) return "";
+  return crypto.createHmac("sha256", adminKey).update("hydropip-growth-report-v1").digest("base64url");
+}
+
+function growthReportTokenVersion() {
+  return String(process.env.PIP_GROWTH_REPORT_TOKEN_VERSION || "1").trim().slice(0, 32) || "1";
 }
 
 function adminSessionTtlSeconds() {
