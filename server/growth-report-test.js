@@ -8,6 +8,7 @@ const base={visitorId:'v1',utmSource:'facebook',utmCampaign:'build',utmContent:'
 const events=[{...base,eventName:'page_view'},{...base,userId:'u1',eventName:'member_session_connected'},{...base,userId:'u1',eventName:'affiliate_link_clicked'},{visitorId:'test',utmSource:'qa_regression',eventName:'page_view'},{visitorId:'v2',referrerHost:'hydropip-pip-api.onrender.com',eventName:'page_view'}];
 const report=summarizeGrowth(events);
 assert.equal(report.uniqueVisitors,2);assert.equal(report.excludedEvents,1);assert.equal(report.campaigns[0].uniqueVisitors,1);
+assert.equal(report.memberConnections.length,1);assert.equal(report.memberConnections[0].memberHash.length,64);assert.notEqual(report.memberConnections[0].memberHash,'u1');
 assert.equal(report.paidSubscriptions,null);assert.equal(report.registrations,null);
 assert.equal(summarizeGrowth(events,{excludedUserIds:['u1']}).totalEvents,1);
 assert.equal(trafficSource({referrerHost:'l.facebook.com'}),'facebook');

@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+
 // Aggregate existing telemetry only; payments and Wix registrations remain separate sources.
 export function monthWindow(month) {
   if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month || '')) throw Object.assign(new Error('Use month YYYY-MM'), {statusCode:400});
@@ -38,9 +40,22 @@ export function summarizeGrowth(events, {excludedUserIds=[], excludedVisitorIds=
     if(person){g.people.add(person);(g.unique[e.eventName] ||= new Set()).add(person);}
   }
   const counts={};for(const e of valid)counts[e.eventName]=(counts[e.eventName]||0)+1;
+  const memberConnections = new Map();
+  for (const event of valid.filter(e => e.eventName === 'member_session_connected' && e.userId).sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')))) {
+    const memberHash=createHash('sha256').update(String(event.userId)).digest('hex');
+    if (!memberConnections.has(memberHash)) memberConnections.set(memberHash,{
+      memberHash,
+      connectedAt:event.createdAt||null,
+      source:trafficSource(event),
+      medium:event.utmMedium||null,
+      campaign:event.utmCampaign||null,
+      content:event.utmContent||null
+    });
+  }
   return {...window, generatedAt:new Date().toISOString(), totalEvents:valid.length, excludedEvents:events.length-valid.length,
     uniqueVisitors:new Set(valid.map(identity).filter(Boolean)).size, counts,
     campaigns:[...groups.values()].map(({people,unique,...g})=>({...g,uniqueVisitors:people.size,uniqueByEvent:Object.fromEntries(Object.entries(unique).map(([k,v])=>[k,v.size]))})).sort((a,b)=>b.uniqueVisitors-a.uniqueVisitors),
+    memberConnections:[...memberConnections.values()],
     coverage:{truncated,ownerExclusionsConfigured:excludedUserIds.length>0||excludedVisitorIds.length>0,identity:'Observed visitor-to-account links within this report; shared browsers and unlinked devices remain separate.',
       attribution:'Recorded campaign tags and external referrer; no inferred attribution across missing events.',
       limitations:['Event counts are not site sessions.','Campaign unique visitor counts may overlap.','Member sessions are not new registrations; checkout starts are not paid subscriptions.','Obtain registrations, paid subscriptions, renewals, cancellations and revenue from Wix; affiliate orders and commissions from Amazon.','Historical missing events cannot be recovered.']},

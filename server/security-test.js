@@ -21,7 +21,7 @@ process.env.PIP_REQUIRE_SIGNED_SESSIONS = "true";
 process.env.PIP_AI_DISABLED = "true";
 
 const { app, ipMatchesRule, normalizeIp, optionalPipSession } = await import("./index.js");
-const { adminRequestAllowed, adminSessionFromRequest, issueAdminSession, issuePipSession, verifyPipSession } = await import("./pipAuth.js");
+const { adminRequestAllowed, adminSessionFromRequest, growthReportRequestAllowed, issueAdminSession, issueGrowthReportToken, issuePipSession, verifyPipSession } = await import("./pipAuth.js");
 const { askPip, filterSensitiveModelOutput, isPromptExfiltrationAttempt } = await import("./pipAgent.js");
 const { clientIpHash, validateChatPayload } = await import("./pipUsage.js");
 const {
@@ -72,6 +72,10 @@ process.env.PIP_REQUIRE_SIGNED_SESSIONS = "true";
 assert.equal(adminRequestAllowed({ headers: { "x-pip-admin-key": "security-bridge-secret" } }), false);
 assert.equal(adminRequestAllowed({ headers: { authorization: "Bearer security-admin-secret" } }), true);
 assert.equal(adminRequestAllowed({ headers: {}, query: { adminKey: "security-admin-secret" } }), false);
+const growthReportToken = issueGrowthReportToken();
+assert.equal(growthReportRequestAllowed({ headers: { authorization: `Bearer ${growthReportToken}` } }), true);
+assert.equal(growthReportRequestAllowed({ headers: { authorization: "Bearer security-admin-secret" } }), false);
+assert.equal(adminRequestAllowed({ headers: { authorization: `Bearer ${growthReportToken}` } }), false);
 const adminSessionToken = issueAdminSession();
 assert.equal(adminSessionFromRequest({ headers: { cookie: `hydropip_admin_session=${adminSessionToken}` } })?.scope, "pip_admin");
 assert.equal(adminRequestAllowed({ headers: { cookie: `hydropip_admin_session=${adminSessionToken}` } }), true);
@@ -148,6 +152,9 @@ try {
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`)).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`, { headers: { "x-pip-admin-key": "security-bridge-secret" } })).status, 401);
   assert.equal((await fetch(`${baseUrl}/api/pip/knowledge/search?q=pumps`, { headers: { Authorization: "Bearer security-admin-secret" } })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/api/pip/reports/monthly-growth?month=2026-09`, { headers: { Authorization: "Bearer security-admin-secret" } })).status, 401);
+  assert.equal((await fetch(`${baseUrl}/api/pip/reports/monthly-growth?month=2026-09`, { headers: { Authorization: `Bearer ${growthReportToken}` } })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/api/pip/admin/command-center`, { headers: { Authorization: `Bearer ${growthReportToken}` } })).status, 401);
   const passkeyStatusResponse = await fetch(`${baseUrl}/api/pip/admin/passkeys/status`);
   assert.equal(passkeyStatusResponse.status, 200);
   assert.equal(typeof (await passkeyStatusResponse.json()).enrolled, "boolean");
@@ -158,6 +165,11 @@ try {
   });
   assert.equal(adminSessionResponse.status, 200);
   const adminCookie = String(adminSessionResponse.headers.get("set-cookie") || "").split(";")[0];
+  const reporterIssueResponse = await fetch(`${baseUrl}/api/pip/admin/growth-report-token`, { method: "POST", headers: { Cookie: adminCookie } });
+  assert.equal(reporterIssueResponse.status, 200);
+  const issuedReporter = await reporterIssueResponse.json();
+  assert.equal(issuedReporter.scope, "monthly_growth:read");
+  assert.equal((await fetch(`${baseUrl}/api/pip/reports/monthly-growth?month=2026-09`, { headers: { Authorization: `Bearer ${issuedReporter.token}` } })).status, 200);
   assert.match(adminCookie, /^hydropip_admin_session=/);
   assert.equal((await fetch(`${baseUrl}/api/pip/admin/review-items`, { headers: { Cookie: adminCookie } })).status, 200);
   const adminLogoutResponse = await fetch(`${baseUrl}/api/pip/admin/session/logout`, { method: "POST", headers: { Cookie: adminCookie } });
