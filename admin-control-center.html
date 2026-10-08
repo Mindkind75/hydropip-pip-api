@@ -58,6 +58,17 @@
         <article class="control-card"><h3>Data coverage</h3><div class="ops-list" id="controlCoverage"></div></article>
       </div></section>
 
+      <section class="section"><div class="section-head"><h2>Growing Adventure game</h2><small>Opt-in counts &middot; last 30 days</small></div>
+        <p class="source-note">These are actions, not unique players. Link clicks do not prove a website visit. Players who leave anonymous counts off are not included.</p>
+        <div class="metrics" aria-label="Game activity">
+          <article class="metric"><strong id="gameOpens">-</strong><span>Game opens</span></article>
+          <article class="metric"><strong id="gameStarts">-</strong><span>Farm starts</span></article>
+          <article class="metric"><strong id="gameHarvests">-</strong><span>First harvests</span></article>
+          <article class="metric"><strong id="gameSales">-</strong><span>First sales</span></article>
+        </div>
+        <div class="bar-list" id="gameClickThrough"><div class="empty">Waiting for game data.</div></div>
+      </section>
+
       <section class="section"><div class="section-head"><h2>HQ coordination</h2><small>Owner-only operational source</small></div><div class="control-card"><p class="source-note">Agent runs, content jobs, funding research, blockers and verified backups remain in Hartshorn HQ. The Control Center shows HydroPip product health and links to the current operational record without copying private notes into this app.</p><a class="btn primary" href="https://www.hartshornstudios.net/dashboard" target="_blank" rel="noopener">Open Hartshorn HQ</a> <a class="btn" href="/growth-report.html">Open monthly growth report</a></div></section>
 
       <section class="section"><div class="section-head"><h2>Member lookup</h2><small>Redacted by default</small></div><div class="control-card"><div class="member-search"><input id="memberSearch" type="search" placeholder="Search email, name, or ID"><button class="btn primary" id="memberSearchButton" type="button">Search</button></div><div class="member-list" id="memberResults"></div></div></section>
@@ -121,16 +132,25 @@
     async function loadControlCenter(){
       loginStatus.textContent="";refreshButton.disabled=true;
       try{
-        var results=await Promise.allSettled([fetch("/api/pip/health",{credentials:"same-origin"}).then(function(response){if(!response.ok)throw new Error("Health check failed");return response.json()}),api("/api/pip/admin/beta/overview?limit=250&conversionDays=30"),api("/api/pip/admin/review-items?limit=250"),api("/api/pip/admin/ip-status"),api("/api/pip/admin/command-center?days=30")]);
+        var results=await Promise.allSettled([fetch("/api/pip/health",{credentials:"same-origin"}).then(function(response){if(!response.ok)throw new Error("Health check failed");return response.json()}),api("/api/pip/admin/beta/overview?limit=250&conversionDays=30"),api("/api/pip/admin/review-items?limit=250"),api("/api/pip/admin/ip-status"),api("/api/pip/admin/command-center?days=30"),api("/api/pip/admin/game-metrics?days=30")]);
         var rejected=results.filter(function(result){return result.status==="rejected"}),authFailure=rejected.find(function(result){return result.reason&&(result.reason.status===401||result.reason.status===403)});
         if(authFailure)throw authFailure.reason;
         var health=settledValue(results[0],{}),overview=settledValue(results[1],{}),reviews=settledValue(results[2],{}),network=settledValue(results[3],{mode:"unknown",matched:false}),command=settledValue(results[4],{}),summary=overview.summary||{},reviewItems=reviews.reviewItems||[],newReviews=reviewItems.filter(function(item){return item.status==="new"||item.status==="reviewing"}).length,partial=rejected.length>0;
-        document.querySelector("#applicantCount").textContent=results[1].status==="fulfilled"?(summary.newApplicants||0):"-";document.querySelector("#feedbackCount").textContent=results[1].status==="fulfilled"?(summary.unresolvedFeedback||0):"-";document.querySelector("#reviewCount").textContent=results[2].status==="fulfilled"?newReviews:"-";document.querySelector("#healthValue").textContent=partial?"Partial":health.ok&&health.memory&&health.memory.persistent?"Good":"Check";document.querySelector("#betaAttention").textContent=results[1].status==="fulfilled"?(summary.newApplicants||0)+(summary.unresolvedFeedback||0):"-";document.querySelector("#pipAttention").textContent=results[2].status==="fulfilled"?newReviews:"-";document.querySelector("#updatedAt").textContent=(partial?"Partial data - ":"Updated ")+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});renderCommandCenter(command);renderSecurity(network,health);loginPanel.hidden=true;dashboard.hidden=false;refreshButton.hidden=false;growthTokenButton.hidden=false;lockButton.hidden=false;passkeySetupButton.hidden=passkeyEnrolled;
+        document.querySelector("#applicantCount").textContent=results[1].status==="fulfilled"?(summary.newApplicants||0):"-";document.querySelector("#feedbackCount").textContent=results[1].status==="fulfilled"?(summary.unresolvedFeedback||0):"-";document.querySelector("#reviewCount").textContent=results[2].status==="fulfilled"?newReviews:"-";document.querySelector("#healthValue").textContent=partial?"Partial":health.ok&&health.memory&&health.memory.persistent?"Good":"Check";document.querySelector("#betaAttention").textContent=results[1].status==="fulfilled"?(summary.newApplicants||0)+(summary.unresolvedFeedback||0):"-";document.querySelector("#pipAttention").textContent=results[2].status==="fulfilled"?newReviews:"-";document.querySelector("#updatedAt").textContent=(partial?"Partial data - ":"Updated ")+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});renderCommandCenter(command);renderGameMetrics(settledValue(results[5],null));renderSecurity(network,health);loginPanel.hidden=true;dashboard.hidden=false;refreshButton.hidden=false;growthTokenButton.hidden=false;lockButton.hidden=false;passkeySetupButton.hidden=passkeyEnrolled;
       }catch(error){await initializeLockScreen(error.code==="admin_ip_not_allowed"?"This network is not approved. Change PIP_ADMIN_IP_MODE to observe in Render to recover.":"Unlock again to continue.")}
       finally{refreshButton.disabled=false;unlockButton.disabled=false;passkeyButton.disabled=false}
     }
 
     function settledValue(result,fallback){return result&&result.status==="fulfilled"?result.value:fallback}
+
+    function renderGameMetrics(data){
+      var counts=data&&data.counts;if(!counts)return;
+      document.querySelector("#gameOpens").textContent=counts.game_open||0;
+      document.querySelector("#gameStarts").textContent=counts.campaign_start||0;
+      document.querySelector("#gameHarvests").textContent=counts.first_harvest||0;
+      document.querySelector("#gameSales").textContent=counts.first_sale||0;
+      renderBars("#gameClickThrough",[["Build guide clicks",counts.build_guide_open||0],["Other site link clicks",counts.site_cta||0]]);
+    }
 
     function renderSecurity(network,health){
       var card=document.querySelector("#securityCard"),title=document.querySelector("#securityTitle"),detail=document.querySelector("#securityDetail"),mode=network.mode||"observe",matched=Boolean(network.matched);card.classList.toggle("observe",mode!=="enforce");card.classList.toggle("enforce",mode==="enforce"&&matched);title.textContent=passkeyEnrolled?"Face ID/passkey protection ready":mode==="enforce"?(matched?"Admin IP enforcement active":"Admin IP blocked"):"Set up Face ID for this device";detail.textContent="Signed sessions "+(health.sessions&&health.sessions.required?"required":"need review")+" | Database "+(health.memory&&health.memory.persistent?"persistent":"needs review")+" | Network mode "+mode;

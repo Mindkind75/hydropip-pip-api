@@ -48,6 +48,7 @@ import {
   getBetaExperience,
   getAdminCommandCenter,
   getConversionSummary,
+  getGameEventSummary,
   getMonthlyGrowthReport,
   getProject,
   getProjectTemplates,
@@ -66,6 +67,7 @@ import {
   listReviewItems,
   refundBuildPhotoCheck,
   recordConversionEvent,
+  recordGameEvent,
   reserveAiUsage,
   saveProjectRhythmSetup,
   searchAdminMembers,
@@ -134,6 +136,7 @@ const chatHits = new Map();
 const betaApplicationHits = new Map();
 const feedbackHits = new Map();
 const conversionHits = new Map();
+const gameEventHits = new Map();
 const sessionExchangeHits = new Map();
 const exchangeNonces = new Map();
 const adminPasskeyHits = new Map();
@@ -277,6 +280,18 @@ app.post("/api/pip/conversions", conversionRateLimit, async (req, res, next) => 
   } catch (error) {
     next(error);
   }
+});
+
+app.post("/api/pip/game-events", gameEventRateLimit, async (req, res, next) => {
+  try {
+    if (!serviceOrigins.has(req.get("origin"))) return res.status(403).json({ error: "origin_denied" });
+    if (!req.is("application/json")) return res.status(415).json({ error: "json_required" });
+    const name = req.body?.name;
+    if (Object.keys(req.body || {}).length !== 1 || typeof name !== "string" || !(await recordGameEvent(name))) {
+      return res.status(400).json({ error: "invalid_game_event" });
+    }
+    res.status(202).json({ recorded: true });
+  } catch (error) { next(error); }
 });
 
 app.use("/api/pip/chat", (req, res, next) => {
@@ -576,6 +591,13 @@ app.get("/api/pip/admin/command-center", requirePipAdmin, async (req, res, next)
   } catch (error) {
     next(error);
   }
+});
+
+app.get("/api/pip/admin/game-metrics", requirePipAdmin, async (req, res, next) => {
+  try {
+    res.set("Cache-Control", "private, no-store");
+    res.json(await getGameEventSummary({ days: req.query.days }));
+  } catch (error) { next(error); }
 });
 
 app.get("/api/pip/admin/members", requirePipAdmin, async (req, res, next) => {
@@ -1723,6 +1745,19 @@ function conversionRateLimit(req, res, next) {
   }
   recent.push(now);
   conversionHits.set(ip, recent);
+  next();
+}
+
+function gameEventRateLimit(req, res, next) {
+  const ip = requestIp(req);
+  const now = Date.now();
+  const recent = (gameEventHits.get(ip) || []).filter((time) => now - time < 60_000);
+  if (recent.length >= 60) return res.status(429).json({ error: "game_event_rate_limited" });
+  recent.push(now);
+  gameEventHits.set(ip, recent);
+  if (gameEventHits.size > 5000) {
+    for (const [key, times] of gameEventHits) if (times.at(-1) < now - 60_000) gameEventHits.delete(key);
+  }
   next();
 }
 
