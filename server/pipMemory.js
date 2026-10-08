@@ -101,6 +101,7 @@ const defaultState = {
   reviewItems: {},
   pushSubscriptions: {},
   conversionEvents: {},
+  gameEventTotals: {},
   usageEvents: {},
   creditLedger: {},
   adminPasskeys: {}
@@ -326,6 +327,47 @@ export async function getConversionSummary({ days = 30 } = {}) {
     })),
     latestAt: events[0]?.createdAt || null
   };
+}
+
+const gameEventNames = new Set(["game_open", "campaign_start", "first_harvest", "first_sale", "build_guide_open", "site_cta"]);
+
+export async function recordGameEvent(name) {
+  if (!gameEventNames.has(name)) return false;
+  const day = new Date().toISOString().slice(0, 10);
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    await pool.query(
+      `insert into pip_game_event_totals (day, event_name, count) values ($1, $2, 1)
+       on conflict (day, event_name) do update set count = pip_game_event_totals.count + 1`,
+      [day, name]
+    );
+  } else {
+    const state = readState();
+    const key = `${day}:${name}`;
+    state.gameEventTotals[key] = (state.gameEventTotals[key] || 0) + 1;
+    writeState(state);
+  }
+  return true;
+}
+
+export async function getGameEventSummary({ days = 30 } = {}) {
+  const safeDays = [7, 30, 90, 365].includes(Number(days)) ? Number(days) : 30;
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - safeDays + 1);
+  const startDay = start.toISOString().slice(0, 10);
+  let rows;
+  if (usesPostgres()) {
+    const pool = await readyPool();
+    const result = await pool.query("select day, event_name, count from pip_game_event_totals where day >= $1 order by day", [startDay]);
+    rows = result.rows.map((row) => ({ day: row.day instanceof Date ? row.day.toISOString().slice(0, 10) : String(row.day).slice(0, 10), name: row.event_name, count: Number(row.count) }));
+  } else {
+    rows = Object.entries(readState().gameEventTotals || {}).map(([key, count]) => ({
+      day: key.slice(0, 10), name: key.slice(11), count: Number(count)
+    })).filter((row) => row.day >= startDay);
+  }
+  const counts = Object.fromEntries([...gameEventNames].map((name) => [name, 0]));
+  for (const row of rows) if (gameEventNames.has(row.name)) counts[row.name] += row.count;
+  return { days: safeDays, since: startDay, counts, note: "Opt-in event counts, not unique players or verified site visits." };
 }
 
 export async function getAdminCommandCenter({ days = 30 } = {}) {
@@ -2851,6 +2893,13 @@ async function ensureSchema(pool) {
     create index if not exists pip_conversion_events_visitor_created_idx on pip_conversion_events(visitor_id, created_at desc);
     create index if not exists pip_conversion_events_user_created_idx on pip_conversion_events(user_id, created_at desc);
 
+    create table if not exists pip_game_event_totals (
+      day date not null,
+      event_name text not null,
+      count bigint not null default 0,
+      primary key (day, event_name)
+    );
+
     create table if not exists pip_usage_events (
       id text primary key,
       user_id text references pip_users(id) on delete cascade,
@@ -2943,6 +2992,7 @@ function readState() {
   stateCache.seeds ||= {};
   stateCache.pushSubscriptions ||= {};
   stateCache.conversionEvents ||= {};
+  stateCache.gameEventTotals ||= {};
   stateCache.chatExchanges ||= {};
   stateCache.usageEvents ||= {};
   stateCache.creditLedger ||= {};
