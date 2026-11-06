@@ -1149,7 +1149,7 @@ app.post("/api/pip/projects/:projectId/rhythm/setup", async (req, res, next) => 
 
 app.post("/api/pip/projects/:projectId/seeds", async (req, res, next) => {
   try {
-    const result = await createProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seed: req.body?.seed || req.body || {}, subscription: req.pipSubscription });
+    const result = await createProjectSeed({ userId: req.pipUser.id, projectId: req.params.projectId, seed: req.body?.seed || req.body || {}, subscription: req.pipSubscription, idempotencyKey: req.body?.idempotencyKey });
     if (!result) return res.status(404).json({ error: "project_not_found" });
     res.status(result.status === "saved" ? 201 : 402).json(result);
   } catch (error) { next(error); }

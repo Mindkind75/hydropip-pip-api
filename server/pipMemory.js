@@ -2308,18 +2308,27 @@ export async function listProjectSeeds({ userId, projectId } = {}) {
   return readState().seeds?.[projectId] || [];
 }
 
-export async function createProjectSeed({ userId, projectId, seed = {}, subscription = {} } = {}) {
+export async function createProjectSeed({ userId, projectId, seed = {}, subscription = {}, idempotencyKey } = {}) {
   const project = await getProject({ userId, projectId });
   if (!project) return null;
   if (!subscription?.active) return subscriptionRequired("Seed tracking requires Pip Pro.");
   const now = nowIso();
   const saved = normalizeSeed({ ...seed, id: makeId("seed"), createdAt: now, updatedAt: now });
+  if (typeof idempotencyKey === 'string' && idempotencyKey.length > 0 && idempotencyKey.length <= 200) {
+    const { id, createdAt, updatedAt, ...contents } = saved;
+    saved.id = 'seed_' + createHash('sha256').update(JSON.stringify([userId, projectId, idempotencyKey, contents])).digest('hex');
+  }
   if (usesPostgres()) {
     const pool = await readyPool();
-    await pool.query(`insert into pip_seeds (id, project_id, user_id, seed, created_at, updated_at) values ($1,$2,$3,$4::jsonb,$5,$5)`, [saved.id, projectId, userId, JSON.stringify(saved), now]);
+    await pool.query(`insert into pip_seeds (id, project_id, user_id, seed, created_at, updated_at) values ($1,$2,$3,$4::jsonb,$5,$5) on conflict (id) do nothing`, [saved.id, projectId, userId, JSON.stringify(saved), now]);
+    const result = await pool.query('select id, seed, created_at, updated_at from pip_seeds where id=$1 and project_id=$2 and user_id=$3', [saved.id, projectId, userId]);
+    const row = result.rows[0];
+    return { status: 'saved', seed: { ...row.seed, id: row.id, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at) } };
   } else {
     const state = readState();
     state.seeds ||= {};
+    const existing = (state.seeds[projectId] || []).find(item => item.id === saved.id);
+    if (existing) return { status: 'saved', seed: existing };
     state.seeds[projectId] = [saved, ...(state.seeds[projectId] || [])];
     writeState(state);
   }
